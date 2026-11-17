@@ -1,0 +1,470 @@
+<?php
+declare(strict_types=1);
+
+namespace ImaginaMenu\Rest;
+
+use ImaginaMenu\Compiler\Compiler;
+use ImaginaMenu\Core\Plugin;
+use ImaginaMenu\Frontend\Preview;
+use ImaginaMenu\Integrations\Environment;
+use ImaginaMenu\Licensing\ImaginaUpdater;
+use ImaginaMenu\Model\Defaults;
+use ImaginaMenu\Model\Normalizer;
+use ImaginaMenu\Model\Presets;
+use ImaginaMenu\Repository\MenuRepository;
+use ImaginaMenu\Repository\ProfileRepository;
+use ImaginaMenu\Repository\SettingsRepository;
+use ImaginaMenu\Sources\SourceResolver;
+use WP_Error;
+use WP_REST_Request;
+use WP_REST_Response;
+
+/**
+ * API del admin (namespace imagina-menu/v1). Todo requiere la capacidad imm_manage y el nonce wp_rest.
+ *
+ * Flujo: el admin edita borradores (PUT menus/profiles), los ve en la vista previa y al pulsar
+ * «Publicar» (POST /publish) los borradores pasan a publicados y se compila.
+ */
+final class Routes {
+
+	public const NAMESPACE = 'imagina-menu/v1';
+
+	public static function register(): void {
+		$auth = array( self::class, 'can' );
+		$id   = array(
+			'id' => array(
+				'type'     => 'integer',
+				'required' => true,
+			),
+		);
+
+		self::route( '/state', 'GET', 'state', $auth );
+		self::route( '/settings', 'PUT', 'save_settings', $auth );
+		self::route( '/menus', 'POST', 'create_menu', $auth );
+		self::route( '/menus/(?P<id>\d+)', 'PUT', 'save_menu', $auth, $id );
+		self::route( '/menus/(?P<id>\d+)', 'DELETE', 'delete_menu', $auth, $id );
+		self::route( '/menus/(?P<id>\d+)/duplicate', 'POST', 'duplicate_menu', $auth, $id );
+		self::route( '/profiles', 'POST', 'create_profile', $auth );
+		self::route( '/profiles/(?P<id>\d+)', 'PUT', 'save_profile', $auth, $id );
+		self::route( '/profiles/(?P<id>\d+)', 'DELETE', 'delete_profile', $auth, $id );
+		self::route( '/publish', 'POST', 'publish', $auth );
+		self::route( '/discard', 'POST', 'discard', $auth );
+		self::route( '/preview', 'POST', 'preview', $auth );
+		self::route( '/search', 'GET', 'search', $auth );
+		self::route( '/source-preview', 'POST', 'source_preview', $auth );
+		self::route( '/export', 'GET', 'export', $auth );
+		self::route( '/import', 'POST', 'import', $auth );
+	}
+
+	/**
+	 * @param array<string, mixed> $args
+	 */
+	private static function route( string $path, string $method, string $callback, callable $auth, array $args = array() ): void {
+		register_rest_route(
+			self::NAMESPACE,
+			$path,
+			array(
+				'methods'             => $method,
+				'callback'            => array( self::class, $callback ),
+				'permission_callback' => $auth,
+				'args'                => $args,
+			)
+		);
+	}
+
+	public static function can(): bool {
+		return current_user_can( Plugin::CAP );
+	}
+
+	// ── Estado ──────────────────────────────────────────────────────────────────────────────────
+
+	public static function state(): WP_REST_Response {
+		$menus    = new MenuRepository();
+		$profiles = new ProfileRepository();
+		$all_m    = array_map(
+			static function ( array $m ): array {
+				$m['items'] = self::with_urls( $m['items'] );
+				return $m;
+			},
+			$menus->all( true )
+		);
+		$all_p    = $profiles->all( true );
+		$drafts   = 0;
+		foreach ( $all_m as $m ) {
+			$drafts += $menus->has_draft( (int) $m['id'] ) ? 1 : 0;
+		}
+		foreach ( $all_p as $p ) {
+			$drafts += $profiles->has_draft( (int) $p['id'] ) ? 1 : 0;
+		}
+		$compiler = Plugin::compiler();
+		return new WP_REST_Response(
+			array(
+				'settings' => ( new SettingsRepository() )->get(),
+				'menus'    => $all_m,
+				'profiles' => $all_p,
+				'drafts'   => $drafts,
+				'presets'  => Presets::all(),
+				'defaults' => array(
+					'item'        => Defaults::item(),
+					'bottom_item' => Defaults::bottom_item(),
+					'profile'     => Defaults::profile(),
+				),
+				'compile'  => $compiler->state(),
+				'dirty'    => Compiler::is_dirty(),
+				'env'      => Environment::info() + array( 'license' => ( new ImaginaUpdater() )->status() ),
+			)
+		);
+	}
+
+	/**
+	 * Para el constructor: los ítems enlazados a un contenido muestran su URL actual.
+	 *
+	 * @param list<array<string, mixed>> $items
+	 * @return list<array<string, mixed>>
+	 */
+	private static function with_urls( array $items ): array {
+		foreach ( $items as &$item ) {
+			$id = (int) ( $item['object']['id'] ?? 0 );
+			if ( $id > 0 && '' === $item['url'] ) {
+				$link = 'term' === $item['object']['kind'] ? get_term_link( $id, (string) $item['object']['type'] ) : get_permalink( $id );
+				if ( is_string( $link ) ) {
+					$item['url'] = $link;
+				}
+			}
+			$item['children'] = self::with_urls( $item['children'] ?? array() );
+		}
+		unset( $item );
+		return $items;
+	}
+
+	public static function save_settings( WP_REST_Request $request ): WP_REST_Response {
+		$data = $request->get_json_params();
+		return new WP_REST_Response( array( 'settings' => ( new SettingsRepository() )->save( is_array( $data['settings'] ?? null ) ? $data['settings'] : array() ) ) );
+	}
+
+	// ── Menús ───────────────────────────────────────────────────────────────────────────────────
+
+	public static function create_menu( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$data  = $request->get_json_params();
+		$title = Normalizer::text( $data['title'] ?? '', 80 );
+		$items = array();
+		$from  = (string) ( $data['from'] ?? 'empty' );
+		if ( 'woo' === $from ) {
+			$items[] = array(
+				'type'   => 'source',
+				'source' => array( 'kind' => 'woo_categories', 'depth' => 3 ),
+			);
+		} elseif ( 'wp_menu' === $from ) {
+			$items = self::import_wp_menu( (int) ( $data['wp_menu_id'] ?? 0 ) );
+		}
+		$repo = new MenuRepository();
+		$id   = $repo->create(
+			array(
+				'title' => '' !== $title ? $title : __( 'Menú nuevo', 'imagina-menu' ),
+				'items' => $items,
+			)
+		);
+		if ( ! $id ) {
+			return new WP_Error( 'imm_create_failed', __( 'No se pudo crear el menú.', 'imagina-menu' ), array( 'status' => 500 ) );
+		}
+		return new WP_REST_Response( array( 'menu' => $repo->get( $id, true ) ), 201 );
+	}
+
+	/**
+	 * Copia un menú de WordPress como ítems editables (con sus iconos e insignias por añadir).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function import_wp_menu( int $menu_id ): array {
+		$items = wp_get_nav_menu_items( $menu_id );
+		if ( ! is_array( $items ) ) {
+			return array();
+		}
+		$nodes = array();
+		$tree  = array();
+		foreach ( $items as $item ) {
+			$object = array(
+				'kind' => '',
+				'id'   => 0,
+				'type' => '',
+			);
+			if ( 'post_type' === $item->type ) {
+				$object = array(
+					'kind' => 'post',
+					'id'   => (int) $item->object_id,
+					'type' => (string) $item->object,
+				);
+			} elseif ( 'taxonomy' === $item->type ) {
+				$object = array(
+					'kind' => 'term',
+					'id'   => (int) $item->object_id,
+					'type' => (string) $item->object,
+				);
+			}
+			$nodes[ (int) $item->ID ] = array(
+				'id'       => 'w' . (int) $item->ID,
+				'label'    => wp_strip_all_tags( (string) $item->title ),
+				'url'      => (string) $item->url,
+				'object'   => $object,
+				'target'   => '_blank' === $item->target ? '_blank' : '_self',
+				'children' => array(),
+				'_parent'  => (int) $item->menu_item_parent,
+			);
+		}
+		// Construir el árbol por referencia, respetando el orden del menú.
+		foreach ( $nodes as $key => &$node ) {
+			$parent = $node['_parent'];
+			if ( $parent && isset( $nodes[ $parent ] ) ) {
+				$nodes[ $parent ]['children'][] = &$node;
+			} else {
+				$tree[] = &$node;
+			}
+		}
+		unset( $node );
+		$strip = static function ( array $list ) use ( &$strip ): array {
+			$out = array();
+			foreach ( $list as $n ) {
+				unset( $n['_parent'] );
+				$n['children'] = $strip( $n['children'] );
+				$out[]         = $n;
+			}
+			return $out;
+		};
+		return $strip( $tree );
+	}
+
+	public static function save_menu( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$id   = (int) $request['id'];
+		$data = $request->get_json_params();
+		$repo = new MenuRepository();
+		if ( ! $repo->save_draft( $id, is_array( $data['menu'] ?? null ) ? $data['menu'] : array() ) ) {
+			return new WP_Error( 'imm_not_found', __( 'El menú no existe.', 'imagina-menu' ), array( 'status' => 404 ) );
+		}
+		return new WP_REST_Response( array( 'menu' => $repo->get( $id, true ) ) );
+	}
+
+	public static function duplicate_menu( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$repo = new MenuRepository();
+		$menu = $repo->get( (int) $request['id'], true );
+		if ( ! $menu ) {
+			return new WP_Error( 'imm_not_found', __( 'El menú no existe.', 'imagina-menu' ), array( 'status' => 404 ) );
+		}
+		/* translators: %s: nombre del menú */
+		$menu['title'] = sprintf( __( '%s (copia)', 'imagina-menu' ), $menu['title'] );
+		$id            = $repo->create( $menu );
+		return new WP_REST_Response( array( 'menu' => $repo->get( $id, true ) ), 201 );
+	}
+
+	public static function delete_menu( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$id = (int) $request['id'];
+		foreach ( ( new ProfileRepository() )->all( true ) as $profile ) {
+			if ( (int) $profile['drawer']['menu_id'] === $id ) {
+				/* translators: %s: perfil */
+				return new WP_Error( 'imm_in_use', sprintf( __( 'El perfil «%s» usa este menú. Cámbialo antes de eliminarlo.', 'imagina-menu' ), $profile['title'] ), array( 'status' => 409 ) );
+			}
+		}
+		( new MenuRepository() )->delete( $id );
+		return new WP_REST_Response( array( 'deleted' => true ) );
+	}
+
+	// ── Perfiles ────────────────────────────────────────────────────────────────────────────────
+
+	public static function create_profile( WP_REST_Request $request ): WP_REST_Response {
+		$data                  = $request->get_json_params();
+		$profile               = Defaults::profile();
+		$profile['title']      = Normalizer::text( $data['title'] ?? '', 80 ) ?: __( 'Perfil nuevo', 'imagina-menu' );
+		$profile['is_default'] = false;
+		$repo                  = new ProfileRepository();
+		$id                    = $repo->create( $profile + array( 'menu_order' => count( $repo->all() ) ) );
+		return new WP_REST_Response( array( 'profile' => $repo->get( $id, true ) ), 201 );
+	}
+
+	public static function save_profile( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$id   = (int) $request['id'];
+		$data = $request->get_json_params();
+		$repo = new ProfileRepository();
+		if ( ! $repo->save_draft( $id, is_array( $data['profile'] ?? null ) ? $data['profile'] : array() ) ) {
+			return new WP_Error( 'imm_not_found', __( 'El perfil no existe.', 'imagina-menu' ), array( 'status' => 404 ) );
+		}
+		return new WP_REST_Response( array( 'profile' => $repo->get( $id, true ) ) );
+	}
+
+	public static function delete_profile( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$repo = new ProfileRepository();
+		$all  = $repo->all();
+		if ( count( $all ) <= 1 ) {
+			return new WP_Error( 'imm_last_profile', __( 'Debe quedar al menos un perfil.', 'imagina-menu' ), array( 'status' => 409 ) );
+		}
+		$repo->delete( (int) $request['id'] );
+		return new WP_REST_Response( array( 'deleted' => true ) );
+	}
+
+	// ── Publicar, descartar, vista previa ───────────────────────────────────────────────────────
+
+	public static function publish(): WP_REST_Response {
+		$menus    = new MenuRepository();
+		$profiles = new ProfileRepository();
+		foreach ( $menus->all() as $menu ) {
+			$menus->publish( (int) $menu['id'] );
+		}
+		foreach ( $profiles->all() as $profile ) {
+			$profiles->publish( (int) $profile['id'] );
+		}
+		$state = Plugin::compiler()->publish();
+		return new WP_REST_Response( array( 'compile' => $state ), $state['ok'] ? 200 : 500 );
+	}
+
+	public static function discard(): WP_REST_Response {
+		$menus    = new MenuRepository();
+		$profiles = new ProfileRepository();
+		foreach ( $menus->all() as $menu ) {
+			$menus->discard_draft( (int) $menu['id'] );
+		}
+		foreach ( $profiles->all() as $profile ) {
+			$profiles->discard_draft( (int) $profile['id'] );
+		}
+		return self::state();
+	}
+
+	public static function preview( WP_REST_Request $request ): WP_REST_Response {
+		$data = $request->get_json_params();
+		$path = is_string( $data['path'] ?? null ) ? $data['path'] : '/';
+		$base = SourceResolver::absolute( '/' . ltrim( wp_parse_url( $path, PHP_URL_PATH ) ?: '/', '/' ) );
+		return new WP_REST_Response( array( 'url' => Preview::url( get_current_user_id(), $base ) ) );
+	}
+
+	// ── Búsqueda de objetos para enlazar ────────────────────────────────────────────────────────
+
+	public static function search( WP_REST_Request $request ): WP_REST_Response {
+		$q   = sanitize_text_field( (string) $request->get_param( 'q' ) );
+		$out = array();
+
+		$types = array_values( array_diff( get_post_types( array( 'public' => true ) ), array( 'attachment' ) ) );
+		$posts = get_posts(
+			array(
+				's'              => $q,
+				'post_type'      => $types,
+				'post_status'    => 'publish',
+				'posts_per_page' => 12,
+				'orderby'        => '' === $q ? 'date' : 'relevance',
+				'no_found_rows'  => true,
+			)
+		);
+		foreach ( $posts as $post ) {
+			$type  = get_post_type_object( $post->post_type );
+			$out[] = array(
+				'kind'     => 'post',
+				'id'       => $post->ID,
+				'type'     => $post->post_type,
+				'label'    => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
+				'url'      => (string) get_permalink( $post ),
+				'subtitle' => $type ? $type->labels->singular_name : $post->post_type,
+			);
+		}
+
+		$taxonomies = array_values( get_taxonomies( array( 'public' => true ) ) );
+		$terms      = get_terms(
+			array(
+				'taxonomy'   => array_values( array_diff( $taxonomies, array( 'post_format' ) ) ),
+				'search'     => $q,
+				'number'     => 12,
+				'hide_empty' => false,
+			)
+		);
+		foreach ( is_array( $terms ) ? $terms : array() as $term ) {
+			$tax   = get_taxonomy( $term->taxonomy );
+			$link  = get_term_link( $term );
+			$thumb = (int) get_term_meta( $term->term_id, 'thumbnail_id', true );
+			$out[] = array(
+				'kind'     => 'term',
+				'id'       => $term->term_id,
+				'type'     => $term->taxonomy,
+				'label'    => html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ),
+				'url'      => is_string( $link ) ? $link : '',
+				'subtitle' => $tax ? $tax->labels->singular_name : $term->taxonomy,
+				'image'    => $thumb ? (string) wp_get_attachment_image_url( $thumb, 'thumbnail' ) : '',
+				'image_id' => $thumb,
+			);
+		}
+		return new WP_REST_Response( array( 'results' => $out ) );
+	}
+
+	/** Cómo se verá una fuente dinámica (para el constructor). */
+	public static function source_preview( WP_REST_Request $request ): WP_REST_Response {
+		$data = $request->get_json_params();
+		$menu = Normalizer::menu(
+			array(
+				'items' => array(
+					array(
+						'type'   => 'source',
+						'source' => is_array( $data['source'] ?? null ) ? $data['source'] : array(),
+					),
+				),
+			)
+		);
+		$items = ( new SourceResolver() )->resolve( $menu['items'] );
+		$slim  = static function ( array $list ) use ( &$slim ): array {
+			return array_map(
+				static fn( $i ) => array(
+					'label'    => $i['label'],
+					'url'      => $i['url'],
+					'image'    => $i['image']['url'],
+					'children' => $slim( $i['children'] ),
+				),
+				$list
+			);
+		};
+		return new WP_REST_Response( array( 'items' => $slim( $items ) ) );
+	}
+
+	// ── Exportar / importar ─────────────────────────────────────────────────────────────────────
+
+	public static function export(): WP_REST_Response {
+		return new WP_REST_Response(
+			array(
+				'plugin'   => 'imagina-menu',
+				'version'  => IMM_VERSION,
+				'settings' => ( new SettingsRepository() )->get(),
+				'menus'    => ( new MenuRepository() )->all( true ),
+				'profiles' => ( new ProfileRepository() )->all( true ),
+			)
+		);
+	}
+
+	/**
+	 * Importa menús y perfiles como nuevos (borradores publicados al pulsar «Publicar»). Los ids de
+	 * menú de los perfiles se reasignan a los menús importados.
+	 */
+	public static function import( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$data = $request->get_json_params();
+		if ( 'imagina-menu' !== ( $data['plugin'] ?? '' ) ) {
+			return new WP_Error( 'imm_bad_import', __( 'El archivo no es una exportación de Imagina Menu.', 'imagina-menu' ), array( 'status' => 400 ) );
+		}
+		$menus = new MenuRepository();
+		$map   = array();
+		foreach ( (array) ( $data['menus'] ?? array() ) as $menu ) {
+			if ( is_array( $menu ) ) {
+				$map[ (int) ( $menu['id'] ?? 0 ) ] = $menus->create( $menu );
+			}
+		}
+		$profiles = new ProfileRepository();
+		$count    = 0;
+		foreach ( (array) ( $data['profiles'] ?? array() ) as $profile ) {
+			if ( ! is_array( $profile ) ) {
+				continue;
+			}
+			$old = (int) ( $profile['drawer']['menu_id'] ?? 0 );
+			if ( isset( $map[ $old ] ) ) {
+				$profile['drawer']['menu_id'] = $map[ $old ];
+			}
+			$profile['is_default'] = false;
+			$profile['enabled']    = false; // Se activa a mano: evita que un perfil importado tape al actual.
+			$profiles->create( $profile + array( 'menu_order' => 100 + $count ) );
+			++$count;
+		}
+		if ( ! empty( $data['import_settings'] ) && is_array( $data['settings'] ?? null ) ) {
+			( new SettingsRepository() )->save( $data['settings'] );
+		}
+		return self::state();
+	}
+}

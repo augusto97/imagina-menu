@@ -1,0 +1,7 @@
+/vendor/
+node_modules/
+/frontend/node_modules/
+.phpunit.cache/
+/tests/e2e/results/
+*.log
+.DS_Store
