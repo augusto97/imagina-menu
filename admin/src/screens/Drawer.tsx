@@ -1,0 +1,294 @@
+import { ArrowDown, ArrowUp, Clipboard, Plus, Trash2 } from 'lucide-react';
+import { IconPicker } from '@/components/IconPicker';
+import { IconView } from '@/components/IconView';
+import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/feedback';
+import { Input, Select } from '@/components/ui/input';
+import { __ } from '@/lib/i18n';
+import { setProfile, useActiveProfile, useStore } from '@/lib/store';
+import type { Profile } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+const NETWORKS = [ 'facebook', 'instagram', 'tiktok', 'youtube', 'x', 'pinterest', 'telegram', 'whatsapp' ];
+
+export function DrawerScreen() {
+	const profile = useActiveProfile();
+	const menus = useStore( ( s ) => s.menus );
+	const env = useStore( ( s ) => s.env );
+	if ( ! profile ) {
+		return null;
+	}
+	const d = profile.drawer;
+	const t = profile.trigger;
+	const set = ( path: ( string | number )[], value: unknown ) => setProfile( path, value );
+
+	return (
+		<>
+			<PageHeader title={ __( 'Panel lateral' ) } description={ __( 'El panel que se abre con el botón de menú: cómo se abre, qué muestra arriba y abajo, y cómo navegan los submenús.' ) } />
+			<div className="imm:flex imm:flex-col imm:gap-5">
+				<Section title={ __( 'Panel' ) }>
+					<ToggleRow label={ __( 'Activar el panel' ) } checked={ d.enabled } onChange={ ( v ) => set( [ 'drawer', 'enabled' ], v ) } />
+					<Row label={ __( 'Menú' ) } hint={ __( 'Qué árbol de enlaces muestra.' ) }>
+						<Select value={ d.menu_id } onChange={ ( e ) => set( [ 'drawer', 'menu_id' ], Number( e.target.value ) ) } className="imm:w-56">
+							{ menus.map( ( m ) => (
+								<option key={ m.id } value={ m.id }>
+									{ m.title }
+								</option>
+							) ) }
+						</Select>
+					</Row>
+					<Row label={ __( 'Submenús' ) } hint={ d.submenu_mode === 'slide' ? __( 'Cada submenú entra deslizándose desde el lado, con flecha para volver (estilo Amazon).' ) : d.submenu_mode === 'two_pane' ? __( 'Categorías a la izquierda y subcategorías con imagen a la derecha (estilo apps de compras). Ideal con WooCommerce y ancho del 100 %.' ) : __( 'Los submenús se despliegan debajo de su ítem.' ) }>
+						<Segmented value={ d.submenu_mode } onChange={ ( v ) => set( [ 'drawer', 'submenu_mode' ], v ) } options={ [ { value: 'slide', label: __( 'Deslizante' ) }, { value: 'accordion', label: __( 'Acordeón' ) }, { value: 'two_pane', label: __( 'Dos columnas' ) } ] } />
+					</Row>
+					<Row label={ __( 'Lado' ) }>
+						<Segmented value={ d.side } onChange={ ( v ) => set( [ 'drawer', 'side' ], v ) } options={ [ { value: 'left', label: __( 'Izquierda' ) }, { value: 'right', label: __( 'Derecha' ) }, { value: 'bottom', label: __( 'Abajo' ) } ] } />
+					</Row>
+					<Row label={ __( 'Ancho' ) } hint={ __( 'Porcentaje de la pantalla. Dejar ver un poco del sitio ayuda a entender que es un panel.' ) }>
+						<Range value={ d.width } min={ 50 } max={ 100 } unit="%" onChange={ ( v ) => set( [ 'drawer', 'width' ], v ) } />
+					</Row>
+					<Row label={ __( 'Ancho máximo' ) } hint={ __( 'En tablets y escritorio.' ) }>
+						<Range value={ d.max_width } min={ 240 } max={ 1200 } step={ 10 } unit="px" onChange={ ( v ) => set( [ 'drawer', 'max_width' ], v ) } />
+					</Row>
+					<Row label={ __( 'Botón cerrar' ) }>
+						<Segmented value={ d.close_position } onChange={ ( v ) => set( [ 'drawer', 'close_position' ], v ) } options={ [ { value: 'outside', label: __( 'Fuera del panel' ) }, { value: 'inside', label: __( 'Dentro' ) }, { value: 'none', label: __( 'Ninguno' ) } ] } />
+					</Row>
+				</Section>
+
+				<Section title={ __( 'Cómo se abre' ) } description={ __( 'El botón abre el panel incluso antes de que cargue el JavaScript.' ) }>
+					<div className="imm:grid imm:gap-2 imm:p-4 imm:sm:grid-cols-3">
+						{ (
+							[
+								{ value: 'floating', title: __( 'Botón flotante' ), text: __( 'Un botón redondo fijo en una esquina.' ) },
+								{ value: 'theme_selector', title: __( 'Botón del tema' ), text: __( 'Usa la hamburguesa que ya tiene tu tema.' ) },
+								{ value: 'manual', title: __( 'Bloque o shortcode' ), text: __( 'Lo colocas tú en la cabecera.' ) },
+							] as const
+						 ).map( ( o ) => (
+							<button
+								key={ o.value }
+								type="button"
+								onClick={ () => set( [ 'trigger', 'mode' ], o.value ) }
+								className={ cn( 'imm:rounded-lg imm:border imm:p-3 imm:text-left imm:transition-colors', t.mode === o.value ? 'imm:border-zinc-900 imm:bg-zinc-50 imm:ring-1 imm:ring-zinc-900' : 'imm:border-zinc-200 imm:hover:border-zinc-300' ) }
+							>
+								<span className="imm:block imm:text-[13px] imm:font-semibold">{ o.title }</span>
+								<span className="imm:mt-0.5 imm:block imm:text-xs imm:text-zinc-500">{ o.text }</span>
+							</button>
+						) ) }
+					</div>
+					{ t.mode === 'floating' && (
+						<>
+							<Row label={ __( 'Posición' ) }>
+								<Select value={ t.position } onChange={ ( e ) => set( [ 'trigger', 'position' ], e.target.value ) } className="imm:w-48">
+									<option value="bottom-left">{ __( 'Abajo a la izquierda' ) }</option>
+									<option value="bottom-right">{ __( 'Abajo a la derecha' ) }</option>
+									<option value="top-left">{ __( 'Arriba a la izquierda' ) }</option>
+									<option value="top-right">{ __( 'Arriba a la derecha' ) }</option>
+								</Select>
+							</Row>
+							<Row label={ __( 'Etiqueta' ) } hint={ __( 'Opcional: «Menú», «Categorías».' ) }>
+								<Input value={ t.label } onChange={ ( e ) => set( [ 'trigger', 'label' ], e.target.value ) } className="imm:w-48" />
+							</Row>
+							<Row label={ __( 'Tamaño' ) }>
+								<Range value={ t.size } min={ 36 } max={ 80 } unit="px" onChange={ ( v ) => set( [ 'trigger', 'size' ], v ) } />
+							</Row>
+							<Row label={ __( 'Distancia al borde' ) }>
+								<Range value={ t.offset } min={ 0 } max={ 80 } unit="px" onChange={ ( v ) => set( [ 'trigger', 'offset' ], v ) } />
+							</Row>
+							<ToggleRow label={ __( 'Ocultar al bajar' ) } hint={ __( 'Reaparece al subir.' ) } checked={ t.hide_on_scroll } onChange={ ( v ) => set( [ 'trigger', 'hide_on_scroll' ], v ) } />
+						</>
+					) }
+					{ t.mode === 'theme_selector' && (
+						<Row label={ __( 'Selector del botón del tema' ) } hint={ __( 'Al tocarlo se abre este panel en lugar del menú del tema. Si el JS no ha cargado, el tema abre su propio menú (respaldo seguro).' ) } stacked>
+							<Input value={ t.selector } onChange={ ( e ) => set( [ 'trigger', 'selector' ], e.target.value ) } placeholder=".menu-toggle" className="imm:font-mono imm:text-xs" />
+							<Suggestions values={ env?.theme.selectors ?? [] } theme={ env?.theme.name ?? '' } onPick={ ( v ) => set( [ 'trigger', 'selector' ], v ) } />
+						</Row>
+					) }
+					{ t.mode === 'manual' && (
+						<div className="imm:flex imm:flex-col imm:gap-2 imm:px-5 imm:py-4">
+							<p className="imm:text-[13px] imm:text-zinc-600">{ __( 'Agrega el bloque «Botón de Imagina Menu» en la cabecera del tema, o este shortcode:' ) }</p>
+							<CopyCode code="[imagina_menu_toggle]" />
+							<CopyCode code={ '[imagina_menu_toggle label="Menú"]' } />
+						</div>
+					) }
+					<Row label={ __( 'Icono del botón' ) }>
+						<div className="imm:flex imm:gap-1">
+							{ ( [ 'menu', 'align-left', 'layout-grid', 'grip' ] as const ).map( ( icon ) => (
+								<button
+									key={ icon }
+									type="button"
+									aria-label={ icon }
+									onClick={ () => set( [ 'trigger', 'icon' ], icon ) }
+									className={ cn( 'imm:flex imm:size-9 imm:items-center imm:justify-center imm:rounded-md imm:border', t.icon === icon ? 'imm:border-zinc-900 imm:bg-zinc-900 imm:text-white' : 'imm:border-zinc-200 imm:hover:bg-zinc-50' ) }
+								>
+									<IconView name={ icon } />
+								</button>
+							) ) }
+						</div>
+					</Row>
+					<Row label={ __( 'Ocultar el menú móvil del tema' ) } hint={ __( 'Selector CSS de lo que quieres esconder en celulares (por ejemplo, la hamburguesa del tema si usas el botón flotante).' ) } stacked>
+						<Input value={ profile.hide_theme_selector } onChange={ ( e ) => set( [ 'hide_theme_selector' ], e.target.value ) } placeholder=".menu-toggle" className="imm:font-mono imm:text-xs" />
+						<Suggestions values={ env?.theme.selectors ?? [] } theme={ env?.theme.name ?? '' } onPick={ ( v ) => set( [ 'hide_theme_selector' ], v ) } />
+					</Row>
+				</Section>
+
+				<Section title={ __( 'Cabecera del panel' ) }>
+					<ToggleRow label={ __( 'Logo del sitio' ) } hint={ env?.has_logo ? undefined : __( 'Tu tema no tiene logo configurado (Apariencia → Personalizar → Identidad).' ) } checked={ d.show_logo } onChange={ ( v ) => set( [ 'drawer', 'show_logo' ], v ) } />
+					<Row label={ __( 'Título' ) } hint={ __( 'Si no hay logo.' ) }>
+						<Input value={ d.title } onChange={ ( e ) => set( [ 'drawer', 'title' ], e.target.value ) } className="imm:w-56" />
+					</Row>
+					<ToggleRow label={ __( 'Bloque de cuenta' ) } hint={ __( '«Hola, inicia sesión» o «Hola, {nombre}». Empuja al registro, como Amazon y Mercado Libre.' ) } checked={ d.account } onChange={ ( v ) => set( [ 'drawer', 'account' ], v ) } />
+					<ToggleRow label={ __( 'Buscador' ) } hint={ __( 'Abre el buscador a pantalla completa.' ) } checked={ d.search } onChange={ ( v ) => set( [ 'drawer', 'search' ], v ) } />
+				</Section>
+
+				<Section title={ __( 'Navegación' ) }>
+					<Row label={ __( 'Texto de «volver»' ) } hint={ __( 'En el primer nivel de submenú.' ) }>
+						<Input value={ d.back_label } onChange={ ( e ) => set( [ 'drawer', 'back_label' ], e.target.value ) } className="imm:w-56" />
+					</Row>
+					<Row label={ __( 'Texto de «Ver todo»' ) } hint={ __( 'Se completa con el nombre: «Ver todo Celulares».' ) }>
+						<Input value={ d.view_all_label } onChange={ ( e ) => set( [ 'drawer', 'view_all_label' ], e.target.value ) } className="imm:w-56" />
+					</Row>
+					<ToggleRow label={ __( 'Título grande del nivel' ) } checked={ d.show_level_title } onChange={ ( v ) => set( [ 'drawer', 'show_level_title' ], v ) } />
+					<ToggleRow label={ __( 'Abrir en la página actual' ) } hint={ __( 'Al abrir, el panel muestra el submenú donde está la página visitada.' ) } checked={ d.open_active } onChange={ ( v ) => set( [ 'drawer', 'open_active' ], v ) } />
+					<ToggleRow label={ __( 'Recordar el último nivel' ) } hint={ __( 'Durante la sesión del navegador.' ) } checked={ d.remember_level } onChange={ ( v ) => set( [ 'drawer', 'remember_level' ], v ) } />
+					<ToggleRow label={ __( 'Cerrar deslizando' ) } hint={ __( 'Y deslizar a la derecha para volver un nivel.' ) } checked={ d.swipe_close } onChange={ ( v ) => set( [ 'drawer', 'swipe_close' ], v ) } />
+				</Section>
+
+				<Section title={ __( 'Pie del panel' ) } description={ __( 'Accesos de servicio y contacto: reducen la fricción y convierten.' ) }>
+					<ToggleRow label={ __( 'Botón de WhatsApp' ) } checked={ d.whatsapp.enabled } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'enabled' ], v ) } />
+					{ d.whatsapp.enabled && (
+						<div className="imm:grid imm:gap-3 imm:px-5 imm:py-4 imm:sm:grid-cols-2">
+							<LabeledInput label={ __( 'Número con código de país' ) } value={ d.whatsapp.number } placeholder="573001234567" onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'number' ], v ) } />
+							<LabeledInput label={ __( 'Texto del botón' ) } value={ d.whatsapp.label } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'label' ], v ) } />
+							<LabeledInput className="imm:sm:col-span-2" label={ __( 'Mensaje inicial' ) } value={ d.whatsapp.message } placeholder={ __( 'Hola, quiero información sobre…' ) } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'message' ], v ) } />
+						</div>
+					) }
+					<ToggleRow label={ __( 'Botón destacado (CTA)' ) } hint={ __( '«Vende con nosotros», «Agenda tu cita»…' ) } checked={ d.cta.enabled } onChange={ ( v ) => set( [ 'drawer', 'cta', 'enabled' ], v ) } />
+					{ d.cta.enabled && (
+						<div className="imm:grid imm:gap-3 imm:px-5 imm:py-4 imm:sm:grid-cols-2">
+							<LabeledInput label={ __( 'Texto' ) } value={ d.cta.label } onChange={ ( v ) => set( [ 'drawer', 'cta', 'label' ], v ) } />
+							<LabeledInput label={ __( 'Enlace' ) } value={ d.cta.url } placeholder="/contacto/" onChange={ ( v ) => set( [ 'drawer', 'cta', 'url' ], v ) } />
+						</div>
+					) }
+					<FooterLinks profile={ profile } />
+					<Social profile={ profile } />
+				</Section>
+			</div>
+		</>
+	);
+}
+
+function LabeledInput( { label, value, onChange, placeholder, className }: { label: string; value: string; onChange: ( v: string ) => void; placeholder?: string; className?: string } ) {
+	return (
+		<label className={ cn( 'imm:flex imm:flex-col imm:gap-1.5', className ) }>
+			<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ label }</span>
+			<Input value={ value } placeholder={ placeholder } onChange={ ( e ) => onChange( e.target.value ) } />
+		</label>
+	);
+}
+
+function Suggestions( { values, theme, onPick }: { values: string[]; theme: string; onPick: ( v: string ) => void } ) {
+	if ( ! values.length ) {
+		return null;
+	}
+	return (
+		<div className="imm:mt-2 imm:flex imm:flex-wrap imm:items-center imm:gap-1.5">
+			<span className="imm:text-[11px] imm:text-zinc-500">
+				{ __( 'Sugeridos para' ) } { theme }:
+			</span>
+			{ values.map( ( v ) => (
+				<button key={ v } type="button" onClick={ () => onPick( v ) } className="imm:rounded-md imm:border imm:border-zinc-200 imm:bg-zinc-50 imm:px-1.5 imm:py-0.5 imm:font-mono imm:text-[11px] imm:text-zinc-700 imm:hover:bg-zinc-100">
+					{ v }
+				</button>
+			) ) }
+		</div>
+	);
+}
+
+function CopyCode( { code }: { code: string } ) {
+	return (
+		<div className="imm:flex imm:items-center imm:justify-between imm:gap-2 imm:rounded-md imm:bg-zinc-900 imm:px-3 imm:py-2 imm:font-mono imm:text-xs imm:text-zinc-100">
+			<code>{ code }</code>
+			<button type="button" onClick={ () => void navigator.clipboard?.writeText( code ) } aria-label={ __( 'Copiar' ) } className="imm:text-zinc-400 imm:hover:text-white">
+				<Clipboard className="imm:size-3.5" aria-hidden />
+			</button>
+		</div>
+	);
+}
+
+function FooterLinks( { profile }: { profile: Profile } ) {
+	const links = profile.drawer.footer_links;
+	const update = ( next: typeof links ) => setProfile( [ 'drawer', 'footer_links' ], next );
+	return (
+		<div className="imm:flex imm:flex-col imm:gap-2 imm:px-5 imm:py-4">
+			<div className="imm:flex imm:items-center imm:justify-between">
+				<div>
+					<p className="imm:text-[13px] imm:font-medium imm:text-zinc-800">{ __( 'Enlaces de servicio' ) }</p>
+					<p className="imm:text-xs imm:text-zinc-500">{ __( 'Mis pedidos, Ayuda, Devoluciones…' ) }</p>
+				</div>
+				<Button size="sm" variant="outline" disabled={ links.length >= 12 } onClick={ () => update( [ ...links, { label: '', url: '', icon: 'circle-help' } ] ) }>
+					<Plus aria-hidden />
+					{ __( 'Añadir' ) }
+				</Button>
+			</div>
+			{ links.map( ( link, i ) => (
+				<div key={ i } className="imm:grid imm:grid-cols-[120px_1fr_1fr_auto] imm:items-center imm:gap-2">
+					<IconPicker value={ link.icon } onChange={ ( v ) => update( links.map( ( l, j ) => ( j === i ? { ...l, icon: v } : l ) ) ) } />
+					<Input value={ link.label } placeholder={ __( 'Texto' ) } onChange={ ( e ) => update( links.map( ( l, j ) => ( j === i ? { ...l, label: e.target.value } : l ) ) ) } />
+					<Input value={ link.url } placeholder="/mi-cuenta/orders/" className="imm:font-mono imm:text-xs" onChange={ ( e ) => update( links.map( ( l, j ) => ( j === i ? { ...l, url: e.target.value } : l ) ) ) } />
+					<div className="imm:flex">
+						<Button size="icon" variant="ghost" aria-label={ __( 'Subir' ) } disabled={ i === 0 } onClick={ () => update( swap( links, i, i - 1 ) ) }>
+							<ArrowUp aria-hidden />
+						</Button>
+						<Button size="icon" variant="ghost" aria-label={ __( 'Bajar' ) } disabled={ i === links.length - 1 } onClick={ () => update( swap( links, i, i + 1 ) ) }>
+							<ArrowDown aria-hidden />
+						</Button>
+						<Button size="icon" variant="ghost" aria-label={ __( 'Quitar' ) } onClick={ () => update( links.filter( ( _, j ) => j !== i ) ) }>
+							<Trash2 aria-hidden />
+						</Button>
+					</div>
+				</div>
+			) ) }
+			{ links.some( ( l ) => ! l.label || ! l.url ) && <Notice level="info">{ __( 'Los enlaces sin texto o sin URL no se muestran.' ) }</Notice> }
+		</div>
+	);
+}
+
+function Social( { profile }: { profile: Profile } ) {
+	const rows = profile.drawer.social;
+	const update = ( next: typeof rows ) => setProfile( [ 'drawer', 'social' ], next );
+	return (
+		<div className="imm:flex imm:flex-col imm:gap-2 imm:px-5 imm:py-4">
+			<div className="imm:flex imm:items-center imm:justify-between">
+				<p className="imm:text-[13px] imm:font-medium imm:text-zinc-800">{ __( 'Redes sociales' ) }</p>
+				<Button size="sm" variant="outline" disabled={ rows.length >= 10 } onClick={ () => update( [ ...rows, { network: NETWORKS.find( ( n ) => ! rows.some( ( r ) => r.network === n ) ) ?? 'facebook', url: '' } ] ) }>
+					<Plus aria-hidden />
+					{ __( 'Añadir' ) }
+				</Button>
+			</div>
+			{ rows.map( ( row, i ) => (
+				<div key={ i } className="imm:grid imm:grid-cols-[36px_150px_1fr_auto] imm:items-center imm:gap-2">
+					<span className="imm:flex imm:size-9 imm:items-center imm:justify-center imm:rounded-md imm:bg-zinc-100">
+						<IconView name={ 'si-' + row.network } />
+					</span>
+					<Select value={ row.network } onChange={ ( e ) => update( rows.map( ( r, j ) => ( j === i ? { ...r, network: e.target.value } : r ) ) ) }>
+						{ NETWORKS.map( ( n ) => (
+							<option key={ n } value={ n }>
+								{ n === 'x' ? 'X (Twitter)' : n.charAt( 0 ).toUpperCase() + n.slice( 1 ) }
+							</option>
+						) ) }
+					</Select>
+					<Input value={ row.url } placeholder="https://instagram.com/tu-marca" className="imm:font-mono imm:text-xs" onChange={ ( e ) => update( rows.map( ( r, j ) => ( j === i ? { ...r, url: e.target.value } : r ) ) ) } />
+					<Button size="icon" variant="ghost" aria-label={ __( 'Quitar' ) } onClick={ () => update( rows.filter( ( _, j ) => j !== i ) ) }>
+						<Trash2 aria-hidden />
+					</Button>
+				</div>
+			) ) }
+		</div>
+	);
+}
+
+function swap<T>( list: T[], a: number, b: number ): T[] {
+	const copy = [ ...list ];
+	[ copy[ a ], copy[ b ] ] = [ copy[ b ] as T, copy[ a ] as T ];
+	return copy;
+}

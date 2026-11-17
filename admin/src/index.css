@@ -1,0 +1,91 @@
+/*
+ * Tailwind v4 con prefijo "imm": las clases se escriben imm:flex, imm:text-sm...
+ * - No se importa el preflight global para no romper el admin de WordPress: hay un reset
+ *   mínimo limitado a .imm-root.
+ * - Las utilidades llevan !important: el CSS del admin de WordPress no usa capas, y una regla
+ *   sin capa gana a cualquier regla en @layer aunque tenga menos especificidad.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme) prefix(imm);
+@import 'tailwindcss/utilities.css' layer(utilities) prefix(imm) important;
+@import '@fontsource-variable/inter';
+
+@theme {
+	--font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Reset sin capa y con especificidad .imm-root + elemento, para ganar al CSS del admin. */
+.imm-root,
+.imm-root *,
+.imm-root *::before,
+.imm-root *::after {
+	box-sizing: border-box;
+	border-width: 0;
+	border-style: solid;
+	border-color: var(--imm-color-zinc-200);
+}
+
+.imm-root {
+	font-family: var(--imm-font-sans);
+	color: var(--imm-color-zinc-900);
+	font-size: 14px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+.imm-root :is(h1, h2, h3, h4, p, ul, ol, pre, figure) {
+	margin: 0;
+	padding: 0;
+	font-size: inherit;
+	font-weight: inherit;
+	color: inherit;
+}
+
+.imm-root :is(ul, ol) {
+	list-style: none;
+}
+
+.imm-root :is(button, input, select, textarea) {
+	font: inherit;
+	color: inherit;
+	margin: 0;
+	box-shadow: none;
+}
+
+.imm-root button {
+	background: transparent;
+	cursor: pointer;
+}
+
+.imm-root :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+	min-height: 0;
+	line-height: 1.4;
+	border-radius: 0;
+	background-color: transparent;
+}
+
+.imm-root a {
+	color: inherit;
+	text-decoration: inherit;
+}
+
+.imm-root table {
+	border-collapse: collapse;
+}
+
+.imm-root :focus-visible {
+	outline: 2px solid var(--imm-color-zinc-900);
+	outline-offset: 2px;
+}
+
+/* El contenedor de WordPress agrega márgenes; la app ocupa todo el ancho útil. */
+.imm-wrap {
+	margin: 0 0 0 -20px;
+}
+
+@media (max-width: 782px) {
+	.imm-wrap {
+	margin-left: -10px;
+}
+}
