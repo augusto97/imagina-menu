@@ -1,0 +1,16 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "imagina-menu/toggle",
+	"title": "Botón de Imagina Menu",
+	"category": "theme",
+	"icon": "menu",
+	"description": "Abre el panel de Imagina Menu. No carga JavaScript en el sitio: usa la Popover API.",
+	"keywords": [ "menú", "hamburguesa", "móvil", "imagina" ],
+	"textdomain": "imagina-menu",
+	"attributes": {
+		"label": { "type": "string", "default": "" }
+	},
+	"supports": { "html": false, "align": false, "color": { "text": true }, "spacing": { "padding": true } },
+	"editorScript": "file:./index.js"
+}

@@ -1,0 +1,318 @@
+/*
+ * CSS crítico: se imprime inline en <head>. Solo lo visible al cargar (botón flotante, barra
+ * inferior, insignias) para no tener saltos de diseño ni bloquear el render con un archivo.
+ * Sin @layer a propósito: las reglas sin capa del tema (button{…}) ganarían a las nuestras.
+ */
+:root {
+	--imm-bb-h: 62px;
+	/* El acento como texto necesita más contraste que como fondo: se oscurece hacia el color del texto. */
+	--imm-accent-text: color-mix(in srgb, var(--imm-accent) 65%, var(--imm-fg));
+	--imm-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+.imm-sr {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.imm-i {
+	display: inline-block;
+	flex: none;
+	width: 1.25em;
+	height: 1.25em;
+	vertical-align: middle;
+}
+
+/* Botón flotante y botón del shortcode/bloque */
+button.imm-fab,
+button.imm-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin: 0;
+	border: 0;
+	font: inherit;
+	font-weight: 600;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+button.imm-fab {
+	position: fixed;
+	z-index: 99990;
+	min-width: 52px;
+	height: 52px;
+	padding: 0 14px;
+	border-radius: 999px;
+	background: var(--imm-fab-bg);
+	color: var(--imm-fab-fg);
+	box-shadow: 0 6px 20px rgb(0 0 0 / .22);
+	transition: transform .25s var(--imm-ease), opacity .25s;
+}
+
+.imm-fab .imm-i {
+	width: 24px;
+	height: 24px;
+}
+
+.imm-fab--label {
+	padding: 0 18px 0 16px;
+}
+
+.imm-fab--bottom-left,
+.imm-fab--bottom-right {
+	bottom: calc(var(--imm-fab-y, 16px) + env(safe-area-inset-bottom, 0px));
+}
+
+.imm-fab--top-left,
+.imm-fab--top-right {
+	top: calc(16px + env(safe-area-inset-top, 0px));
+}
+
+.imm-fab--bottom-left,
+.imm-fab--top-left {
+	left: 16px;
+}
+
+.imm-fab--bottom-right,
+.imm-fab--top-right {
+	right: 16px;
+}
+
+button.imm-toggle {
+	min-width: 44px;
+	min-height: 44px;
+	padding: 8px;
+	background: transparent;
+	color: inherit;
+}
+
+.imm-toggle .imm-i {
+	width: 26px;
+	height: 26px;
+}
+
+/* Barra inferior */
+.imm-bbar {
+	position: fixed;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 99980;
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	border-top: 1px solid var(--imm-border);
+	background: var(--imm-bbar-bg);
+	transition: transform .3s var(--imm-ease);
+}
+
+.imm-bbar > ul {
+	display: flex;
+	height: var(--imm-bb-h);
+	margin: 0;
+	padding: 0 4px;
+	list-style: none;
+}
+
+.imm-bbar li {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.imm-bb-it,
+button.imm-bb-it {
+	position: relative;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	min-width: 0;
+	margin: 0;
+	padding: 6px 2px;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--imm-bbar-fg);
+	font: inherit;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.15;
+	text-decoration: none;
+	text-transform: none;
+	letter-spacing: normal;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.imm-bb-it:hover,
+.imm-bb-it:focus {
+	background: none;
+	color: var(--imm-bbar-fg);
+}
+
+.imm-bb-ic {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 30px;
+	border-radius: 999px;
+	transition: background-color .2s;
+}
+
+.imm-bb-ic .imm-i {
+	width: 24px;
+	height: 24px;
+}
+
+.imm-bb-l {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.imm-bb-it[aria-current],
+.imm-bb-it[aria-current]:hover {
+	color: var(--imm-bbar-active);
+	font-weight: 650;
+}
+
+.imm-bb-ind--pill [aria-current] .imm-bb-ic {
+	background: var(--imm-bbar-active-bg);
+}
+
+.imm-bb-ind--line [aria-current]::before {
+	position: absolute;
+	top: 0;
+	right: 28%;
+	left: 28%;
+	height: 3px;
+	border-radius: 0 0 3px 3px;
+	background: var(--imm-bbar-active);
+	content: "";
+}
+
+.imm-bb-ind--dot [aria-current]::after {
+	position: absolute;
+	bottom: 3px;
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: currentColor;
+	content: "";
+}
+
+.imm-bb-st--icons .imm-bb-l,
+.imm-bb-st--active_label .imm-bb-it:not([aria-current]) .imm-bb-l {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+}
+
+.imm-bb--floating {
+	right: 12px;
+	bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+	left: 12px;
+	padding-bottom: 0;
+	border: 1px solid var(--imm-border);
+	border-radius: calc(var(--imm-r) + 10px);
+	box-shadow: 0 10px 30px rgb(0 0 0 / .14);
+}
+
+.imm-bb--blur {
+	background: color-mix(in srgb, var(--imm-bbar-bg) 80%, transparent);
+	-webkit-backdrop-filter: blur(14px) saturate(1.6);
+	backdrop-filter: blur(14px) saturate(1.6);
+}
+
+.imm-bb-main .imm-bb-ic {
+	width: 54px;
+	height: 54px;
+	margin-top: -30px;
+	border: 4px solid var(--imm-bbar-bg);
+	border-radius: 50%;
+	background: var(--imm-accent);
+	color: var(--imm-accent-fg);
+	box-shadow: 0 6px 16px color-mix(in srgb, var(--imm-accent) 40%, transparent);
+}
+
+.imm-bbar.imm-hidden {
+	transform: translateY(110%);
+}
+
+.imm-bb--floating.imm-hidden {
+	transform: translateY(calc(100% + 40px));
+}
+
+.imm-fab.imm-hidden {
+	opacity: 0;
+	transform: scale(.6);
+	pointer-events: none;
+}
+
+/* Insignias */
+.imm-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--imm-badge-bg);
+	color: var(--imm-badge-fg);
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.imm-badge[hidden] {
+	display: none;
+}
+
+.imm-bb-badge {
+	position: absolute;
+	top: -3px;
+	left: calc(50% + 5px);
+	border: 2px solid var(--imm-bbar-bg);
+}
+
+.imm-bb-main .imm-bb-badge {
+	top: -4px;
+	left: calc(50% + 10px);
+}
+
+.imm-fab:focus-visible,
+.imm-toggle:focus-visible,
+.imm-bb-it:focus-visible {
+	outline: 2px solid var(--imm-accent);
+	outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.imm-fab,
+	.imm-bbar {
+		transition: none;
+	}
+}

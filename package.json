@@ -1,0 +1,23 @@
+{
+  "name": "imagina-menu-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Frontend de Imagina Menu (JS y CSS sin dependencias) y herramientas de build.",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "icons": "node bin/build-icons.mjs",
+    "build": "node bin/build-frontend.mjs",
+    "size": "node bin/size.mjs",
+    "typecheck": "tsc -p frontend --noEmit",
+    "test:e2e": "node tests/e2e/run.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.1",
+    "esbuild": "^0.25.0",
+    "lightningcss": "^1.29.0",
+    "lucide-static": "^0.540.0",
+    "simple-icons": "^15.0.0",
+    "typescript": "~5.9.3"
+  }
+}
