@@ -18,6 +18,8 @@ Cómo se abre el panel.
 
 El botón es un `<button popovertarget="imm-drawer" aria-controls aria-expanded>`: abre el panel sin JS.
 
+Implementado (v0.1): si la barra inferior ya tiene un ítem que abre el panel, el botón flotante no se imprime. En una instalación nueva con un tema conocido, el botón del menú móvil del tema abre el panel (modo `theme_selector`, sugerido automáticamente).
+
 **Aceptación**: abrir/cerrar funciona con JS desactivado (Chrome, Safari ≥ 17, Firefox ≥ 125); el botón tiene nombre accesible; el selector del tema funciona con Astra, GeneratePress, Kadence, Blocksy, Hello Elementor, WoodMart y Flatsome (lista de selectores sugeridos en el admin).
 
 ## M2. Panel lateral (drawer) — fase 1
@@ -76,7 +78,9 @@ Estructura HTML (simplificada):
 - Sin JS funciona con `<details>/<summary>` (mejora progresiva).
 - Opción «solo uno abierto a la vez».
 
-### 3.3 Dos columnas (estilo AliExpress/Temu) — fase 4
+### 3.3 Dos columnas (estilo AliExpress/Temu) — implementado en v0.1 (adelantado de la fase 4)
+
+Sin JS funciona con radios + CSS (`:checked + .imm-tp-pane`); el JS marca la pestaña activa, carga las imágenes del panel visible y abre la categoría de la página actual. Los ítems sin hijos del primer nivel quedan como enlaces directos en el rail; los encabezados de sección se aplanan. Su CSS solo se incluye si algún perfil usa este modo. Con ancho ≥ 92 % el botón de cerrar pasa dentro del panel.
 
 - Rail izquierdo (25–35 % del ancho) con las categorías de primer nivel: icono o imagen pequeña + texto, la activa resaltada con barra de acento y fondo.
 - Derecha: subcategorías como **rejilla de imágenes** (2, 3 o 4 columnas) agrupadas por título (segundo nivel = título, tercer nivel = tarjetas). Banner opcional arriba de cada categoría.

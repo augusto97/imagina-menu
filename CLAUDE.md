@@ -44,8 +44,8 @@ Tiene que ser **el menú más rápido del mercado**: HTML renderizado en el serv
 
 - PHP 8.1+ con `declare(strict_types=1);`, PSR-4 vía Composer (`classmap-authoritative` en producción), patrón Repository/Service y contenedor simple propio (igual que Imagina Turbo).
 - WordPress 6.5+ (API de Script Modules y `wp_register_script_module`). WooCommerce opcional.
-- **Frontend**: TypeScript compilado con esbuild/Vite a ES modules sin dependencias. CSS escrito a mano con custom properties y `@layer imm`; sin Tailwind en el frontend.
-- **Admin**: React 18 + TypeScript + Vite con `@kucrut/vite-for-wp`, shadcn/ui con Tailwind v4 y prefijo `imm` (`@import 'tailwindcss/utilities.css' layer(utilities) prefix(imm) important;`, reset limitado a `.imm-root`), TanStack Query, Zustand, React Hook Form + Zod, Lucide, fuente Inter. Añadidos propios de este plugin: `@dnd-kit` (árbol arrastrable) y `react-colorful` (selector de color). Estética tipo Linear/Vercel.
+- **Frontend**: TypeScript compilado con esbuild/Vite a ES modules sin dependencias. CSS escrito a mano con custom properties, **sin `@layer`** (las reglas sin capa del tema ganarían) y con selectores elemento + clase; sin Tailwind en el frontend.
+- **Admin**: React 18 + TypeScript + Vite con `@kucrut/vite-for-wp`, shadcn/ui con Tailwind v4 y prefijo `imm` (`@import 'tailwindcss/utilities.css' layer(utilities) prefix(imm) important;`, reset limitado a `.imm-root`), TanStack Query, Zustand (los campos se enlazan directo al store con autoguardado de borradores; no se usa React Hook Form ni Zod), Lucide, fuente Inter. Añadidos propios de este plugin: `@dnd-kit` (árbol arrastrable) y `react-colorful` (selector de color). Estética tipo Linear/Vercel.
 - Textos de interfaz en español con i18n preparado (text domain `imagina-menu`).
 - El archivo principal (`imagina-menu.php`) debe seguir siendo compatible con la inyección de licencia de Imagina Updater: sin `strict_types` ni `namespace`, con la comprobación de `ABSPATH` y sin otro `.php` en la raíz que contenga `Plugin Name:`.
 - Estándares: WordPress Coding Standards, PHPStan nivel 6+, ESLint + Prettier en TS.
@@ -67,5 +67,6 @@ Tiene que ser **el menú más rápido del mercado**: HTML renderizado en el serv
 - Antes de cada fase: leer el doc correspondiente, proponer el plan de archivos y esperar confirmación si hay decisiones abiertas.
 - Cada módulo implementa `ModuleInterface`; ningún módulo carga código si está desactivado.
 - Cada cambio del frontend pasa el presupuesto (`npm run size` + Lighthouse CI). Si un cambio lo rompe, se rediseña; no se sube el presupuesto sin acordarlo.
-- Commits pequeños y descriptivos en español. Ramas por fase: `fase-0-fundaciones`, `fase-1-panel`, etc.
+- Commits pequeños y descriptivos en español. Rama de trabajo actual: `claude/wordpress-mobile-menu-plugin-1txjk9`.
+- Comandos: `npm run build` (frontend), `npm run size` (presupuesto), `npm run test:e2e` (e2e móvil contra `IMM_URL`), `composer test` (unitarias), `cd admin && npm run build` (admin).
 - Si una decisión de los docs resulta técnicamente inviable, detenerse y explicarlo; no improvisar un reemplazo silencioso.

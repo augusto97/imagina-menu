@@ -96,13 +96,41 @@ Antes de la fase 1: elegir 3 sitios de clientes representativos (WooCommerce con
 | Visual | Capturas de Playwright por preset | Regresiones de diseño |
 | Compatibilidad | Matriz de temas (7) y plugins de optimización (4) | Selector del tema, exclusiones |
 
-## Decisiones abiertas (confirmar antes de la fase 0)
+## Decisiones tomadas (planeación cerrada el 17-11-2026)
 
-1. **Nombre y prefijo**: ¿«Imagina Menu» con prefijo `imm`? (Cambiarlo después cuesta poco si se hace antes de la fase 0.)
-2. **Fuente principal del menú**: propuesta = constructor propio (CPT) que puede **sincronizarse** con un menú de WordPress o con las categorías de Woo. Alternativa más simple = extender el editor de menús de WordPress con campos extra (iconos, insignias), pero ese editor es lento y limitado para lo visual. Recomendación: constructor propio.
-3. **Versiones mínimas**: PHP 8.1+ y WordPress 6.5+ (Script Modules). ¿Hay clientes por debajo?
-4. **Navegadores**: el objetivo es Popover API (Safari 17+, ~2023). En iOS 16 o anteriores funcionaría el respaldo JS. ¿Aceptable?
-5. **Licencia**: ¿premium con Imagina Updater desde el inicio, o una versión gratuita en wordpress.org con un Pro? (Afecta al empaquetado y a qué módulos van en cada versión.)
-6. **Cookie con el primer nombre del usuario** para el saludo en páginas cacheadas: ¿activada por defecto o solo bajo demanda por privacidad? Propuesta: apagada por defecto (los usuarios conectados normalmente no reciben caché y ven su nombre igual).
-7. **Analítica en el servidor**: ¿se quiere guardar agregados propios o basta con enviar eventos a GA4? Propuesta: ambos, configurable, servidor apagado por defecto.
-8. **Mini-carrito en hoja inferior** desde la barra inferior: ¿lo hace este plugin o se integra con el mini-carrito del tema/Imagina Turbo? Propuesta: integración primero; mini-carrito propio solo si no existe ninguno.
+El dueño aprobó todas las recomendaciones:
+
+1. **Nombre y prefijo**: «Imagina Menu», slug `imagina-menu`, prefijo `imm`.
+2. **Fuente del menú**: constructor propio (CPT `imm_menu`) que puede sincronizarse con un menú de WordPress o con las categorías de WooCommerce.
+3. **Versiones mínimas**: PHP 8.1+ y WordPress 6.5+.
+4. **Navegadores**: objetivo Popover API (Safari 17+, Chrome 114+, Firefox 125+); en navegadores anteriores el JS hace de respaldo.
+5. **Licencia**: premium con **Imagina Updater** desde el inicio (sin versión en wordpress.org por ahora).
+6. **Cookie con el nombre del usuario**: apagada por defecto (`name_cookie`).
+7. **Analítica**: servidor y GA4 configurables; servidor apagado por defecto (fase 6).
+8. **Mini-carrito**: integración primero (tema o Imagina Turbo); mini-carrito propio solo si no existe ninguno.
+
+## Estado de la implementación (v0.1.0)
+
+Hecho en la primera iteración (rama `claude/wordpress-mobile-menu-plugin-1txjk9`; el entorno exige esa rama en lugar de `fase-N-…`):
+
+- **Fase 0 completa**: archivo principal compatible con Imagina Updater, autoload PSR-4, CPT `imm_menu`/`imm_profile` con borrador en meta y publicado con revisiones, `Normalizer` (lista blanca), `Compiler` (config PHP atómica en OPcache, CSS con hash, invalidación por dependencias + WP-Cron), purga de cachés al publicar.
+- **Fase 1 completa**: disparador (flotante, shortcode `[imagina_menu_toggle]`, bloque, selector del tema), panel modal con Popover API como respaldo sin JS, modo deslizante con barra de regreso, título del nivel, «Ver todo», gestos y teclado; modo acordeón; cuenta, buscador, enlaces de servicio; fuente «menú de WordPress»; `aria-current` en el servidor; RTL y `prefers-reduced-motion`.
+- **De la fase 2**: opciones por ítem completas (icono, imagen, insignia, descripción, destacado, visibilidad, `rel`), WhatsApp, CTA, redes, presets (6), modo claro/oscuro/automático, CSS propio.
+- **Fase 3 completa** (barra inferior): acciones, estilos, indicadores, botón central, isla flotante, ocultar al bajar y con teclado, reserva de espacio, contador del carrito por cookie sin peticiones.
+- **De la fase 4**: fuentes «categorías de WooCommerce» y «taxonomía» con imágenes cargadas al mostrar el nivel; buscador a pantalla completa con recientes y populares.
+- **Admin** React (constructor, barra inferior, diseño, ajustes, vista previa en un celular).
+- **Pruebas**: unitarias (Normalizer, Renderer) y e2e móviles (`npm run test:e2e`).
+
+- **Modo dos columnas** (adelantado de la fase 4), con y sin JS.
+
+Medido en el sitio de pruebas (WordPress + WooCommerce, 40 categorías en 3 niveles, Pixel 7 emulado): JS 3,2 KB gzip, CSS 4,1 KB gzip con todos los modos (1,45 KB inline), PHP 0,034 ms por visita, CLS 0, 319–372 nodos DOM, axe sin violaciones, 0 peticiones para el contador del carrito.
+
+Pendiente (fases 4–7): modos pestañas y rejilla; profundidad híbrida/diferida para catálogos enormes; reglas por perfil y multi-idioma; analítica; integración con Imagina Search; Lighthouse CI.
+
+### Cambios respecto a la planeación (justificados)
+
+- **Sin JSON Schema**: el modelo se valida con `Model\Normalizer` (lista blanca guiada por `Model\Defaults`); el admin usa tipos TypeScript equivalentes. Menos piezas y la misma garantía: nada entra sin pasar por la lista blanca.
+- **Fragmentos dentro de `config.php`** en lugar de archivos `.html` sueltos: un solo `include` servido por OPcache, sin lecturas de disco por request.
+- **Sin `@layer` en el CSS del frontend**: las reglas sin capa del tema (`button{…}`) ganarían a las nuestras; se usan selectores con elemento + clase y resets mínimos.
+- **CSS crítico**: ~4,5 KB sin comprimir / 1,4 KB gzip (la planeación decía 1,5 KB sin comprimir); incluye la barra inferior completa para no tener saltos. Presupuesto ajustado a ≤ 1,7 KB gzip.
+- **Plantillas sobrescribibles desde el tema**: pospuestas (el render vive en `Compiler\Renderer`); llegan con los filtros de la fase 6.

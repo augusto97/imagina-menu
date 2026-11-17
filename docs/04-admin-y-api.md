@@ -6,7 +6,7 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 
 - React 18 + TypeScript + Vite con `@kucrut/vite-for-wp`.
 - shadcn/ui (Radix) con **Tailwind v4 y prefijo `imm`** (`imm:flex`). Sin preflight global: reset limitado a `.imm-root`; utilidades con `important` para ganarle al CSS del admin de WordPress (mismo `index.css` que Turbo, cambiando el prefijo).
-- TanStack Query (datos del servidor), Zustand (estado del constructor, con historial para deshacer/rehacer), React Hook Form + Zod (formularios; Zod generado desde `schema/*.json`), Lucide (iconos), Inter (`@fontsource-variable/inter`).
+- TanStack Query (datos del servidor), Zustand (copias de trabajo enlazadas a los campos, autoguardado de borradores a los 800 ms; deshacer/rehacer pendiente), Lucide (iconos), Inter (`@fontsource-variable/inter`). La validación vive en el servidor (`Model\\Normalizer`).
 - Nuevos para este plugin: `@dnd-kit/core` + `@dnd-kit/sortable` (árbol arrastrable con teclado accesible), `react-colorful` (selector de color, ~2 KB).
 - Estética tipo Linear/Vercel: fondo zinc claro, tarjetas con borde fino, tipografía Inter, mucho aire, modo oscuro del admin opcional.
 - Solo se carga en la pantalla del plugin (`admin.php?page=imagina-menu`); cero impacto en el resto del admin.

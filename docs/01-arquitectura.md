@@ -31,10 +31,7 @@ imagina-menu/
 ├── imagina-menu.php            # Archivo principal (compatible con Imagina Updater, sin namespace)
 ├── uninstall.php               # Borra CPT, opciones, tabla y archivos compilados (si el usuario lo pidió)
 ├── composer.json               # PSR-4 ImaginaMenu\ → src/
-├── schema/                     # JSON Schema: fuente única de verdad del modelo (PHP valida, Zod se genera)
-│   ├── profile.schema.json
-│   ├── menu.schema.json
-│   └── design.schema.json
+├── icons/                      # icons.json (Lucide + marcas) y tags.json: los usa el compilador y el selector del admin
 ├── src/
 │   ├── Plugin.php · Container.php
 │   ├── Core/                   # ModuleInterface, ModuleRegistry, Capabilities, Migrations, Logger
@@ -64,7 +61,7 @@ imagina-menu/
 
 ## Modelo de datos
 
-Tres entidades. Todas se guardan como JSON validado contra `schema/` con `schema_version` para migraciones.
+Tres entidades. Todas se guardan como JSON validado por `Model\Normalizer` (lista blanca guiada por `Model\Defaults`) con `schema_version` para migraciones.
 
 ### 1. Menú (`imm_menu`, custom post type no público)
 

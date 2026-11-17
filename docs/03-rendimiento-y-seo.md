@@ -5,7 +5,7 @@
 | Métrica | Límite | Cómo se mide |
 |---|---|---|
 | CSS total del frontend | ≤ 6 KB gzip (todos los módulos activos) | `size-limit` en el build |
-| CSS crítico inline | ≤ 1,5 KB sin comprimir | test del compilador |
+| CSS crítico inline | ≤ 1,7 KB gzip (v0.1: 1,43 KB) | `npm run size` |
 | JS inicial (`core.js`) | ≤ 4 KB gzip | `size-limit` |
 | Cada módulo JS bajo demanda | ≤ 3 KB gzip | `size-limit` |
 | Sprite de iconos inline | ≤ 3 KB sin comprimir con 12 iconos | test del compilador |
@@ -53,7 +53,7 @@ HTML mínimo por ítem: un `<li>` + `<a>` + (si tiene hijos) `<button>` y el spr
 
 ### 4. CSS
 
-- Escrito a mano, con `@layer imm` (no pisa al tema por especificidad y el tema puede sobrescribirlo fácil) y custom properties para todo el diseño → un solo archivo sirve a cualquier diseño; cambiar colores no genera CSS nuevo, solo tokens.
+- Escrito a mano, **sin `@layer`** (una regla sin capa del tema, como `button{…}`, ganaría a cualquier regla en capa) y con custom properties para todo el diseño → un solo archivo sirve a cualquier diseño; cambiar colores no genera CSS nuevo, solo tokens.
 - El compilador incluye **solo** el CSS de módulos y modos que usa algún perfil.
 - **CSS crítico inline** (botón flotante, barra inferior, reserva de espacio, ocultar menú del tema): evita CLS y FOUC sin bloquear.
 - El resto se carga con `<link rel="stylesheet">` normal al final del `head`. Como el panel está cerrado al cargar, ese CSS no afecta el primer pintado; es pequeño (≤ 6 KB) y se sirve con caché larga (nombre con hash, `Cache-Control: immutable` vía el servidor).
