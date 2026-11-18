@@ -1,0 +1,16 @@
+/* Cabecera integrada en el panel, sin bloque de color. */
+.imm-d-head {
+	padding-bottom: 6px;
+	background: transparent;
+	color: var(--imm-fg);
+}
+
+.imm-avatar {
+	background: var(--imm-hover-bg);
+	box-shadow: none;
+}
+
+.imm-account-t small {
+	color: var(--imm-muted);
+	opacity: 1;
+}

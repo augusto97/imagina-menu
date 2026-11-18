@@ -353,6 +353,10 @@ function initDrawer( d: HTMLDialogElement ): void {
 		reset();
 		loadImages( rootLevel );
 		show( d );
+		// El foco va al panel (no al primer enlace): sin anillo de foco suelto al abrir con el dedo;
+		// el lector de pantalla anuncia el menú y Tab lleva al primer ítem.
+		d.tabIndex = -1;
+		d.focus( { preventScroll: true } );
 		shown = true;
 		setExpanded( 'imm-drawer', true );
 		let target: Element | null = null;

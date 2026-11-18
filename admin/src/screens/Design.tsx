@@ -1,13 +1,28 @@
-import { Check, RotateCcw } from 'lucide-react';
 import { ColorField } from '@/components/ColorField';
-import { PageHeader, Range, Row, Section, Segmented } from '@/components/common';
-import { Button } from '@/components/ui/button';
+import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { MediaField } from '@/components/MediaField';
 import { Textarea } from '@/components/ui/input';
 import { contrast } from '@/lib/color';
 import { __ } from '@/lib/i18n';
-import { setProfile, useActiveProfile, useStore } from '@/lib/store';
-import type { Preset, Profile, Tokens } from '@/lib/types';
+import { setProfile, useActiveProfile } from '@/lib/store';
+import type { DesignStyle, Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { PresetGallery } from './design/PresetGallery';
+import {
+	activeOptions,
+	BadgeSample,
+	chevronOptions,
+	fontOptions,
+	headerOptions,
+	headingOptions,
+	hintOf,
+	iconsOptions,
+	itemsOptions,
+	motionOptions,
+	OptionTiles,
+	panelOptions,
+	searchOptions,
+} from './design/StylePickers';
 
 const GROUPS: { title: string; description?: string; keys: [ string, string ][] }[] = [
 	{
@@ -22,8 +37,10 @@ const GROUPS: { title: string; description?: string; keys: [ string, string ][] 
 	},
 	{
 		title: __( 'Cabecera del panel' ),
+		description: __( 'El segundo color se usa en la cabecera con degradado.' ),
 		keys: [
 			[ 'head_bg', __( 'Fondo' ) ],
+			[ 'head_bg2', __( 'Segundo color (degradado)' ) ],
 			[ 'head_fg', __( 'Texto' ) ],
 		],
 	},
@@ -68,46 +85,155 @@ const DARK_KEYS = [ 'bg', 'fg', 'muted', 'border', 'hover_bg', 'head_bg', 'head_
 
 export function Design() {
 	const profile = useActiveProfile();
-	const presets = useStore( ( s ) => s.presets );
 	if ( ! profile ) {
 		return null;
 	}
 	const d = profile.design;
 	const tokens = d.tokens;
+	const style = d.style;
 	const setToken = ( key: string, value: string | number ) => setProfile( [ 'design', 'tokens', key ], value );
+	const setStyle = <K extends keyof DesignStyle>( key: K, value: DesignStyle[ K ] ) => setProfile( [ 'design', 'style', key ], value );
 
-	const applyPreset = ( key: string, preset: Preset ) => {
-		useStore.getState().updateProfile( ( p ) => ( {
-			...p,
-			design: { ...p.design, preset: key, tokens: { ...preset.tokens } },
-			drawer: { ...p.drawer, ...( preset.structure.drawer ?? {} ) },
-			bottom_bar: { ...p.bottom_bar, ...( preset.structure.bottom_bar ?? {} ) },
-		} ) );
-	};
+	const panel = panelOptions( tokens );
+	const header = headerOptions( tokens );
+	const items = itemsOptions( tokens );
+	const icons = iconsOptions( tokens );
+	const active = activeOptions( tokens );
+	const chevron = chevronOptions( tokens );
+	const headings = headingOptions( tokens );
+	const fonts = fontOptions( tokens );
+	const search = searchOptions( tokens );
+	const motion = motionOptions( tokens );
 
 	return (
 		<>
-			<PageHeader title={ __( 'Diseño' ) } description={ __( 'Elige un punto de partida y ajusta los colores de tu marca. Hereda la tipografía de tu tema: no se cargan fuentes extra.' ) } />
+			<PageHeader
+				title={ __( 'Diseño' ) }
+				description={ __( 'Elige un estilo prediseñado y ajústalo a tu marca: forma del panel, cabecera, ítems, iconos, tipografía, colores y movimiento. Sin fuentes web: nada que afecte a PageSpeed.' ) }
+			/>
 			<div className="imm:flex imm:flex-col imm:gap-5">
-				<div className="imm:grid imm:grid-cols-2 imm:gap-3 imm:md:grid-cols-3">
-					{ Object.entries( presets ).map( ( [ key, preset ] ) => (
-						<button
-							key={ key }
-							type="button"
-							onClick={ () => applyPreset( key, preset ) }
-							className={ cn( 'imm:group imm:flex imm:flex-col imm:overflow-hidden imm:rounded-xl imm:border imm:bg-white imm:text-left imm:transition-all imm:hover:shadow-md', d.preset === key ? 'imm:border-zinc-900 imm:ring-1 imm:ring-zinc-900' : 'imm:border-zinc-200' ) }
-						>
-							<PresetMock tokens={ preset.tokens } />
-							<span className="imm:flex imm:items-start imm:justify-between imm:gap-2 imm:p-3">
-								<span>
-									<span className="imm:block imm:text-[13px] imm:font-semibold">{ preset.label }</span>
-									<span className="imm:mt-0.5 imm:block imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ preset.hint }</span>
-								</span>
-								{ d.preset === key && <Check className="imm:size-4 imm:shrink-0 imm:text-zinc-900" aria-hidden /> }
-							</span>
-						</button>
-					) ) }
-				</div>
+				<PresetGallery profile={ profile } />
+
+				<Section title={ __( 'Forma y fondo' ) } description={ __( 'Cómo se ve el panel sobre tu sitio.' ) }>
+					<Row stacked label={ __( 'Forma del panel' ) } hint={ hintOf( panel, style.panel ) }>
+						<OptionTiles label={ __( 'Forma del panel' ) } value={ style.panel } options={ panel } onChange={ ( v ) => setStyle( 'panel', v ) } />
+					</Row>
+					<Row label={ __( 'Redondeo' ) } hint={ __( 'Esquinas del panel, tarjetas, píldoras y campos.' ) }>
+						<Range value={ Number( tokens.radius ) } min={ 0 } max={ 32 } unit="px" onChange={ ( v ) => setToken( 'radius', v ) } />
+					</Row>
+					<Row label={ __( 'Sombra del panel' ) }>
+						<Segmented value={ style.shadow } onChange={ ( v ) => setStyle( 'shadow', v ) } options={ [ { value: 'none', label: __( 'Ninguna' ) }, { value: 'soft', label: __( 'Suave' ) }, { value: 'strong', label: __( 'Marcada' ) } ] } />
+					</Row>
+					<Row label={ __( 'Fondo detrás del panel' ) } hint={ style.overlay === 'blur' ? __( 'Oscurece y desenfoca el sitio. En celulares muy básicos el desenfoque puede costar fluidez.' ) : __( 'Oscurece el sitio para centrar la atención en el menú.' ) }>
+						<Segmented value={ style.overlay } onChange={ ( v ) => setStyle( 'overlay', v ) } options={ [ { value: 'dim', label: __( 'Oscurecer' ) }, { value: 'blur', label: __( 'Desenfocar' ) } ] } />
+					</Row>
+					<Row label={ __( 'Intensidad del fondo' ) }>
+						<Range value={ Number( tokens.overlay ) } min={ 0 } max={ 95 } unit="%" onChange={ ( v ) => setToken( 'overlay', v ) } />
+					</Row>
+				</Section>
+
+				<Section title={ __( 'Cabecera' ) } description={ __( 'El saludo y la cuenta arriba del panel: lo primero que se ve.' ) }>
+					<Row stacked label={ __( 'Estilo de la cabecera' ) } hint={ hintOf( header, style.header ) }>
+						<OptionTiles label={ __( 'Estilo de la cabecera' ) } value={ style.header } options={ header } onChange={ ( v ) => setStyle( 'header', v ) } />
+					</Row>
+					{ ( style.header === 'gradient' || style.header === 'solid' || style.header === 'card' ) && (
+						<Row label={ style.header === 'gradient' ? __( 'Colores del degradado' ) : __( 'Color de la cabecera' ) } hint={ style.header === 'gradient' ? __( 'De izquierda a derecha, en diagonal. El texto usa «Texto» de la cabecera.' ) : undefined }>
+							<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-2">
+								<ColorField label={ __( 'Fondo de la cabecera' ) } value={ String( tokens.head_bg ?? '#000000' ) } onChange={ ( v ) => setToken( 'head_bg', v ) } />
+								{ style.header === 'gradient' && (
+									<>
+										<span className="imm:text-zinc-400" aria-hidden>→</span>
+										<ColorField label={ __( 'Segundo color del degradado' ) } value={ String( tokens.head_bg2 ?? tokens.accent ?? '#000000' ) } onChange={ ( v ) => setToken( 'head_bg2', v ) } />
+									</>
+								) }
+							</div>
+						</Row>
+					) }
+					{ style.header === 'image' && (
+						<Row label={ __( 'Imagen de la cabecera' ) } hint={ __( 'Horizontal, de 800 px de ancho o más. Se le aplica un velo oscuro para que el texto se lea; solo se descarga al abrir el panel.' ) }>
+							<MediaField size="large" wide value={ style.header_image } onChange={ ( v ) => setStyle( 'header_image', v ) } />
+						</Row>
+					) }
+				</Section>
+
+				<Section title={ __( 'Ítems' ) } description={ __( 'Cómo se dibuja cada enlace del menú.' ) }>
+					<Row stacked label={ __( 'Estilo de los ítems' ) } hint={ hintOf( items, style.items ) }>
+						<OptionTiles label={ __( 'Estilo de los ítems' ) } value={ style.items } options={ items } onChange={ ( v ) => setStyle( 'items', v ) } />
+					</Row>
+					<Row stacked label={ __( 'Iconos' ) } hint={ hintOf( icons, style.icons ) }>
+						<OptionTiles label={ __( 'Iconos' ) } value={ style.icons } options={ icons } onChange={ ( v ) => setStyle( 'icons', v ) } />
+					</Row>
+					<Row stacked label={ __( 'Ítem actual y al pasar' ) } hint={ hintOf( active, style.active ) }>
+						<OptionTiles label={ __( 'Ítem actual y al pasar' ) } value={ style.active } options={ active } onChange={ ( v ) => setStyle( 'active', v ) } />
+					</Row>
+					<div className="imm:grid imm:divide-y imm:divide-zinc-100 imm:lg:grid-cols-2 imm:lg:divide-x imm:lg:divide-y-0">
+						<Row stacked label={ __( 'Flecha de submenú' ) } hint={ hintOf( chevron, style.chevron ) }>
+							<OptionTiles label={ __( 'Flecha de submenú' ) } value={ style.chevron } options={ chevron } onChange={ ( v ) => setStyle( 'chevron', v ) } />
+						</Row>
+						<Row stacked label={ __( 'Títulos de sección' ) } hint={ hintOf( headings, style.headings ) }>
+							<OptionTiles label={ __( 'Títulos de sección' ) } value={ style.headings } options={ headings } onChange={ ( v ) => setStyle( 'headings', v ) } />
+						</Row>
+					</div>
+					<Row label={ __( 'Insignias' ) } hint={ __( '«Nuevo», «-30 %», «Hot»… Suave y contorno son más discretas.' ) }>
+						<Segmented
+							value={ style.badge }
+							onChange={ ( v ) => setStyle( 'badge', v ) }
+							options={ ( [ 'solid', 'soft', 'outline' ] as const ).map( ( v ) => ( {
+								value: v,
+								label: (
+									<>
+										<BadgeSample t={ tokens } variant={ v } />
+										{ v === 'solid' ? __( 'Sólida' ) : v === 'soft' ? __( 'Suave' ) : __( 'Contorno' ) }
+									</>
+								),
+							} ) ) }
+						/>
+					</Row>
+					<Row label={ __( 'Alto de cada ítem' ) } hint={ __( '48 px o más: fácil de tocar con el pulgar.' ) }>
+						<Range value={ Number( tokens.item_height ) } min={ 40 } max={ 80 } unit="px" onChange={ ( v ) => setToken( 'item_height', v ) } />
+					</Row>
+				</Section>
+
+				<Section title={ __( 'Tipografía' ) } description={ __( 'Solo pilas de fuentes del sistema: cero descargas, cero impacto en PageSpeed.' ) }>
+					<Row stacked label={ __( 'Familia' ) } hint={ hintOf( fonts, style.font ) }>
+						<OptionTiles label={ __( 'Familia tipográfica' ) } value={ style.font } options={ fonts } onChange={ ( v ) => setStyle( 'font', v ) } />
+					</Row>
+					<Row label={ __( 'Peso del texto' ) }>
+						<Segmented
+							value={ style.weight }
+							onChange={ ( v ) => setStyle( 'weight', v ) }
+							options={ [
+								{ value: 'regular', label: <span className="imm:font-normal">{ __( 'Normal' ) }</span> },
+								{ value: 'medium', label: <span className="imm:font-medium">{ __( 'Media' ) }</span> },
+								{ value: 'semibold', label: <span className="imm:font-semibold">{ __( 'Semi-negrita' ) }</span> },
+							] }
+						/>
+					</Row>
+					<Row label={ __( 'Tamaño del texto' ) }>
+						<Range value={ Number( tokens.font_size ) } min={ 12 } max={ 24 } unit="px" onChange={ ( v ) => setToken( 'font_size', v ) } />
+					</Row>
+				</Section>
+
+				<Section title={ __( 'Buscador' ) } description={ __( 'El campo de búsqueda del panel.' ) }>
+					<Row stacked label={ __( 'Estilo del campo' ) } hint={ hintOf( search, style.search ) }>
+						<OptionTiles label={ __( 'Estilo del campo' ) } value={ style.search } options={ search } onChange={ ( v ) => setStyle( 'search', v ) } />
+					</Row>
+				</Section>
+
+				<Section title={ __( 'Movimiento' ) } description={ __( 'Con «reducir movimiento» activado en el celular se usa un fundido corto.' ) }>
+					<Row stacked label={ __( 'Curva de animación' ) } hint={ hintOf( motion, style.motion ) }>
+						<OptionTiles label={ __( 'Curva de animación' ) } value={ style.motion } options={ motion } onChange={ ( v ) => setStyle( 'motion', v ) } />
+					</Row>
+					<Row label={ __( 'Duración' ) } hint={ __( 'Entre 200 y 320 ms se siente natural.' ) }>
+						<Range value={ Number( tokens.duration ) } min={ 0 } max={ 800 } step={ 10 } unit="ms" onChange={ ( v ) => setToken( 'duration', v ) } />
+					</Row>
+					<ToggleRow
+						label={ __( 'Entrada escalonada de los ítems' ) }
+						hint={ __( 'Al abrir el panel o un submenú, los ítems aparecen uno tras otro con un leve desplazamiento. Solo CSS: no pesa.' ) }
+						checked={ style.stagger }
+						onChange={ ( v ) => setStyle( 'stagger', v ) }
+					/>
+				</Section>
 
 				<Section title={ __( 'Modo de color' ) }>
 					<Row label={ __( 'Esquema' ) } hint={ d.color_mode === 'auto' ? __( 'Sigue la preferencia del celular del visitante (modo oscuro del sistema).' ) : undefined }>
@@ -129,7 +255,7 @@ export function Design() {
 								{ group.keys.map( ( [ key, label ] ) => (
 									<div key={ key } className="imm:flex imm:items-center imm:justify-between imm:gap-3">
 										<span className="imm:text-[13px] imm:text-zinc-700">{ label }</span>
-										<ColorField label={ label } value={ String( tokens[ key ] ?? '#000000' ) } onChange={ ( v ) => setToken( key, v ) } />
+										<ColorField label={ label } value={ String( tokens[ key ] ?? ( key === 'head_bg2' ? tokens.accent : '#000000' ) ) } onChange={ ( v ) => setToken( key, v ) } />
 									</div>
 								) ) }
 							</div>
@@ -143,24 +269,6 @@ export function Design() {
 					</div>
 				</Section>
 
-				<Section title={ __( 'Forma y movimiento' ) }>
-					<Row label={ __( 'Redondeo' ) }>
-						<Range value={ Number( tokens.radius ) } min={ 0 } max={ 32 } unit="px" onChange={ ( v ) => setToken( 'radius', v ) } />
-					</Row>
-					<Row label={ __( 'Alto de cada ítem' ) } hint={ __( '48 px o más: fácil de tocar con el pulgar.' ) }>
-						<Range value={ Number( tokens.item_height ) } min={ 40 } max={ 80 } unit="px" onChange={ ( v ) => setToken( 'item_height', v ) } />
-					</Row>
-					<Row label={ __( 'Tamaño del texto' ) }>
-						<Range value={ Number( tokens.font_size ) } min={ 12 } max={ 24 } unit="px" onChange={ ( v ) => setToken( 'font_size', v ) } />
-					</Row>
-					<Row label={ __( 'Duración de las animaciones' ) } hint={ __( 'Entre 200 y 300 ms se siente natural. Con «reducir movimiento» del sistema se usa un fundido.' ) }>
-						<Range value={ Number( tokens.duration ) } min={ 0 } max={ 800 } step={ 10 } unit="ms" onChange={ ( v ) => setToken( 'duration', v ) } />
-					</Row>
-					<Row label={ __( 'Oscurecer el fondo' ) }>
-						<Range value={ Number( tokens.overlay ) } min={ 0 } max={ 95 } unit="%" onChange={ ( v ) => setToken( 'overlay', v ) } />
-					</Row>
-				</Section>
-
 				{ d.color_mode !== 'light' && <DarkTokens profile={ profile } /> }
 
 				<Section title={ __( 'CSS personalizado' ) } description={ __( 'Se añade al final del CSS del menú. Las clases empiezan por .imm-' ) }>
@@ -168,22 +276,6 @@ export function Design() {
 						<Textarea rows={ 8 } value={ d.custom_css } onChange={ ( e ) => setProfile( [ 'design', 'custom_css' ], e.target.value ) } placeholder={ '.imm-drawer .imm-a {\n  font-weight: 600;\n}' } spellCheck={ false } />
 					</div>
 				</Section>
-
-				<div>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={ () => {
-							const preset = presets[ d.preset ];
-							if ( preset ) {
-								setProfile( [ 'design', 'tokens' ], { ...preset.tokens } );
-							}
-						} }
-					>
-						<RotateCcw aria-hidden />
-						{ __( 'Restablecer los colores del preset' ) }
-					</Button>
-				</div>
 			</div>
 		</>
 	);
@@ -218,38 +310,5 @@ function ContrastRow( { label, fg, bg }: { label: string; fg: string; bg: string
 				{ ratio.toFixed( 1 ) }:1 { ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA+' : '✕' }
 			</span>
 		</div>
-	);
-}
-
-/** Miniatura de un celular con el panel y la barra inferior en los colores del preset. */
-function PresetMock( { tokens: t }: { tokens: Tokens } ) {
-	const c = ( k: string ) => String( t[ k ] );
-	const r = Math.min( Number( t.radius ), 14 );
-	return (
-		<span className="imm:relative imm:block imm:h-36 imm:overflow-hidden imm:bg-zinc-100">
-			<span className="imm:absolute imm:inset-x-6 imm:top-3 imm:bottom-0 imm:overflow-hidden imm:rounded-t-2xl imm:border imm:border-b-0 imm:border-zinc-300 imm:bg-white imm:shadow-sm">
-				<span className="imm:absolute imm:inset-0 imm:bg-zinc-900/30" />
-				<span className="imm:absolute imm:inset-y-0 imm:left-0 imm:w-[72%] imm:shadow-xl" style={ { background: c( 'bg' ) } }>
-					<span className="imm:block imm:px-2 imm:py-2" style={ { background: c( 'head_bg' ) } }>
-						<span className="imm:block imm:h-1.5 imm:w-10 imm:rounded-full imm:opacity-80" style={ { background: c( 'head_fg' ) } } />
-						<span className="imm:mt-1 imm:block imm:h-1 imm:w-14 imm:rounded-full imm:opacity-50" style={ { background: c( 'head_fg' ) } } />
-					</span>
-					{ [ 0, 1, 2, 3 ].map( ( i ) => (
-						<span key={ i } className="imm:flex imm:items-center imm:gap-1.5 imm:border-b imm:px-2 imm:py-[5px]" style={ { borderColor: c( 'border' ) } }>
-							<span className="imm:size-2 imm:rounded-sm" style={ { background: i === 0 ? c( 'accent' ) : c( 'muted' ), borderRadius: r / 4 } } />
-							<span className="imm:h-1 imm:flex-1 imm:rounded-full" style={ { background: i === 0 ? c( 'accent' ) : c( 'fg' ), opacity: i === 0 ? 1 : 0.6 } } />
-							{ i === 1 && <span className="imm:h-2 imm:w-3 imm:rounded-full" style={ { background: c( 'badge_bg' ) } } /> }
-						</span>
-					) ) }
-				</span>
-				<span className="imm:absolute imm:inset-x-0 imm:bottom-0 imm:flex imm:justify-around imm:border-t imm:px-1 imm:py-1.5" style={ { background: c( 'bbar_bg' ), borderColor: c( 'border' ) } }>
-					{ [ 0, 1, 2, 3 ].map( ( i ) => (
-						<span key={ i } className="imm:h-2 imm:w-4 imm:rounded-full" style={ { background: i === 0 ? c( 'bbar_active_bg' ) : 'transparent' } }>
-							<span className="imm:mx-auto imm:block imm:size-2 imm:rounded-sm" style={ { background: i === 0 ? c( 'bbar_active' ) : c( 'bbar_fg' ), opacity: i === 0 ? 1 : 0.6 } } />
-						</span>
-					) ) }
-				</span>
-			</span>
-		</span>
 	);
 }

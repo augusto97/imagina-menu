@@ -1,0 +1,11 @@
+/* Ítems en píldora con margen lateral (estilo Material). */
+.imm-level > li > .imm-a,
+.imm-level > li > details > summary.imm-a {
+	margin: 1px 10px;
+	padding-inline: 14px;
+	border-radius: 999px;
+}
+
+.imm-level > .imm-head {
+	padding-inline: 24px;
+}

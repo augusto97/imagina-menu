@@ -1,0 +1,5 @@
+button.imm-d-search,
+input.imm-s-input {
+	border: 1.5px solid var(--imm-border);
+	background: transparent;
+}

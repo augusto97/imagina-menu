@@ -1,0 +1,20 @@
+/* Ítem actual con fondo tonal de acento. */
+.imm-a[aria-current] {
+	background: color-mix(in srgb, var(--imm-accent) 15%, transparent);
+	color: var(--imm-accent-text);
+}
+
+.imm-a[aria-current] .imm-i {
+	color: var(--imm-accent-text);
+}
+
+.imm-a:focus-visible {
+	background: color-mix(in srgb, var(--imm-fg) 6%, transparent);
+}
+
+/* Solo con ratón: en pantallas táctiles el :hover se queda pegado tras el toque. */
+@media (hover: hover) {
+	.imm-a:hover {
+		background: color-mix(in srgb, var(--imm-fg) 6%, transparent);
+	}
+}

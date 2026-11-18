@@ -9,6 +9,18 @@ const budget = [
 	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css' ], 6144, 'CSS total (modo más pesado: pestañas)' ],
 	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/grid.css' ], 6656, 'CSS de todos los modos juntos (referencia)' ],
 ];
+// Peor caso de estilos: la variante más pesada de cada opción + entrada escalonada.
+import { readdirSync } from 'node:fs';
+const heaviest = {};
+for ( const f of readdirSync( 'assets/dist/styles' ) ) {
+	const group = f.split( '-' )[ 0 ];
+	const size = readFileSync( `assets/dist/styles/${ f }` ).length;
+	if ( group === 'stagger' || group === 'panel' ) continue;
+	if ( ! heaviest[ group ] || heaviest[ group ][ 1 ] < size ) heaviest[ group ] = [ f, size ];
+}
+const worst = [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/styles/panel-floating.css', 'assets/dist/styles/panel-glass.css', 'assets/dist/styles/stagger.css', ...Object.values( heaviest ).map( ( [ f ] ) => `assets/dist/styles/${ f }` ) ];
+budget.push( [ worst, 6144, 'CSS peor caso (modo pestañas + el estilo más pesado de cada opción)' ] );
+
 let fail = false;
 for ( const [ files, max, label ] of budget ) {
 	const list = Array.isArray( files ) ? files : [ files ];

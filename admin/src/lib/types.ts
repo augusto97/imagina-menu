@@ -99,6 +99,26 @@ export interface BottomItem {
 
 export type Tokens = Record<string, string | number>;
 
+/** Estilo visual del panel (design.style). Los valores por defecto vienen del preset elegido. */
+export interface DesignStyle {
+	panel: 'flat' | 'rounded' | 'floating' | 'glass';
+	header: 'solid' | 'gradient' | 'minimal' | 'card' | 'image';
+	header_image: { id: number; url: string };
+	items: 'list' | 'divided' | 'cards' | 'pills' | 'grouped';
+	icons: 'plain' | 'soft' | 'tile' | 'color' | 'none';
+	font: 'theme' | 'system' | 'rounded' | 'serif';
+	weight: 'regular' | 'medium' | 'semibold';
+	headings: 'caps' | 'bold' | 'accent';
+	active: 'text' | 'bar' | 'pill';
+	chevron: 'chevron' | 'arrow' | 'none';
+	badge: 'solid' | 'soft' | 'outline';
+	search: 'filled' | 'outline' | 'underline';
+	overlay: 'dim' | 'blur';
+	shadow: 'none' | 'soft' | 'strong';
+	motion: 'smooth' | 'snappy' | 'spring';
+	stagger: boolean;
+}
+
 export interface Profile {
 	schema_version: number;
 	id: number;
@@ -165,6 +185,7 @@ export interface Profile {
 		color_mode: 'light' | 'dark' | 'auto';
 		tokens: Tokens;
 		dark_tokens: Tokens;
+		style: DesignStyle;
 		custom_css: string;
 	};
 }
@@ -174,6 +195,10 @@ export interface Preset {
 	hint: string;
 	tokens: Tokens;
 	structure: { drawer?: Partial<Profile[ 'drawer' ]>; bottom_bar?: Partial<Profile[ 'bottom_bar' ]> };
+	/** Estilo completo del preset (puede faltar en servidores anteriores a la v0.3). */
+	style?: Partial<DesignStyle>;
+	/** Captura real del preset (retrato ~1:2, webp) o '' si no existe. */
+	thumb?: string;
 }
 
 export interface CompileState {

@@ -109,4 +109,23 @@ final class NormalizerTest extends TestCase {
 		$this->assertTrue( $s['analytics']['enabled'] );
 		$this->assertSame( 100, $s['analytics']['sample'] );
 	}
+
+	public function test_design_style_defaults_come_from_preset_and_are_whitelisted(): void {
+		$p = Normalizer::profile( array( 'design' => array( 'preset' => 'ios' ) ) );
+		$this->assertSame( 'grouped', $p['design']['style']['items'] );
+		$this->assertSame( 'color', $p['design']['style']['icons'] );
+
+		$p = Normalizer::profile(
+			array(
+				'design' => array(
+					'preset' => 'aurora',
+					'style'  => array( 'items' => '../../etc', 'icons' => 'tile', 'header_image' => array( 'url' => 'javascript:alert(1)' ), 'stagger' => 'no' ),
+				),
+			)
+		);
+		$this->assertSame( 'pills', $p['design']['style']['items'], 'Valor inválido: vuelve al del preset' );
+		$this->assertSame( 'tile', $p['design']['style']['icons'] );
+		$this->assertSame( '', $p['design']['style']['header_image']['url'] );
+		$this->assertFalse( $p['design']['style']['stagger'] );
+	}
 }

@@ -1,0 +1,1 @@
+.imm-side-left{border-radius:0 calc(var(--imm-r) + 12px) calc(var(--imm-r) + 12px) 0}.imm-side-right{border-radius:calc(var(--imm-r) + 12px) 0 0 calc(var(--imm-r) + 12px)}

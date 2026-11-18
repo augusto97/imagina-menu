@@ -1,0 +1,9 @@
+/* Títulos de sección en negrita, sin mayúsculas. */
+.imm-level > .imm-head {
+	padding-top: 22px;
+	color: var(--imm-fg);
+	font-size: 1.02em;
+	font-weight: 750;
+	letter-spacing: -.01em;
+	text-transform: none;
+}

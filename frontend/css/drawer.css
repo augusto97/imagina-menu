@@ -17,8 +17,11 @@
 	background: var(--imm-bg);
 	color: var(--imm-fg);
 	font-size: var(--imm-fs);
+	font-family: var(--imm-ff, inherit);
 	line-height: 1.35;
 	text-align: start;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 	interpolate-size: allow-keywords;
 }
 
@@ -38,22 +41,24 @@
 	width: min(var(--imm-w, 86vw), var(--imm-mw, 420px));
 	height: 100%;
 	overflow: visible;
-	box-shadow: 0 0 40px rgb(0 0 0 / .25);
-	transform: translateX(-100%);
+	box-shadow: var(--imm-shadow, 0 0 40px rgb(0 0 0 / .22));
+	/* Posición oculta por variables: los estilos (flotante, cristal…) solo cambian las variables. */
+	transform: translate(var(--imm-hx, -100%), var(--imm-hy, 0));
 	transition: transform var(--imm-dur) var(--imm-ease), display var(--imm-dur) allow-discrete, overlay var(--imm-dur) allow-discrete;
 }
 
 .imm-side-right {
+	--imm-hx: 100%;
 	inset: 0 0 0 auto;
-	transform: translateX(100%);
 }
 
 .imm-side-bottom {
+	--imm-hx: 0;
+	--imm-hy: 100%;
 	inset: auto 0 0 0;
 	width: 100%;
 	height: min(88dvh, 720px);
-	border-radius: calc(var(--imm-r) + 6px) calc(var(--imm-r) + 6px) 0 0;
-	transform: translateY(100%);
+	border-radius: calc(var(--imm-r) + 8px) calc(var(--imm-r) + 8px) 0 0;
 }
 
 .imm-drawer:is(:popover-open, [open]) {
@@ -62,15 +67,7 @@
 
 @starting-style {
 	.imm-drawer:is(:popover-open, [open]) {
-		transform: translateX(-100%);
-	}
-
-	.imm-side-right:is(:popover-open, [open]) {
-		transform: translateX(100%);
-	}
-
-	.imm-side-bottom:is(:popover-open, [open]) {
-		transform: translateY(100%);
+		transform: translate(var(--imm-hx, -100%), var(--imm-hy, 0));
 	}
 }
 
@@ -90,6 +87,10 @@
 	}
 }
 
+.imm-drawer:focus {
+	outline: none;
+}
+
 .imm-d-in {
 	display: flex;
 	flex-direction: column;
@@ -102,7 +103,7 @@
 
 /* Cabecera: logo, cerrar, cuenta */
 .imm-d-head {
-	padding: 14px 16px;
+	padding: 16px;
 	background: var(--imm-head-bg);
 	color: var(--imm-head-fg);
 }
@@ -151,10 +152,11 @@
 	flex: none;
 	align-items: center;
 	justify-content: center;
-	width: 42px;
-	height: 42px;
+	width: 44px;
+	height: 44px;
 	border-radius: 50%;
-	background: color-mix(in srgb, currentColor 15%, transparent);
+	background: color-mix(in srgb, currentColor 14%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .imm-avatar .imm-i {
@@ -177,6 +179,7 @@
 .imm-account-t strong {
 	font-size: 1.04em;
 	font-weight: 700;
+	letter-spacing: -.01em;
 }
 
 .imm-account .imm-chev {
@@ -293,12 +296,18 @@ summary.imm-a {
 	min-height: var(--imm-ih);
 	padding: 8px 18px;
 	color: inherit;
-	font-weight: 500;
+	font-weight: var(--imm-fw, 500);
 	text-decoration: none;
 	list-style: none;
 	cursor: pointer;
 	-webkit-tap-highlight-color: transparent;
-	transition: background-color .15s;
+	transition: background-color .15s, color .15s, transform .12s;
+}
+
+/* Respuesta táctil al presionar (en táctiles no hay :hover). */
+.imm-a:active {
+	background: var(--imm-hover-bg);
+	transform: scale(.985);
 }
 
 summary.imm-a::-webkit-details-marker,
@@ -307,10 +316,17 @@ summary.imm-a::marker {
 	content: "";
 }
 
-.imm-a:hover,
 .imm-a:focus-visible {
 	background: var(--imm-hover-bg);
 	color: inherit;
+}
+
+/* Solo con ratón: en pantallas táctiles el :hover se queda pegado tras el toque. */
+@media (hover: hover) {
+	.imm-a:hover {
+		background: var(--imm-hover-bg);
+		color: inherit;
+	}
 }
 
 .imm-a:focus-visible,
@@ -329,6 +345,7 @@ summary.imm-a::marker {
 	width: 22px;
 	height: 22px;
 	color: var(--imm-muted);
+	transition: color .15s, background-color .15s;
 }
 
 .imm-t {
@@ -348,6 +365,7 @@ summary.imm-a::marker {
 	width: 18px;
 	height: 18px;
 	margin-inline-start: auto;
+	opacity: .7;
 	transition: transform var(--imm-dur) var(--imm-ease);
 }
 
@@ -384,9 +402,9 @@ summary.imm-a::marker {
 .imm-level > .imm-head {
 	padding: 18px 18px 6px;
 	color: var(--imm-muted);
-	font-size: .76em;
+	font-size: .72em;
 	font-weight: 700;
-	letter-spacing: .06em;
+	letter-spacing: .08em;
 	text-transform: uppercase;
 }
 
@@ -456,14 +474,14 @@ summary.imm-a::marker {
 	background: var(--imm-bg);
 	transform: translateX(calc(100% * var(--imm-x)));
 	visibility: hidden;
-	transition: transform var(--imm-dur) var(--imm-ease), opacity var(--imm-dur), visibility var(--imm-dur);
+	transition: transform var(--imm-dur) var(--imm-ease-l, var(--imm-ease)), opacity var(--imm-dur), visibility var(--imm-dur);
 }
 
 .imm-js.imm-mode-slide .imm-vp > .imm-level[data-pos="cur"] {
 	transform: none;
 	visibility: visible;
 	/* Visible al instante al entrar (para poder enfocarlo); al salir, oculto al terminar. */
-	transition: transform var(--imm-dur) var(--imm-ease), opacity var(--imm-dur), visibility 0s;
+	transition: transform var(--imm-dur) var(--imm-ease-l, var(--imm-ease)), opacity var(--imm-dur), visibility 0s;
 }
 
 .imm-js.imm-mode-slide .imm-vp > .imm-level[data-pos="prev"] {
@@ -520,8 +538,9 @@ button.imm-back {
 .imm-level-t {
 	margin: 0;
 	padding: 0 8px;
-	font-size: 1.3em;
+	font-size: 1.35em;
 	font-weight: 750;
+	letter-spacing: -.02em;
 	line-height: 1.2;
 }
 

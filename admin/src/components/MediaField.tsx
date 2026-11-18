@@ -2,8 +2,10 @@ import { ImagePlus, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { __ } from '@/lib/i18n';
 
-/** Imagen desde la biblioteca de medios de WordPress (wp.media). Guarda {id, url} (tamaño thumbnail). */
-export function MediaField( { value, onChange }: { value: { id: number; url: string }; onChange: ( value: { id: number; url: string } ) => void } ) {
+type Size = 'thumbnail' | 'medium' | 'medium_large' | 'large';
+
+/** Imagen desde la biblioteca de medios de WordPress (wp.media). Guarda {id, url} del tamaño pedido. */
+export function MediaField( { value, onChange, size = 'thumbnail', wide = false }: { value: { id: number; url: string }; onChange: ( value: { id: number; url: string } ) => void; size?: Size; wide?: boolean } ) {
 	const open = () => {
 		const media = window.wp?.media;
 		if ( ! media ) {
@@ -12,16 +14,19 @@ export function MediaField( { value, onChange }: { value: { id: number; url: str
 		const frame = media( { title: __( 'Elegir imagen' ), button: { text: __( 'Usar imagen' ) }, library: { type: 'image' }, multiple: false } );
 		frame.on( 'select', () => {
 			const attachment = frame.state().get( 'selection' ).first().toJSON();
-			onChange( { id: attachment.id, url: attachment.sizes?.thumbnail?.url ?? attachment.url } );
+			const sizes = attachment.sizes ?? {};
+			// El tamaño pedido o, si la imagen es pequeña y no lo tiene, el más cercano disponible.
+			const url = sizes[ size ]?.url ?? ( size === 'large' ? sizes.medium_large?.url ?? sizes.medium?.url : undefined ) ?? attachment.url;
+			onChange( { id: attachment.id, url } );
 		} );
 		frame.open();
 	};
 	return (
 		<div className="imm:flex imm:items-center imm:gap-3">
 			{ value.url ? (
-				<img src={ value.url } alt="" className="imm:size-12 imm:rounded-lg imm:border imm:border-zinc-200 imm:object-cover" />
+				<img src={ value.url } alt="" className={ wide ? 'imm:h-12 imm:w-24 imm:rounded-lg imm:border imm:border-zinc-200 imm:object-cover' : 'imm:size-12 imm:rounded-lg imm:border imm:border-zinc-200 imm:object-cover' } />
 			) : (
-				<div className="imm:flex imm:size-12 imm:items-center imm:justify-center imm:rounded-lg imm:border imm:border-dashed imm:border-zinc-300 imm:text-zinc-400">
+				<div className={ wide ? 'imm:flex imm:h-12 imm:w-24 imm:items-center imm:justify-center imm:rounded-lg imm:border imm:border-dashed imm:border-zinc-300 imm:text-zinc-400' : 'imm:flex imm:size-12 imm:items-center imm:justify-center imm:rounded-lg imm:border imm:border-dashed imm:border-zinc-300 imm:text-zinc-400' }>
 					<ImagePlus className="imm:size-5" aria-hidden />
 				</div>
 			) }

@@ -21,6 +21,20 @@ final class Normalizer {
 		'drawer.side'             => array( 'left', 'right', 'bottom' ),
 		'drawer.submenu_mode'     => array( 'slide', 'accordion', 'two_pane', 'tabs', 'grid' ),
 		'rules.match'             => array( 'all', 'any' ),
+		'design.style.panel'      => array( 'flat', 'rounded', 'floating', 'glass' ),
+		'design.style.header'     => array( 'solid', 'gradient', 'minimal', 'card', 'image' ),
+		'design.style.items'      => array( 'list', 'divided', 'cards', 'pills', 'grouped' ),
+		'design.style.icons'      => array( 'plain', 'soft', 'tile', 'color', 'none' ),
+		'design.style.font'       => array( 'theme', 'system', 'rounded', 'serif' ),
+		'design.style.weight'     => array( 'regular', 'medium', 'semibold' ),
+		'design.style.headings'   => array( 'caps', 'bold', 'accent' ),
+		'design.style.active'     => array( 'text', 'bar', 'pill' ),
+		'design.style.chevron'    => array( 'chevron', 'arrow', 'none' ),
+		'design.style.badge'      => array( 'solid', 'soft', 'outline' ),
+		'design.style.search'     => array( 'filled', 'outline', 'underline' ),
+		'design.style.overlay'    => array( 'dim', 'blur' ),
+		'design.style.shadow'     => array( 'none', 'soft', 'strong' ),
+		'design.style.motion'     => array( 'smooth', 'snappy', 'spring' ),
 		'html_depth'              => array( 'auto', 'full', 'hybrid' ),
 		'drawer.close_position'   => array( 'outside', 'inside', 'none' ),
 		'bottom_bar.style'        => array( 'labels', 'icons', 'active_label' ),
@@ -90,6 +104,7 @@ final class Normalizer {
 		}
 		// Los tokens que falten se toman del preset elegido, no del preset por defecto.
 		$defaults['design']['tokens'] = Presets::tokens( $preset );
+		$defaults['design']['style']  = Presets::style( $preset );
 
 		$out                     = $self->merge( $defaults, $input, '' );
 		$out['design']['preset'] = $preset;
@@ -119,6 +134,7 @@ final class Normalizer {
 		$out['design']['tokens']      = self::tokens( $out['design']['tokens'], Presets::tokens( $preset ) );
 		$out['design']['dark_tokens'] = self::tokens( $out['design']['dark_tokens'], Presets::dark_tokens() );
 		$out['design']['custom_css']  = self::css( (string) $out['design']['custom_css'] );
+		$out['design']['style']['header_image']['url'] = self::url( (string) $out['design']['style']['header_image']['url'] );
 
 		return $out;
 	}

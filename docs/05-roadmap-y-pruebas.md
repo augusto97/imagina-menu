@@ -137,6 +137,12 @@ Medido en el sitio de pruebas (WordPress + WooCommerce, 40 categorías en 3 nive
 
 Probado en el sitio de pruebas (WordPress 7.1 + WooCommerce + Polylang es/en): e2e móvil en verde en los dos idiomas (menú, textos propios, categorías, portada y buscador por idioma; selector de idioma), perfiles por reglas (archivo de categoría, subcategorías y productos de esas subcategorías), analítica de punta a punta (beacon → cola → cron → /stats; evento GA4 en dataLayer) y 7 temas (ver `docs/02`, M1). PHP por visita: 0,031 ms + 0,009 ms de reglas.
 
+## Estado de la implementación (v0.3.0) — diseño premium
+
+- Sistema de estilos del panel (16 opciones) y 12 estilos prediseñados con capturas reales (ver `docs/02`, M9).
+- Herramientas: `bin/presets/render.php` (páginas de demostración por preset) y `bin/presets/shoot.cjs` (capturas y miniaturas).
+- Probado: e2e completo en el sitio real con Aurora, Ajustes, Medianoche y Editorial; axe sin violaciones en los 12 presets.
+
 Pendiente: integración con Imagina Search (cuando se comparta su código), barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos recientemente, favoritos en la barra inferior, Lighthouse CI en GitHub Actions y pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
 ### Cambios respecto a la planeación (justificados)

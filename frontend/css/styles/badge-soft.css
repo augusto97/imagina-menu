@@ -1,0 +1,5 @@
+/* Insignias suaves: fondo tenue y texto de color. */
+.imm-drawer .imm-badge {
+	background: color-mix(in srgb, var(--imm-badge-bg) 14%, transparent);
+	color: color-mix(in srgb, var(--imm-badge-bg) 62%, var(--imm-fg));
+}

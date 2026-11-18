@@ -168,24 +168,32 @@ Reglas: se oculta automáticamente en checkout y cuando el teclado virtual está
 
 Para temas cuya cabecera móvil es mala: barra fija con hamburguesa, logo, buscar y carrito; opción de buscador siempre visible debajo (patrón Amazon/Mercado Libre) y ocultar al bajar. Reemplaza la cabecera del tema en móvil vía selector. Riesgo de CLS: se reserva el alto en el CSS crítico.
 
-## M9. Diseño y presets — fases 2 y 5
+## M9. Diseño, estilos y presets — implementado en v0.3
 
-**Tokens** (custom properties, todo editable en el admin con vista previa):
-`--imm-bg`, `--imm-fg`, `--imm-muted`, `--imm-accent`, `--imm-accent-fg`, `--imm-border`, `--imm-radius`, `--imm-item-h` (altura de ítem, mínimo 48 px), `--imm-font` (hereda la del tema por defecto: **no** se cargan fuentes), `--imm-font-size`, `--imm-shadow`, `--imm-duration`, `--imm-ease`, `--imm-overlay`, `--imm-bar-h`, `--imm-badge-*`.
+Tres capas, todas editables en **Diseño** con vista previa en el celular:
 
-- Modo claro / oscuro / automático (`prefers-color-scheme`) con tokens para cada uno.
-- **Presets de un clic** (cada uno define tokens + modos + bloques sugeridos):
-  - **Marketplace** — drawer izquierdo, cabecera de cuenta en color de marca, secciones con títulos (inspirado en el patrón de Amazon/Mercado Libre).
-  - **App de compras** — barra inferior con botón central + categorías en dos columnas con imágenes (patrón AliExpress/Temu).
-  - **Moda** — pestañas superiores + rejilla de imágenes grandes.
-  - **Minimal** — blanco y negro, tipografía grande, sin iconos.
-  - **Corporativo / servicios** — rejilla de iconos + CTA de contacto + WhatsApp.
-  - **Restaurante / local** — barra inferior con «Menú», «Reservar», «Llamar», «Cómo llegar».
-  - **Oscuro premium** — fondo oscuro, acentos dorados o neón.
-- CSS personalizado (con validación básica) por perfil.
-- Exportar/importar diseño como JSON.
+1. **Estilos prediseñados** (galería con capturas reales en `assets/presets/*.webp`). Cada uno copia al perfil sus colores, su estilo visual y una estructura sugerida; después todo se ajusta y el admin muestra «Basado en «X» · personalizado» con «Restablecer estilo».
 
-Los presets son originales: toman los **patrones** de navegación de esas marcas, no sus logos, colores de marca registrados ni sus diseños exactos.
+| Preset | Idea |
+|---|---|
+| Marketplace | Cabecera oscura con la cuenta, iconos en círculo suave, barra lateral en el ítem activo. |
+| Aurora | Panel flotante, cabecera en degradado violeta → rosa, ítems en píldora, fondo desenfocado, rebote y entrada escalonada. |
+| Ajustes | Grupos en tarjetas sobre gris e iconos multicolor (estilo app de Ajustes). |
+| Editorial | Serif grande, líneas finas, sin iconos, flecha larga, insignias de contorno. |
+| Material | Tarjeta de cuenta tonal, píldoras, tipografía redondeada. |
+| Medianoche | Cristal oscuro translúcido con degradado índigo → cian. |
+| Pop | Tarjetas, iconos multicolor, tipografía redondeada y rebote. |
+| App de compras | Iconos en cuadros de acento, cuenta en tarjeta. |
+| Minimal | Blanco y negro, sin iconos. |
+| Corporativo | Separadores finos, iconos suaves, cuenta en tarjeta. |
+| Fresco | Verde, tarjetas, degradado. |
+| Oscuro premium | Negro y dorado, serif, líneas finas. |
+
+2. **Estilo visual** (`design.style`): forma del panel (plano, redondeado, flotante, cristal), cabecera (sólida, degradado, minimal, tarjeta, imagen), ítems (lista, separadores, tarjetas, píldoras, agrupados), iconos (simples, círculo suave, cuadro de acento, multicolor, sin iconos), tipografía (del tema, sistema, redondeada, serif — siempre fuentes del sistema, nunca fuentes web), peso, títulos de sección (mayúsculas, negrita, acento), ítem activo (texto, barra, píldora), flecha (corta, larga, ninguna), insignias (sólida, suave, contorno), buscador (relleno, contorno, subrayado), fondo (oscurecer, desenfocar), sombra, movimiento (suave, ágil, con rebote) y entrada escalonada de los ítems.
+
+3. **Tokens** de color y medidas (fondo, texto, acento, cabecera y su segundo color `head_bg2` para degradados, insignias, barra inferior, radio, alto de ítem, tamaño de letra, duración, intensidad del fondo), modo claro/oscuro/automático y CSS propio.
+
+**Cómo se mantiene ligero**: cada opción no predeterminada es un archivo CSS pequeño (`frontend/css/styles/{opción}-{valor}.css`) y el compilador incluye **solo** los que usa el perfil. El peor caso (modo pestañas + la variante más pesada de cada opción) pesa 5,2 KB gzip; un preset típico, ~4 KB. El rebote solo se aplica a submenús e ítems (el panel nunca rebota para no dejar un hueco en el borde) y usa `linear()` con respaldo a `cubic-bezier`. Los efectos de :hover solo existen con ratón (`@media (hover: hover)`) para que no se queden pegados en táctiles; al tocar hay respuesta con `:active`. Los 12 presets pasan axe (WCAG 2 AA) con el panel abierto y en un submenú.
 
 ## M10. Analítica y conversión — fase 6
 

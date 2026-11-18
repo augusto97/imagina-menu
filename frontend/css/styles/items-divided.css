@@ -1,0 +1,8 @@
+/* Líneas finas entre ítems, alineadas con el texto. */
+.imm-level > .imm-it + .imm-it::before {
+	display: block;
+	height: 1px;
+	margin-inline-start: var(--imm-sep, 18px);
+	background: var(--imm-border);
+	content: "";
+}

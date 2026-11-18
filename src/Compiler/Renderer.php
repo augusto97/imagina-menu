@@ -357,7 +357,7 @@ final class Renderer {
 		}
 
 		return '<li class="' . esc_attr( $classes . ' imm-has' ) . '"><details class="imm-sub" id="imm-s-' . esc_attr( $item['id'] ) . '">'
-			. '<summary class="imm-a">' . $inner . $this->icons->use( 'chevron-right', 'imm-i imm-chev' ) . '</summary>'
+			. '<summary class="imm-a">' . $inner . $this->chevron() . '</summary>'
 			. '<ul class="imm-level" role="list" data-title="' . esc_attr( $item['label'] ) . '">' . $sub . '</ul>' . $tpl
 			. '</details></li>';
 	}
@@ -467,6 +467,12 @@ final class Renderer {
 			$html .= '<li><a class="imm-tile" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>' . $media . $badge . '<span class="imm-tile-l">' . esc_html( $item['label'] ) . '</span></a></li>';
 		}
 		return $html . '</ul>';
+	}
+
+	/** Flecha de los ítems con submenú según el estilo (ninguna: se oculta con CSS). */
+	private function chevron(): string {
+		$style = $this->profile['design']['style']['chevron'] ?? 'chevron';
+		return $this->icons->use( 'arrow' === $style ? 'arrow-right' : 'chevron-right', 'imm-i imm-chev' );
 	}
 
 	/** @param array<string, mixed> $item */

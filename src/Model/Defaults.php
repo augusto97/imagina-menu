@@ -110,6 +110,7 @@ final class Defaults {
 				'color_mode'  => 'light', // light | dark | auto
 				'tokens'      => Presets::tokens( 'marketplace' ),
 				'dark_tokens' => Presets::dark_tokens(),
+				'style'       => Presets::style( 'marketplace' ),
 				'custom_css'  => '',
 			),
 		);

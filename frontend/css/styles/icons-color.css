@@ -1,0 +1,57 @@
+/* Iconos blancos en cuadros de colores, uno distinto por ítem (estilo Ajustes de iOS). */
+.imm-a > .imm-i:first-child,
+.imm-tp-tab > .imm-i:first-child {
+	box-sizing: content-box;
+	width: 18px;
+	height: 18px;
+	padding: 7px;
+	border-radius: 9px;
+	background: #8e8e93;
+	color: #fff;
+}
+
+.imm-a .imm-img {
+	width: 32px;
+	height: 32px;
+	border-radius: 9px;
+}
+
+.imm-level > li:nth-child(8n + 1) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 1) > details > summary > .imm-i:first-child {
+	background: #ff9500;
+}
+
+.imm-level > li:nth-child(8n + 2) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 2) > details > summary > .imm-i:first-child {
+	background: #34c759;
+}
+
+.imm-level > li:nth-child(8n + 3) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 3) > details > summary > .imm-i:first-child {
+	background: #007aff;
+}
+
+.imm-level > li:nth-child(8n + 4) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 4) > details > summary > .imm-i:first-child {
+	background: #ff2d55;
+}
+
+.imm-level > li:nth-child(8n + 5) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 5) > details > summary > .imm-i:first-child {
+	background: #5856d6;
+}
+
+.imm-level > li:nth-child(8n + 6) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 6) > details > summary > .imm-i:first-child {
+	background: #ff3b30;
+}
+
+.imm-level > li:nth-child(8n + 7) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 7) > details > summary > .imm-i:first-child {
+	background: #30b0c7;
+}
+
+.imm-level > li:nth-child(8n + 8) > .imm-a > .imm-i:first-child,
+.imm-level > li:nth-child(8n + 8) > details > summary > .imm-i:first-child {
+	background: #af52de;
+}

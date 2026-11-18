@@ -4,8 +4,8 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 
 | | |
 |---|---|
-| JS en la carga | 3,0 KB gzip (opcional: 0 KB hasta el primer toque) |
-| CSS total | 3,5 KB gzip (1,4 KB inline crítico) |
+| JS en la carga | 3,8 KB gzip (opcional: 0 KB hasta el primer toque) |
+| CSS total | ~4 KB gzip con un estilo típico, 5,2 KB en el peor caso (1,45 KB inline crítico) |
 | PHP por visita | ~0,03 ms, 0 consultas a la base de datos |
 | CLS | 0 |
 | Dependencias en el frontend | ninguna |
@@ -18,7 +18,7 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 - **Bloques de conversión**: saludo y cuenta, WhatsApp, botón CTA, enlaces de servicio, redes sociales.
 - **Fuentes dinámicas**: menús de WordPress, categorías de WooCommerce (con imágenes) o cualquier taxonomía. Se recompila solo cuando cambian.
 - **Por ítem**: icono (1.850 de Lucide + marcas), imagen, insignia, descripción, destacado, visibilidad por sesión, `rel`.
-- **6 presets** de diseño, modo claro/oscuro/automático y tokens editables.
+- **12 estilos prediseñados** (Aurora, Ajustes, Editorial, Material, Medianoche, Pop…) y **16 opciones de diseño** del panel (forma flotante o cristal, cabecera en degradado o con imagen, ítems en tarjetas, píldoras o grupos, iconos multicolor, tipografía, movimiento con rebote, entrada escalonada…). Cada sitio descarga solo el CSS de su estilo.
 - **Constructor visual** con vista previa en un celular; borradores que no tocan el sitio hasta «Publicar».
 - **Accesible**: diálogo modal con foco atrapado, teclado completo, `aria-current`, `prefers-reduced-motion`, RTL.
 - Licencia y actualizaciones con **Imagina Updater**.

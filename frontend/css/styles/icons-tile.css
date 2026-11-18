@@ -1,0 +1,18 @@
+/* Icono blanco en un cuadro del color de acento. */
+.imm-a > .imm-i:first-child,
+.imm-tp-tab > .imm-i:first-child {
+	box-sizing: content-box;
+	width: 18px;
+	height: 18px;
+	padding: 8px;
+	border-radius: calc(var(--imm-r) * .55 + 2px);
+	background: var(--imm-accent);
+	color: var(--imm-accent-fg);
+	box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--imm-accent) 60%, transparent);
+}
+
+.imm-a .imm-img {
+	width: 34px;
+	height: 34px;
+	border-radius: calc(var(--imm-r) * .55 + 2px);
+}

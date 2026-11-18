@@ -1,0 +1,1 @@
+.imm-drawer{background:color-mix(in srgb, var(--imm-bg) 88%, transparent);backdrop-filter:blur(28px)saturate(1.7);box-shadow:var(--imm-shadow), inset 0 0 0 1px color-mix(in srgb, var(--imm-fg) 9%, transparent)}.imm-js.imm-mode-slide .imm-vp>.imm-level{background:0 0}button.imm-d-search{background:color-mix(in srgb, var(--imm-fg) 7%, transparent)}

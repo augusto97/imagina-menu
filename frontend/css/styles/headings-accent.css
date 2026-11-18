@@ -1,0 +1,14 @@
+/* Títulos de sección en color de acento con una línea fina. */
+.imm-level > .imm-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	color: var(--imm-accent-text);
+}
+
+.imm-level > .imm-head::after {
+	flex: 1;
+	height: 1px;
+	background: var(--imm-border);
+	content: "";
+}

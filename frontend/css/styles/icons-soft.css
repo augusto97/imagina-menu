@@ -1,0 +1,17 @@
+/* Icono dentro de un círculo suave del color de acento. */
+.imm-a > .imm-i:first-child,
+.imm-tp-tab > .imm-i:first-child {
+	box-sizing: content-box;
+	width: 20px;
+	height: 20px;
+	padding: 8px;
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--imm-accent) 13%, transparent);
+	color: var(--imm-accent-text);
+}
+
+.imm-a .imm-img {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+}

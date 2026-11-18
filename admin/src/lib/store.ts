@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from './api';
 import type { Env, Menu, Preset, Profile, Settings, State, CompileState, MenuItem, BottomItem } from './types';
+import { fillStyle } from './style';
 
 interface Snapshot {
 	menus: Menu[];
@@ -11,9 +12,14 @@ const HISTORY_CAP = 100;
 const COALESCE_MS = 500;
 
 /** Rellena los campos nuevos si el servidor todavía no los envía (compatibilidad hacia atrás). */
-function withProfileDefaults( p: Profile ): Profile {
+function withProfileDefaults( p: Profile, presets?: Record<string, Preset> ): Profile {
 	return {
 		...p,
+		design: {
+			...p.design,
+			// Sin design.style (servidor anterior): el del preset y, si no, los valores de respaldo.
+			style: fillStyle( p.design?.style, presets?.[ p.design?.preset ]?.style ),
+		},
 		rules: {
 			match: p.rules?.match === 'any' ? 'any' : 'all',
 			conditions: Array.isArray( p.rules?.conditions ) ? p.rules.conditions.map( ( c ) => ( { type: c.type, not: !! c.not, value: c.value ?? '', ids: Array.isArray( c.ids ) ? c.ids : [] } ) ) : [],
@@ -107,9 +113,10 @@ export const useStore = create<Store>( ( set, get ) => ( {
 	lastEdit: { key: '', at: 0 },
 
 	hydrate: ( raw ) => {
-		const state: State = { ...raw, settings: withSettingsDefaults( raw.settings ), profiles: raw.profiles.map( withProfileDefaults ) };
+		const presets = raw.presets ?? {};
+		const state: State = { ...raw, settings: withSettingsDefaults( raw.settings ), profiles: raw.profiles.map( ( p ) => withProfileDefaults( p, presets ) ) };
 		if ( state.defaults?.profile ) {
-			state.defaults = { ...state.defaults, profile: withProfileDefaults( state.defaults.profile ) };
+			state.defaults = { ...state.defaults, profile: withProfileDefaults( state.defaults.profile, presets ) };
 		}
 		const current = get();
 		const profileId = state.profiles.some( ( p ) => p.id === current.activeProfileId ) ? current.activeProfileId : state.profiles[ 0 ]?.id ?? 0;
@@ -185,7 +192,7 @@ export const useStore = create<Store>( ( set, get ) => ( {
 			const menus = s.menus.filter( ( m ) => m.id !== id );
 			return { menus, activeMenuId: s.activeMenuId === id ? menus[ 0 ]?.id ?? 0 : s.activeMenuId };
 		} ),
-	addProfile: ( profile ) => set( ( s ) => ( { profiles: [ ...s.profiles, withProfileDefaults( profile ) ], activeProfileId: profile.id } ) ),
+	addProfile: ( profile ) => set( ( s ) => ( { profiles: [ ...s.profiles, withProfileDefaults( profile, s.presets ) ], activeProfileId: profile.id } ) ),
 	removeProfile: ( id ) =>
 		set( ( s ) => {
 			const profiles = s.profiles.filter( ( p ) => p.id !== id );

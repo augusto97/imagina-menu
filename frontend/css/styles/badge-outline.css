@@ -1,0 +1,8 @@
+/* Insignias de contorno. */
+.imm-drawer .imm-badge {
+	background: transparent;
+	box-shadow: inset 0 0 0 1px currentColor;
+	color: var(--imm-fg);
+	font-weight: 600;
+	letter-spacing: .02em;
+}

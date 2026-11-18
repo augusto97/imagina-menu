@@ -1,0 +1,21 @@
+/* Cabecera con imagen de fondo y velo para que el texto se lea. */
+.imm-d-head {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	min-height: 168px;
+	background:
+		linear-gradient(180deg, rgb(0 0 0 / .1), rgb(0 0 0 / .62)),
+		var(--imm-head-img, none) center / cover no-repeat,
+		var(--imm-head-bg);
+	color: #fff;
+}
+
+.imm-d-top {
+	margin-bottom: auto;
+}
+
+.imm-avatar {
+	-webkit-backdrop-filter: blur(8px);
+	backdrop-filter: blur(8px);
+}

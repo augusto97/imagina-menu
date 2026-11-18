@@ -1,0 +1,1 @@
+.imm-a[aria-current]{background:color-mix(in srgb, var(--imm-accent) 9%, transparent);box-shadow:inset calc(3px * var(--imm-x)) 0 0 var(--imm-accent)}

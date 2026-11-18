@@ -1,0 +1,6 @@
+/* Sin iconos: solo texto (las imágenes de categorías se mantienen). */
+.imm-a > .imm-i:first-child,
+.imm-tp-tab > .imm-i:first-child,
+.imm-links .imm-i {
+	display: none;
+}

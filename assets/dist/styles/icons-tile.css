@@ -1,0 +1,1 @@
+.imm-a>.imm-i:first-child,.imm-tp-tab>.imm-i:first-child{box-sizing:content-box;border-radius:calc(var(--imm-r) * .55 + 2px);background:var(--imm-accent);width:18px;height:18px;color:var(--imm-accent-fg);box-shadow:0 4px 10px -4px color-mix(in srgb, var(--imm-accent) 60%, transparent);padding:8px}.imm-a .imm-img{border-radius:calc(var(--imm-r) * .55 + 2px);width:34px;height:34px}

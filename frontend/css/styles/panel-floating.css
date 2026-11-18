@@ -1,0 +1,30 @@
+/* Panel flotante: separado de los bordes, con todas las esquinas redondeadas. */
+.imm-drawer {
+	--imm-m: 10px;
+	--imm-hx: calc(-100% - var(--imm-m) * 2);
+	top: calc(var(--imm-m) + env(safe-area-inset-top, 0px));
+	bottom: calc(var(--imm-m) + env(safe-area-inset-bottom, 0px));
+	left: var(--imm-m);
+	width: min(calc(var(--imm-w, 86vw) - var(--imm-m)), var(--imm-mw, 420px));
+	height: auto;
+	border-radius: calc(var(--imm-r) + 14px);
+}
+
+.imm-side-right {
+	--imm-hx: calc(100% + var(--imm-m) * 2);
+	right: var(--imm-m);
+	left: auto;
+}
+
+.imm-side-bottom {
+	--imm-hx: 0;
+	--imm-hy: calc(100% + var(--imm-m) * 2);
+	top: auto;
+	right: var(--imm-m);
+	width: auto;
+	height: min(86dvh, 720px);
+}
+
+.imm-d-head {
+	border-radius: calc(var(--imm-r) + 14px) calc(var(--imm-r) + 14px) 0 0;
+}

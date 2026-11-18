@@ -1,0 +1,6 @@
+/* Cabecera en degradado con un brillo suave. */
+.imm-d-head {
+	background:
+		radial-gradient(120% 90% at 100% 0, rgb(255 255 255 / .2), transparent 55%),
+		linear-gradient(135deg, var(--imm-head-bg), var(--imm-head-bg2));
+}
