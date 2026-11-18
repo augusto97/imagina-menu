@@ -31,12 +31,14 @@ final class Installer {
 		if ( ! $profiles->all() ) {
 			self::seed();
 		}
+		\ImaginaMenu\Analytics\Stats::install();
 		update_option( self::VERSION_OPTION, IMM_VERSION, false );
 		Plugin::compiler()->publish();
 	}
 
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( 'imm_recompile' );
+		wp_clear_scheduled_hook( \ImaginaMenu\Analytics\Stats::CRON );
 		// Sin config compilada, el frontend no imprime nada aunque quede un caché de opcode.
 		\ImaginaMenu\Integrations\CachePurge::purge_all();
 	}
@@ -56,6 +58,7 @@ final class Installer {
 		if ( ! ( new ProfileRepository() )->all() ) {
 			self::seed();
 		}
+		\ImaginaMenu\Analytics\Stats::install();
 		update_option( self::VERSION_OPTION, IMM_VERSION, false );
 		Plugin::compiler()->publish();
 	}
@@ -201,9 +204,12 @@ final class Installer {
 				wp_delete_post( (int) $id, true );
 			}
 		}
-		foreach ( array( SettingsRepository::OPTION, Compiler::STATE_OPTION, Compiler::DIRTY_OPTION, Compiler::REFS_OPTION, self::VERSION_OPTION ) as $option ) {
+		foreach ( array( SettingsRepository::OPTION, Compiler::STATE_OPTION, Compiler::DIRTY_OPTION, Compiler::REFS_OPTION, self::VERSION_OPTION, 'imm_labels', 'imm_i18n_strings' ) as $option ) {
 			delete_option( $option );
 		}
+		global $wpdb;
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . \ImaginaMenu\Analytics\Stats::table() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuerySchemaChange
+		wp_clear_scheduled_hook( \ImaginaMenu\Analytics\Stats::CRON );
 		Storage::delete_all();
 		$role = get_role( 'administrator' );
 		if ( $role ) {

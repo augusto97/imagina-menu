@@ -1,0 +1,66 @@
+/*
+ * Modo pestañas (estilo apps de moda): categorías de primer nivel como pestañas horizontales y,
+ * debajo, sus subcategorías con tarjetas de imagen. Reutiliza el marcado y el CSS de dos columnas.
+ */
+.imm-tp.imm-tabs {
+	display: flex;
+	flex-direction: column;
+	border-top: 0;
+}
+
+.imm-tabs .imm-tp-rail {
+	display: flex;
+	flex: none;
+	gap: 2px;
+	padding: 0 8px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	border-bottom: 1px solid var(--imm-border);
+	background: var(--imm-bg);
+	scrollbar-width: none;
+}
+
+.imm-tabs .imm-tp-rail::-webkit-scrollbar {
+	display: none;
+}
+
+.imm-tabs .imm-tp-rail li {
+	flex: none;
+}
+
+.imm-tabs .imm-tp-tab {
+	flex-direction: row;
+	min-height: 48px;
+	padding: 0 14px;
+	font-size: .92em;
+	white-space: nowrap;
+}
+
+.imm-tabs .imm-tp-tab.imm-on {
+	background: none;
+	color: var(--imm-accent-text);
+}
+
+.imm-tabs .imm-tp-tab.imm-on::before {
+	top: auto;
+	right: 12px;
+	bottom: 0;
+	left: 12px;
+	width: auto;
+	height: 3px;
+	border-radius: 3px 3px 0 0;
+}
+
+.imm-tabs .imm-tp-panes {
+	flex: 1 1 0;
+}
+
+.imm-tabs .imm-tp-grid {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 359px) {
+	.imm-tabs .imm-tp-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}

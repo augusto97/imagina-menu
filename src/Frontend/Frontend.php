@@ -7,6 +7,7 @@ use ImaginaMenu\Compiler\Compiler;
 use ImaginaMenu\Compiler\Renderer;
 use ImaginaMenu\Compiler\Storage;
 use ImaginaMenu\Core\Plugin;
+use ImaginaMenu\Integrations\Languages;
 
 /**
  * Lo que corre en cada visita. Presupuesto: < 1 ms, 0 consultas propias.
@@ -67,10 +68,24 @@ final class Frontend {
 		if ( ! $config || ! $config['profiles'] ) {
 			return;
 		}
-		$profile = apply_filters( 'imm/profile/match', $config['profiles'][0], $config['profiles'] );
+		$profile = null;
+		foreach ( $config['profiles'] as $candidate ) {
+			if ( RuleMatcher::matches( $candidate['rules'] ?? array() ) ) {
+				$profile = $candidate;
+				break;
+			}
+		}
+		$profile = apply_filters( 'imm/profile/match', $profile, $config['profiles'] );
 		if ( ! is_array( $profile ) ) {
 			return;
 		}
+		// HTML del idioma actual (WPML/Polylang). Sin traducción compilada: el del idioma principal.
+		$lang = ! empty( $profile['i18n'] ) ? Languages::current() : '';
+		if ( '' !== $lang && isset( $profile['i18n'][ $lang ] ) ) {
+			$profile['parts']  = $profile['i18n'][ $lang ]['parts'];
+			$profile['sprite'] = $profile['i18n'][ $lang ]['sprite'];
+		}
+		unset( $profile['i18n'] );
 		self::$profile   = $profile;
 		self::$show_bbar = '' !== $profile['parts']['bbar'] && ! self::bbar_hidden_here( $profile['bbar_hide_on'] );
 
@@ -117,6 +132,10 @@ final class Frontend {
 			$current = wp_get_current_user();
 			$name    = '' !== $current->first_name ? $current->first_name : $current->display_name;
 			$drawer  = str_replace( Renderer::NAME_TOKEN, esc_html( $name ), $drawer );
+		}
+
+		if ( str_contains( $drawer, Renderer::LANGS_TOKEN ) ) {
+			$drawer = str_replace( Renderer::LANGS_TOKEN, Languages::switcher(), $drawer );
 		}
 
 		$html = $p['sprite'] . $parts['fab'] . $drawer . $parts['search'] . ( self::$show_bbar ? $parts['bbar'] : '' );

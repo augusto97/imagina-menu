@@ -125,7 +125,17 @@ Hecho en la primera iteración (rama `claude/wordpress-mobile-menu-plugin-1txjk9
 
 Medido en el sitio de pruebas (WordPress + WooCommerce, 40 categorías en 3 niveles, Pixel 7 emulado): JS 3,2 KB gzip, CSS 4,1 KB gzip con todos los modos (1,45 KB inline), PHP 0,034 ms por visita, CLS 0, 319–372 nodos DOM, axe sin violaciones, 0 peticiones para el contador del carrito.
 
-Pendiente (fases 4–7): modos pestañas y rejilla; profundidad híbrida/diferida para catálogos enormes; reglas por perfil y multi-idioma; analítica; integración con Imagina Search; Lighthouse CI.
+## Estado de la implementación (v0.2.0)
+
+- **Modos pestañas y rejilla** (M3.4, M3.5): pestañas reutiliza el marcado de dos columnas (radios + CSS, sin JS funciona); rejilla es el modo deslizante con el primer nivel como tarjetas. Cada modo solo añade su CSS si un perfil lo usa.
+- **Catálogos grandes**: `html_depth` (auto/full/hybrid) con `<template>` para los niveles profundos.
+- **Perfiles con reglas** (M11): portada, blog, páginas concretas, tipo de contenido, término (incluye descendientes y productos de esa categoría), páginas de WooCommerce, URL, sesión, rol e idioma; «todas» o «cualquiera» y negación. Los perfiles con condiciones se evalúan primero, en su orden; los generales al final. Evaluación en < 0,01 ms con condicionales de WordPress ya resueltos.
+- **Multi-idioma**: WPML y Polylang (compilación por idioma, cadenas registradas en su pantalla de traducción, contenidos y categorías traducidos, menú distinto por idioma, selector de idioma en el pie del panel); TranslatePress traduce el HTML final por su cuenta.
+- **Analítica** (M10): servidor (cola en archivo + agregados diarios) y/o GA4, muestreo y retención; pantalla en el admin.
+- **Prefetch** al tocar un enlace del menú (Speculation Rules con respaldo `<link rel=prefetch>`). Solo se activa si no lo hace ya otro: con Imagina Turbo o con WordPress 6.8+ (que trae Speculation Rules «conservative» en todo el sitio, menú incluido) queda apagado.
+- **Admin**: pantalla de perfiles con reglas y orden, menú por idioma, analítica, deshacer/rehacer, QR de la vista previa.
+
+Pendiente: integración con Imagina Search (cuando se comparta su código), barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos recientemente, favoritos en la barra inferior, Lighthouse CI en GitHub Actions y pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
 ### Cambios respecto a la planeación (justificados)
 

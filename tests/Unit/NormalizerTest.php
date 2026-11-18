@@ -78,4 +78,35 @@ final class NormalizerTest extends TestCase {
 		$p     = Normalizer::profile( array( 'bottom_bar' => array( 'items' => $items ) ) );
 		$this->assertCount( Normalizer::MAX_BOTTOM, $p['bottom_bar']['items'] );
 	}
+
+	public function test_rule_conditions_are_whitelisted(): void {
+		$p = Normalizer::profile(
+			array(
+				'rules' => array(
+					'match'      => 'any',
+					'conditions' => array(
+						array( 'type' => 'term', 'value' => 'Product_Cat<x>', 'ids' => array( '12', 'abc', 12 ), 'not' => 'true' ),
+						array( 'type' => 'eval', 'value' => 'phpinfo()' ),
+						array( 'type' => 'woo', 'value' => 'nope' ),
+					),
+				),
+			)
+		);
+		$this->assertSame( 'any', $p['rules']['match'] );
+		$this->assertCount( 2, $p['rules']['conditions'] );
+		$this->assertSame( 'product_cat', $p['rules']['conditions'][0]['value'] );
+		$this->assertSame( array( 12 ), $p['rules']['conditions'][0]['ids'] );
+		$this->assertTrue( $p['rules']['conditions'][0]['not'] );
+		$this->assertSame( 'any', $p['rules']['conditions'][1]['value'] );
+	}
+
+	public function test_menu_by_lang_and_new_modes(): void {
+		$p = Normalizer::profile( array( 'drawer' => array( 'submenu_mode' => 'tabs', 'menu_by_lang' => array( 'EN' => '5', 'x' => 0, '<b>' => 3 ) ) ) );
+		$this->assertSame( 'tabs', $p['drawer']['submenu_mode'] );
+		$this->assertSame( array( 'en' => 5, 'b' => 3 ), $p['drawer']['menu_by_lang'] );
+		$s = Normalizer::settings( array( 'html_depth' => 'hybrid', 'analytics' => array( 'enabled' => '1', 'sample' => 500 ) ) );
+		$this->assertSame( 'hybrid', $s['html_depth'] );
+		$this->assertTrue( $s['analytics']['enabled'] );
+		$this->assertSame( 100, $s['analytics']['sample'] );
+	}
 }

@@ -55,8 +55,18 @@ final class CssBuilder {
 		$bbar_space = $mobile ? '@media (max-width:' . $bp . 'px){' . $space . '}' : $space;
 
 		$full = self::asset( 'drawer.css' );
-		if ( 'two_pane' === $profile['drawer']['submenu_mode'] ) {
+		$mode = $profile['drawer']['submenu_mode'];
+		if ( 'two_pane' === $mode || 'tabs' === $mode ) {
 			$full .= self::asset( 'two-pane.css' );
+		}
+		if ( 'tabs' === $mode ) {
+			$full .= self::asset( 'tabs.css' );
+		}
+		if ( 'grid' === $mode ) {
+			$full .= self::asset( 'grid.css' );
+		}
+		if ( ! empty( $profile['drawer']['language_switcher'] ) ) {
+			$full .= '.imm-langs{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}.imm-langs a{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:1px solid var(--imm-border);border-radius:999px;color:inherit;font-size:.85em;text-decoration:none}.imm-langs a[aria-current]{border-color:var(--imm-accent);color:var(--imm-accent-text);font-weight:700}';
 		}
 		if ( '' !== trim( (string) $design['custom_css'] ) ) {
 			$full .= "\n" . $design['custom_css'];

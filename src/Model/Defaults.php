@@ -20,6 +20,15 @@ final class Defaults {
 			'cart_cookie'         => true,
 			'name_cookie'         => false,
 			'delete_on_uninstall' => false,
+			'html_depth'          => 'auto', // auto | full | hybrid
+			'prefetch'            => true,
+			'analytics'           => array(
+				'enabled'   => false,
+				'server'    => true,
+				'ga4'       => true,
+				'sample'    => 100,
+				'retention' => 180,
+			),
 		);
 	}
 
@@ -31,6 +40,10 @@ final class Defaults {
 			'title'               => 'Predeterminado',
 			'enabled'             => true,
 			'is_default'          => true,
+			'rules'               => array(
+				'match'      => 'all', // all | any
+				'conditions' => array(), // [{type, not, value, ids}] — vacío = perfil general
+			),
 			'hide_theme_selector' => '',
 			'trigger'             => array(
 				'mode'           => 'floating', // floating | theme_selector | manual
@@ -48,7 +61,9 @@ final class Defaults {
 				'side'             => 'left', // left | right | bottom
 				'width'            => 86,
 				'max_width'        => 420,
-				'submenu_mode'     => 'slide', // slide | accordion | two_pane
+				'submenu_mode'     => 'slide', // slide | accordion | two_pane | tabs | grid
+				'menu_by_lang'     => array(), // {código de idioma: id de menú}
+				'language_switcher' => true,
 				'close_position'   => 'outside', // outside | inside | none
 				'show_logo'        => true,
 				'title'            => '',

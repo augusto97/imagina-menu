@@ -47,7 +47,9 @@ Los menús de WooCommerce con cientos de categorías inflan el DOM (Lighthouse a
 |---|---|---|---|
 | **Completo** (por defecto si ≤ 150 ítems) | Todos los niveles | Todos los enlaces rastreables | Mayor |
 | **Híbrido** (por defecto si > 150 ítems) | Niveles 1–2 como HTML; niveles ≥ 3 dentro de `<template>` (no cuenta como DOM activo hasta que se clona) | Niveles 1–2 rastreables; los profundos se alcanzan desde las páginas de categoría | Bajo |
-| **Diferido** | Nivel 1 en HTML; el resto en un JSON estático compilado (`menu-{perfil}-{idioma}.json`, cacheable en el edge) que se pide al abrir el panel | Solo nivel 1 | Mínimo |
+| ~~Diferido~~ | Descartado en la v0.2: el híbrido ya deja el DOM mínimo sin una petición extra al abrir el panel (que costaría INP y no funcionaría sin red) | — | — |
+
+Implementado (v0.2): ajuste `html_depth` = `auto` (híbrido con más de 150 ítems), `full` o `hybrid`. En el modo híbrido cada submenú del 3.er nivel en adelante deja en el HTML su enlace «Ver todo» (sin JS sigue llevando a la categoría) y el resto va en `<template class="imm-tpl">`, que el JS clona al abrirlo. En dos columnas/pestañas, el contenido de los paneles que no son el primero va en `<template>`. Medido: 372 → 194 nodos con 40 categorías.
 
 HTML mínimo por ítem: un `<li>` + `<a>` + (si tiene hijos) `<button>` y el sprite referenciado con `<svg><use href="#imm-i-x"/></svg>`. Nada de `div` envolventes innecesarios.
 

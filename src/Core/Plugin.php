@@ -25,6 +25,7 @@ final class Plugin {
 		Frontend::boot();
 		Hydration::boot();
 		Invalidator::boot();
+		\ImaginaMenu\Analytics\Stats::boot();
 
 		add_action( 'init', array( self::class, 'init' ) );
 		add_action( 'rest_api_init', array( Routes::class, 'register' ) );
@@ -32,6 +33,9 @@ final class Plugin {
 
 		if ( is_admin() ) {
 			AdminPage::boot();
+			if ( in_array( \ImaginaMenu\Integrations\Languages::provider(), array( 'wpml', 'polylang' ), true ) ) {
+				add_action( 'admin_init', array( \ImaginaMenu\Integrations\Languages::class, 'register_strings' ) );
+			}
 			add_action( 'admin_init', array( Installer::class, 'maybe_upgrade' ) );
 		}
 	}

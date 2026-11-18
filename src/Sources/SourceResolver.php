@@ -16,6 +16,15 @@ final class SourceResolver {
 
 	private int $term_count = 0;
 
+	/** Idioma en el que se resuelve (vacío: el del sitio). */
+	private string $lang = '';
+
+	public function for_language( string $lang ): self {
+		$this->lang       = $lang;
+		$this->term_count = 0;
+		return $this;
+	}
+
 	/** @var array{posts: array<int, true>, taxonomies: array<string, true>, menus: array<int, true>} */
 	private array $refs = array(
 		'posts'      => array(),
@@ -59,7 +68,7 @@ final class SourceResolver {
 	/** @param array<string, mixed> $item */
 	private function item_url( array $item ): string {
 		$object = $item['object'] ?? array();
-		$id     = (int) ( $object['id'] ?? 0 );
+		$id     = \ImaginaMenu\Integrations\Languages::object_id( (int) ( $object['id'] ?? 0 ), (string) ( $object['kind'] ?? '' ), (string) ( $object['type'] ?? '' ), $this->lang );
 		if ( $id > 0 && 'post' === ( $object['kind'] ?? '' ) ) {
 			$this->refs['posts'][ $id ] = true;
 			$link = get_permalink( $id );
@@ -91,10 +100,14 @@ final class SourceResolver {
 	private function expand( array $source ): array {
 		return match ( $source['kind'] ) {
 			'wp_menu'        => $this->wp_menu( (int) $source['menu_id'], (int) $source['depth'] ),
-			'woo_categories' => taxonomy_exists( 'product_cat' ) ? $this->terms( 'product_cat', $source, (int) $source['parent'], 1 ) : array(),
-			'taxonomy'       => taxonomy_exists( (string) $source['taxonomy'] ) ? $this->terms( (string) $source['taxonomy'], $source, (int) $source['parent'], 1 ) : array(),
+			'woo_categories' => taxonomy_exists( 'product_cat' ) ? $this->terms( 'product_cat', $source, $this->parent( (int) $source['parent'], 'product_cat' ), 1 ) : array(),
+			'taxonomy'       => taxonomy_exists( (string) $source['taxonomy'] ) ? $this->terms( (string) $source['taxonomy'], $source, $this->parent( (int) $source['parent'], (string) $source['taxonomy'] ), 1 ) : array(),
 			default          => array(),
 		};
+	}
+
+	private function parent( int $id, string $taxonomy ): int {
+		return $id > 0 ? \ImaginaMenu\Integrations\Languages::object_id( $id, 'term', $taxonomy, $this->lang ) : 0;
 	}
 
 	/**
@@ -104,6 +117,8 @@ final class SourceResolver {
 		if ( $menu_id <= 0 ) {
 			return array();
 		}
+		$this->refs['menus'][ $menu_id ] = true;
+		$menu_id                         = \ImaginaMenu\Integrations\Languages::object_id( $menu_id, 'term', 'nav_menu', 'wpml' === \ImaginaMenu\Integrations\Languages::provider() ? $this->lang : '' );
 		$this->refs['menus'][ $menu_id ] = true;
 		$items = wp_get_nav_menu_items( $menu_id, array( 'update_post_term_cache' => false ) );
 		if ( ! is_array( $items ) ) {
@@ -156,7 +171,7 @@ final class SourceResolver {
 			'parent'     => $parent,
 			'hide_empty' => (bool) $source['hide_empty'],
 			'number'     => (int) $source['limit'],
-		);
+		) + \ImaginaMenu\Integrations\Languages::terms_args( $this->lang );
 		switch ( $source['orderby'] ) {
 			case 'name':
 				$args['orderby'] = 'name';

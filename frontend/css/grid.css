@@ -1,0 +1,87 @@
+/*
+ * Modo rejilla: el primer nivel como tarjetas con icono o imagen (servicios, restaurantes,
+ * contenidos); los niveles siguientes se deslizan como en el modo deslizante.
+ */
+.imm-level.imm-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	align-content: start;
+	gap: 8px;
+	padding: 12px;
+}
+
+.imm-js.imm-mode-slide .imm-vp > .imm-level.imm-grid {
+	padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.imm-grid > .imm-head,
+.imm-grid > .imm-div,
+.imm-grid > li.imm-has:has(> details[open]) {
+	grid-column: 1 / -1;
+}
+
+.imm-grid > .imm-head {
+	padding: 10px 4px 0;
+}
+
+.imm-grid > .imm-div {
+	margin: 4px 0;
+}
+
+.imm-grid > li > .imm-a,
+.imm-grid > li > details > summary.imm-a {
+	position: relative;
+	flex-direction: column;
+	justify-content: center;
+	gap: 8px;
+	height: 100%;
+	min-height: 98px;
+	padding: 14px 6px 12px;
+	border-radius: var(--imm-r);
+	background: var(--imm-hover-bg);
+	font-size: .84em;
+	line-height: 1.2;
+	text-align: center;
+}
+
+.imm-grid > li > .imm-a .imm-i,
+.imm-grid > li > details > summary .imm-i:not(.imm-chev) {
+	width: 30px;
+	height: 30px;
+	color: var(--imm-accent-text);
+}
+
+.imm-grid > li > .imm-a .imm-img,
+.imm-grid > li > details > summary .imm-img {
+	width: 46px;
+	height: 46px;
+	border-radius: 50%;
+}
+
+.imm-grid > li > details > summary .imm-chev {
+	display: none;
+}
+
+.imm-grid > li > .imm-a .imm-t small,
+.imm-grid > li > details > summary .imm-t small {
+	display: none;
+}
+
+.imm-grid > li > .imm-a .imm-badge,
+.imm-grid > li > details > summary .imm-badge {
+	position: absolute;
+	top: 6px;
+	inset-inline-end: 6px;
+	font-size: 10px;
+}
+
+.imm-grid > .imm-hl > .imm-a,
+.imm-grid > .imm-hl > details > .imm-a {
+	background: color-mix(in srgb, var(--imm-accent) 12%, var(--imm-bg));
+}
+
+@media (min-width: 480px) {
+	.imm-level.imm-grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}

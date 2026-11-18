@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 mkdirSync( 'assets/dist', { recursive: true } );
 
 await build( {
-	entryPoints: [ 'frontend/src/core.ts' ],
+	entryPoints: [ 'frontend/src/core.ts', 'frontend/src/track.ts' ],
 	outdir: 'assets/dist',
 	bundle: true,
 	format: 'esm',
@@ -16,7 +16,7 @@ await build( {
 	logLevel: 'warning',
 } );
 
-for ( const name of [ 'critical', 'drawer', 'two-pane' ] ) {
+for ( const name of [ 'critical', 'drawer', 'two-pane', 'tabs', 'grid' ] ) {
 	const { code } = transform( {
 		filename: `${ name }.css`,
 		code: readFileSync( `frontend/css/${ name }.css` ),

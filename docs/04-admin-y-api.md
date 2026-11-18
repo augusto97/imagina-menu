@@ -80,7 +80,7 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 
 ## Endpoints REST
 
-Namespace `imagina-menu/v1`. Todos requieren la capacidad `imm_manage` (asignada a administradores; se puede dar a editores de tienda) y nonce `wp_rest`, salvo `/hit`. Validación con el JSON Schema.
+Namespace `imagina-menu/v1`. Todos requieren la capacidad `imm_manage` (asignada a administradores; se puede dar a editores de tienda) y nonce `wp_rest`, salvo `/hit`. Validación con `Model\\Normalizer`.
 
 | Método | Ruta | Uso |
 |---|---|---|
@@ -102,8 +102,8 @@ Namespace `imagina-menu/v1`. Todos requieren la capacidad `imm_manage` (asignada
 | GET | `/sources/preview` | Vista de cómo se expandirá una fuente dinámica |
 | POST | `/links/check` | Comprobar enlaces del menú (HEAD en lote, en pasos de ~8 s) |
 | GET | `/integrations` · POST `/integrations/{id}/apply` | Estado de integraciones · aplicar exclusiones automáticas |
-| GET | `/stats` | Analítica (`period`, `profile`) |
-| POST | `/hit` | **Público**, para la analítica: `{p, i, e}` (perfil, ítem, evento). Sin cookies, con límite de tasa por IP (hash) y validación estricta de ids contra la config compilada. Respuesta 204. |
+| GET | `/stats` | Analítica (`days` = 7/30/90, `profile`): serie diaria, totales por evento, ítems más tocados y sin clics |
+| POST | `/hit` | **Público**, para la analítica: `{p, e, i}` (perfil, evento `open`/`click`/`search`/`bbar`, ítem). Sin cookies. Valida evento, formato del id y que el perfil exista en la config compilada; siempre responde 204. |
 | GET / POST | `/export` · `/import` | Exportar/importar todo (menús, perfiles, diseño, ajustes) en JSON; la importación valida y muestra un resumen antes de aplicar |
 
 ## Capacidades y seguridad
@@ -112,7 +112,8 @@ Namespace `imagina-menu/v1`. Todos requieren la capacidad `imm_manage` (asignada
 - Sanitización: textos con `sanitize_text_field`, URLs con `esc_url_raw` (+ lista de protocolos: http, https, mailto, tel, whatsapp), HTML de bloques con `wp_kses` y lista propia, SVG subidos con un sanitizador (lista blanca de elementos/atributos, sin `script`, sin `on*`, sin `href` externos).
 - CSS personalizado: se bloquean `</style`, `@import` externos y `expression(`.
 - La vista previa con borrador solo se activa con un token firmado (HMAC con salts de WP), de vida corta y ligado al usuario.
-- El endpoint `/hit` nunca escribe en cada petición: acumula en la caché de objetos (o en un archivo de cola) y vuelca en lote cada 5 minutos vía Action Scheduler.
+- El endpoint `/hit` nunca escribe en la base de datos por petición: añade una línea a `wp-content/imagina-menu/hits.log` (máximo 2 MB; si se llena, descarta) y WP-Cron la agrega cada 5 minutos en `imm_stats` (`Analytics\\Stats`). La retención se aplica en el mismo paso.
+- GA4: `imm_menu_open`, `imm_menu_click` y `imm_bbar_click` (`imm_id`, `imm_label`), `imm_search`. Con `gtag` se envían como eventos; sin él, se empujan a `dataLayer` (Google Tag Manager). El código vive en `track.js` (0,3 KB) y solo se descarga en sitios con la analítica activa.
 
 ## Datos
 

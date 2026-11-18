@@ -19,7 +19,9 @@ final class Normalizer {
 		'trigger.position'        => array( 'bottom-left', 'bottom-right', 'top-left', 'top-right' ),
 		'trigger.icon'            => array( 'menu', 'align-left', 'layout-grid', 'grip' ),
 		'drawer.side'             => array( 'left', 'right', 'bottom' ),
-		'drawer.submenu_mode'     => array( 'slide', 'accordion', 'two_pane' ),
+		'drawer.submenu_mode'     => array( 'slide', 'accordion', 'two_pane', 'tabs', 'grid' ),
+		'rules.match'             => array( 'all', 'any' ),
+		'html_depth'              => array( 'auto', 'full', 'hybrid' ),
 		'drawer.close_position'   => array( 'outside', 'inside', 'none' ),
 		'bottom_bar.style'        => array( 'labels', 'icons', 'active_label' ),
 		'bottom_bar.indicator'    => array( 'pill', 'line', 'dot', 'color' ),
@@ -51,12 +53,19 @@ final class Normalizer {
 		'design.tokens.item_height' => array( 40, 80 ),
 		'design.tokens.font_size'  => array( 12, 24 ),
 		'design.tokens.duration'   => array( 0, 800 ),
+		'analytics.sample'         => array( 1, 100 ),
+		'analytics.retention'      => array( 30, 730 ),
 	);
 
 	public const MAX_ITEMS       = 1500;
 	public const MAX_DEPTH       = 6;
 	public const MAX_BOTTOM      = 6;
 	public const MAX_CUSTOM_CSS  = 20000;
+
+	/** Condiciones de los perfiles y qué campos usa cada una. */
+	public const RULE_TYPES = array( 'front_page', 'blog', 'page', 'post_type', 'term', 'woo', 'url', 'logged_in', 'logged_out', 'role', 'language' );
+
+	public const WOO_PAGES = array( 'any', 'shop', 'product', 'cart', 'checkout', 'account' );
 
 	private int $item_count = 0;
 
@@ -94,8 +103,11 @@ final class Normalizer {
 		$drawer['whatsapp']['message'] = self::text( $drawer['whatsapp']['message'], 300 );
 		$drawer['cta']['url']   = self::url( (string) $drawer['cta']['url'] );
 		$drawer['footer_links'] = self::links( $input['drawer']['footer_links'] ?? array(), 12 );
+		$drawer['menu_by_lang'] = self::lang_map( $input['drawer']['menu_by_lang'] ?? array() );
 		$drawer['social']       = self::social( $input['drawer']['social'] ?? array() );
 		unset( $drawer );
+
+		$out['rules']['conditions'] = self::conditions( $input['rules']['conditions'] ?? array() );
 
 		$bar = $input['bottom_bar']['items'] ?? array();
 		$out['bottom_bar']['items']   = $self->bottom_items( is_array( $bar ) ? $bar : array() );
@@ -361,6 +373,50 @@ final class Normalizer {
 				'label' => $label,
 				'url'   => $url,
 				'icon'  => self::icon_name( (string) ( $link['icon'] ?? '' ) ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $map
+	 * @return array<string, int>
+	 */
+	private static function lang_map( $map ): array {
+		$out = array();
+		foreach ( is_array( $map ) ? $map : array() as $lang => $menu ) {
+			$lang = preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $lang ) ) ?? '';
+			if ( '' !== $lang && is_numeric( $menu ) && (int) $menu > 0 ) {
+				$out[ substr( $lang, 0, 12 ) ] = (int) $menu;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $conditions
+	 * @return list<array{type: string, not: bool, value: string, ids: list<int>}>
+	 */
+	public static function conditions( $conditions ): array {
+		$out = array();
+		foreach ( is_array( $conditions ) ? array_slice( $conditions, 0, 20 ) : array() as $c ) {
+			if ( ! is_array( $c ) || ! in_array( $c['type'] ?? '', self::RULE_TYPES, true ) ) {
+				continue;
+			}
+			$type  = (string) $c['type'];
+			$value = self::text( $c['value'] ?? '', 120 );
+			if ( in_array( $type, array( 'post_type', 'term', 'role', 'language' ), true ) ) {
+				$value = sanitize_key( $value );
+			}
+			if ( 'woo' === $type && ! in_array( $value, self::WOO_PAGES, true ) ) {
+				$value = 'any';
+			}
+			$ids = array_values( array_unique( array_filter( array_map( 'intval', is_array( $c['ids'] ?? null ) ? array_slice( $c['ids'], 0, 200 ) : array() ) ) ) );
+			$out[] = array(
+				'type'  => $type,
+				'not'   => (bool) filter_var( $c['not'] ?? false, FILTER_VALIDATE_BOOLEAN ),
+				'value' => $value,
+				'ids'   => $ids,
 			);
 		}
 		return $out;

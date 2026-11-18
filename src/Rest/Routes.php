@@ -53,13 +53,17 @@ final class Routes {
 		self::route( '/search', 'GET', 'search', $auth );
 		self::route( '/source-preview', 'POST', 'source_preview', $auth );
 		self::route( '/export', 'GET', 'export', $auth );
+		self::route( '/profiles/order', 'PUT', 'order_profiles', $auth );
+		self::route( '/stats', 'GET', 'stats', $auth );
+		// Público: recibe los clics de la analítica (sin cookies). Validación estricta y cola en archivo.
+		self::route( '/hit', 'POST', 'hit', '__return_true' );
 		self::route( '/import', 'POST', 'import', $auth );
 	}
 
 	/**
 	 * @param array<string, mixed> $args
 	 */
-	private static function route( string $path, string $method, string $callback, callable $auth, array $args = array() ): void {
+	private static function route( string $path, string $method, string $callback, callable|string $auth, array $args = array() ): void {
 		register_rest_route(
 			self::NAMESPACE,
 			$path,
@@ -111,7 +115,7 @@ final class Routes {
 				),
 				'compile'  => $compiler->state(),
 				'dirty'    => Compiler::is_dirty(),
-				'env'      => Environment::info() + array( 'license' => ( new ImaginaUpdater() )->status() ),
+				'env'      => Environment::info() + array( 'license' => ( new ImaginaUpdater() )->status() ) + self::env_lists(),
 			)
 		);
 	}
@@ -135,6 +139,72 @@ final class Routes {
 		}
 		unset( $item );
 		return $items;
+	}
+
+	/** Listas para el editor de reglas e idiomas. */
+	private static function env_lists(): array {
+		$post_types = array();
+		foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $type ) {
+			if ( 'attachment' !== $type->name ) {
+				$post_types[] = array( 'slug' => $type->name, 'label' => $type->labels->name );
+			}
+		}
+		$taxonomies = array();
+		foreach ( get_taxonomies( array( 'public' => true ), 'objects' ) as $tax ) {
+			if ( 'post_format' !== $tax->name ) {
+				$taxonomies[] = array( 'slug' => $tax->name, 'label' => $tax->labels->name );
+			}
+		}
+		$roles = array();
+		foreach ( wp_roles()->get_names() as $slug => $name ) {
+			$roles[] = array( 'slug' => (string) $slug, 'label' => translate_user_role( (string) $name ) );
+		}
+		return array(
+			'multilingual' => \ImaginaMenu\Integrations\Languages::provider(),
+			'languages'    => \ImaginaMenu\Integrations\Languages::languages(),
+			'post_types'   => $post_types,
+			'taxonomies'   => $taxonomies,
+			'roles'        => $roles,
+			// WordPress 6.8+ ya precarga los enlaces al tocarlos: el prefetch propio no se usa.
+			'core_speculation' => function_exists( 'wp_get_speculation_rules_configuration' ),
+		);
+	}
+
+	public static function order_profiles( WP_REST_Request $request ): WP_REST_Response {
+		$data = $request->get_json_params();
+		$repo = new ProfileRepository();
+		foreach ( array_values( array_map( 'intval', (array) ( $data['ids'] ?? array() ) ) ) as $i => $id ) {
+			if ( $repo->get( $id ) ) {
+				$repo->set_order( $id, $i );
+			}
+		}
+		return new WP_REST_Response( array( 'profiles' => $repo->all( true ) ) );
+	}
+
+	public static function stats( WP_REST_Request $request ): WP_REST_Response {
+		$days = (int) $request->get_param( 'days' );
+		$days = in_array( $days, array( 7, 30, 90 ), true ) ? $days : 7;
+		return new WP_REST_Response( \ImaginaMenu\Analytics\Stats::summary( $days, (int) $request->get_param( 'profile' ) ) );
+	}
+
+	/** Un evento de analítica. Siempre 204: nunca se le da información a quien llama. */
+	public static function hit( WP_REST_Request $request ): WP_REST_Response {
+		$config = \ImaginaMenu\Frontend\Frontend::config();
+		$data   = json_decode( (string) $request->get_body(), true );
+		$data   = is_array( $data ) ? $data : $request->get_params();
+		$event  = (string) ( $data['e'] ?? '' );
+		$item   = (string) ( $data['i'] ?? '' );
+		$pid    = (int) ( $data['p'] ?? 0 );
+		$ok     = $config && ! empty( $config['settings']['analytics_server'] )
+			&& in_array( $event, \ImaginaMenu\Analytics\Stats::EVENTS, true )
+			&& ( '' === $item || preg_match( '/^[a-z0-9_]{1,24}$/', $item ) )
+			&& in_array( $pid, array_map( 'intval', array_column( $config['profiles'], 'id' ) ), true );
+		if ( $ok ) {
+			\ImaginaMenu\Analytics\Stats::record( $pid, $event, $item );
+		}
+		$response = new WP_REST_Response( null, 204 );
+		$response->header( 'Cache-Control', 'no-store' );
+		return $response;
 	}
 
 	public static function save_settings( WP_REST_Request $request ): WP_REST_Response {
@@ -336,11 +406,16 @@ final class Routes {
 	// ── Búsqueda de objetos para enlazar ────────────────────────────────────────────────────────
 
 	public static function search( WP_REST_Request $request ): WP_REST_Response {
-		$q   = sanitize_text_field( (string) $request->get_param( 'q' ) );
-		$out = array();
+		$q    = sanitize_text_field( (string) $request->get_param( 'q' ) );
+		$kind = (string) $request->get_param( 'kind' );
+		$only = sanitize_key( (string) $request->get_param( 'type' ) );
+		$out  = array();
 
 		$types = array_values( array_diff( get_post_types( array( 'public' => true ) ), array( 'attachment' ) ) );
-		$posts = get_posts(
+		if ( '' !== $only && 'post' === $kind && in_array( $only, $types, true ) ) {
+			$types = array( $only );
+		}
+		$posts = 'term' === $kind ? array() : get_posts(
 			array(
 				's'              => $q,
 				'post_type'      => $types,
@@ -362,10 +437,13 @@ final class Routes {
 			);
 		}
 
-		$taxonomies = array_values( get_taxonomies( array( 'public' => true ) ) );
-		$terms      = get_terms(
+		$taxonomies = array_values( array_diff( get_taxonomies( array( 'public' => true ) ), array( 'post_format' ) ) );
+		if ( '' !== $only && 'term' === $kind && in_array( $only, $taxonomies, true ) ) {
+			$taxonomies = array( $only );
+		}
+		$terms      = 'post' === $kind ? array() : get_terms(
 			array(
-				'taxonomy'   => array_values( array_diff( $taxonomies, array( 'post_format' ) ) ),
+				'taxonomy'   => $taxonomies,
 				'search'     => $q,
 				'number'     => 12,
 				'hide_empty' => false,

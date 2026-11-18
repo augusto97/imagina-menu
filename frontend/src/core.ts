@@ -75,6 +75,76 @@ function loadImages( level: Element | null ): void {
 	}
 }
 
+/**
+ * Catálogos grandes: los niveles profundos llegan en <template> (no cuentan como DOM hasta usarse).
+ * Se clonan la primera vez que se abren.
+ */
+function fill( host: Element | null, target?: Element | null ): void {
+	const tpl = host?.querySelector<HTMLTemplateElement>( ':scope > template.imm-tpl' );
+	if ( ! tpl ) return;
+	( target || host )?.append( tpl.content );
+	tpl.remove();
+}
+
+/** Enlace de la página actual, aunque esté dentro de un <template> todavía sin clonar. */
+function findCurrent( d: Element ): Element | null {
+	for ( let i = 0; i < 6; i++ ) {
+		const found = qs( 'a[aria-current]', d );
+		if ( found ) return found;
+		const tpl = qsa<HTMLTemplateElement>( 'template.imm-tpl', d ).find( ( t ) => hasCurrent( t.content ) );
+		if ( ! tpl ) return null;
+		const host = tpl.parentElement;
+		fill( host, host?.querySelector( ':scope > .imm-level' ) || host );
+	}
+	return null;
+}
+
+function hasCurrent( frag: DocumentFragment ): boolean {
+	if ( frag.querySelector( 'a[aria-current]' ) ) return true;
+	return Array.from( frag.querySelectorAll<HTMLTemplateElement>( 'template.imm-tpl' ) ).some( ( t ) => hasCurrent( t.content ) );
+}
+
+// ── Analítica y prefetch (opcionales, configurados en data-imm-cfg) ─────────────────────────────
+
+export type Cfg = { p?: number; pf?: number; a?: { s: number; g: number; r: number; u: string } };
+let cfg: Cfg = {};
+try {
+	cfg = JSON.parse( qs<HTMLElement>( '[data-imm-cfg]' )?.dataset.immCfg || '{}' );
+} catch {}
+const sampled = !! cfg.a && Math.random() * 100 < cfg.a.r;
+
+/**
+ * Evento de analítica. El código de envío vive en track.js y solo se descarga en sitios con la
+ * analítica activa, con el primer evento (sendBeacon sobrevive a la navegación).
+ */
+function track( e: 'open' | 'click' | 'search' | 'bbar', id = '', label = '' ): void {
+	if ( ! cfg.a || ! sampled ) return;
+	const ver = new URL( import.meta.url ).search;
+	const mod = './track.js' + ver;
+	import( /* @vite-ignore */ mod ).then( ( m: { send: ( c: Cfg, e: string, id: string, label: string ) => void } ) => m.send( cfg, e, id, label ) ).catch( () => {} );
+}
+
+const prefetched = new Set<string>();
+
+/** Prefetch del destino al tocar un enlace (~100–300 ms antes del clic). Con Imagina Turbo no se usa. */
+function prefetch( a: HTMLAnchorElement ): void {
+	const url = a.href;
+	if ( ! cfg.pf || prefetched.has( url ) || a.origin !== location.origin || a.target === '_blank' || url.split( '#' )[ 0 ] === location.href.split( '#' )[ 0 ] ) return;
+	prefetched.add( url );
+	const supports = ( HTMLScriptElement as unknown as { supports?: ( t: string ) => boolean } ).supports;
+	if ( supports?.( 'speculationrules' ) ) {
+		const s = doc.createElement( 'script' );
+		s.type = 'speculationrules';
+		s.textContent = JSON.stringify( { prefetch: [ { source: 'list', urls: [ url ] } ] } );
+		doc.head.append( s );
+	} else {
+		const l = doc.createElement( 'link' );
+		l.rel = 'prefetch';
+		l.href = url;
+		doc.head.append( l );
+	}
+}
+
 // ── Panel ───────────────────────────────────────────────────────────────────────────────────────
 
 let stack: Level[] = [];
@@ -99,6 +169,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 			show( d );
 			shown = true;
 			setExpanded( 'imm-drawer', true );
+			track( 'open' );
 		};
 		d.addEventListener( 'close', onClose );
 		return;
@@ -126,6 +197,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 	const forward = ( details: HTMLDetailsElement, animate = true ) => {
 		let level = details.querySelector<Level>( ':scope > .imm-level' ) || ( details as unknown as { _level?: Level } )._level;
 		if ( ! level ) return;
+		fill( details, level );
 		if ( level.parentElement !== vp ) {
 			// Primer uso: el nivel se saca del árbol y se coloca como panel hermano.
 			( details as unknown as { _level?: Level } )._level = level;
@@ -213,7 +285,11 @@ function initDrawer( d: HTMLDialogElement ): void {
 
 	d.addEventListener( 'toggle', ( e ) => {
 		const t = e.target as HTMLElement;
-		if ( t instanceof HTMLDetailsElement && t.open ) loadImages( qs( ':scope > .imm-level', t ) );
+		if ( t instanceof HTMLDetailsElement && t.open ) {
+			const level = qs( ':scope > .imm-level', t );
+			fill( t, level );
+			loadImages( level );
+		}
 	}, true );
 
 	d.addEventListener( 'keydown', ( e ) => {
@@ -292,9 +368,10 @@ function initDrawer( d: HTMLDialogElement ): void {
 			}
 		}
 		if ( d.dataset.active === '1' && ! target && stack.length === 1 ) {
-			reveal( qs( 'a[aria-current]', d ) );
+			reveal( findCurrent( d ) );
 		}
 		doc.dispatchEvent( new CustomEvent( 'imm:open' ) );
+		track( 'open' );
 	};
 
 	goTo = ( id: string ) => {
@@ -341,6 +418,7 @@ function initTwoPane( d: HTMLElement, tp: HTMLElement ): void {
 		for ( const l of qsa( '.imm-tp-tab.imm-on', tp ) ) l.classList.remove( 'imm-on' );
 		qs( `label[for="${ radio.id }"]`, tp )?.classList.add( 'imm-on' );
 		const pane = radio.nextElementSibling as HTMLElement | null;
+		fill( pane );
 		loadImages( pane );
 		if ( pane ) pane.scrollTop = 0;
 	};
@@ -349,7 +427,7 @@ function initTwoPane( d: HTMLElement, tp: HTMLElement ): void {
 		if ( t.matches( '.imm-tp-r' ) ) select( t );
 	} );
 	// Abrir en la categoría de la página actual.
-	const current = qs( '.imm-tp-pane a[aria-current]', tp );
+	const current = findCurrent( tp );
 	const radio = current?.closest( '.imm-tp-pane' )?.previousElementSibling as HTMLInputElement | null;
 	if ( radio?.matches( '.imm-tp-r' ) && d.dataset.active === '1' ) {
 		radio.checked = true;
@@ -395,6 +473,7 @@ function initSearch( s: HTMLDialogElement ): void {
 	};
 
 	form?.addEventListener( 'submit', () => {
+		track( 'search' );
 		const term = input?.value.trim();
 		if ( ! term || ! recent ) return;
 		const items = [ term, ...read().filter( ( t ) => t.toLowerCase() !== term.toLowerCase() ) ].slice( 0, 8 );
@@ -471,6 +550,8 @@ function initKeyboardWatch(): void {
 
 doc.addEventListener( 'click', ( e ) => {
 	const t = e.target as Element;
+	const tracked = t.closest<HTMLElement>( '[data-imm-id]' );
+	if ( tracked ) track( tracked.closest( '.imm-bbar' ) ? 'bbar' : 'click', tracked.dataset.immId, ( tracked.textContent || '' ).trim().slice( 0, 60 ) );
 	const btn = t.closest<HTMLElement>( '[popovertarget]' );
 	if ( btn ) {
 		const id = btn.getAttribute( 'popovertarget' );
@@ -502,6 +583,11 @@ doc.addEventListener( 'click', ( e ) => {
 		scrollTo( { top: 0, behavior: matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 'auto' : 'smooth' } );
 	}
 } );
+
+doc.addEventListener( 'pointerdown', ( e ) => {
+	const a = ( e.target as Element ).closest?.<HTMLAnchorElement>( 'a[href]' );
+	if ( a && a.closest( '.imm-drawer, .imm-bbar, .imm-search' ) ) prefetch( a );
+}, { passive: true } );
 
 // Al volver con el botón atrás (bfcache) el panel no debe quedar abierto.
 addEventListener( 'pageshow', ( e ) => {

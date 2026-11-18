@@ -18,12 +18,18 @@ final class Renderer {
 	/** Marcador que el frontend reemplaza por el nombre del usuario conectado (escapado). */
 	public const NAME_TOKEN = '%%IMM_NAME%%';
 
+	/** Marcador del selector de idioma (se reemplaza en tiempo de ejecución). */
+	public const LANGS_TOKEN = '<!--imm:langs-->';
+
 	private Icons $icons;
 
 	/** @var array<string, mixed> */
 	private array $profile;
 
 	private string $variant = 'guest';
+
+	/** @var array<string, string> id => etiqueta (para la analítica). */
+	private array $labels = array();
 
 	/**
 	 * @param array<string, mixed> $profile Perfil normalizado.
@@ -36,6 +42,21 @@ final class Renderer {
 
 	public function icons(): Icons {
 		return $this->icons;
+	}
+
+	/** @return array<string, string> */
+	public function labels(): array {
+		return $this->labels;
+	}
+
+	/** Niveles desde el 3.º en <template> (catálogos grandes: menos nodos DOM). */
+	private function hybrid(): bool {
+		return ! empty( $this->site['hybrid'] );
+	}
+
+	/** Atributo con la configuración que lee el JS (analítica, prefetch, perfil). */
+	private function cfg_attr(): string {
+		return '' !== ( $this->site['cfg'] ?? '' ) ? ' data-imm-cfg="' . esc_attr( (string) $this->site['cfg'] ) . '"' : '';
 	}
 
 	/**
@@ -125,7 +146,8 @@ final class Renderer {
 			$d['close_position']                       = 'inside';
 			$this->profile['drawer']['close_position'] = 'inside';
 		}
-		$class = 'imm-drawer imm-side-' . $d['side'] . ' imm-mode-' . $d['submenu_mode'] . ' imm-close-' . $d['close_position'];
+		$mode  = $d['submenu_mode'];
+		$class = 'imm-drawer imm-side-' . $d['side'] . ' imm-mode-' . $mode . ( 'grid' === $mode ? ' imm-mode-slide' : '' ) . ( 'tabs' === $mode ? ' imm-mode-two_pane' : '' ) . ' imm-close-' . $d['close_position'];
 		$data  = array(
 			'data-back'   => $d['back_label'],
 			'data-active' => $d['open_active'] ? '1' : '0',
@@ -137,20 +159,21 @@ final class Renderer {
 		}
 
 		$style = '--imm-w:' . (int) $d['width'] . 'vw;--imm-mw:' . (int) $d['max_width'] . 'px';
-		$html  = '<dialog id="imm-drawer" class="' . esc_attr( $class ) . '" style="' . esc_attr( $style ) . '" popover aria-label="' . esc_attr__( 'Menú', 'imagina-menu' ) . '"' . self::attrs( $data ) . '>';
+		$html  = '<dialog id="imm-drawer" class="' . esc_attr( $class ) . '" style="' . esc_attr( $style ) . '" popover aria-label="' . esc_attr__( 'Menú', 'imagina-menu' ) . '"' . self::attrs( $data ) . $this->cfg_attr() . '>';
 		$html .= '<div class="imm-d-in">';
 		$html .= $this->drawer_head();
 		$html .= '<nav class="imm-nav" aria-label="' . esc_attr__( 'Menú principal', 'imagina-menu' ) . '">';
-		if ( 'slide' === $d['submenu_mode'] ) {
+		if ( 'slide' === $mode || 'grid' === $mode ) {
 			$html .= '<div class="imm-nav-bar" hidden><button type="button" class="imm-back" data-imm-back>'
 				. $this->icons->use( 'chevron-left' ) . '<span class="imm-back-l">' . esc_html( $d['back_label'] ) . '</span></button>'
 				. ( $d['show_level_title'] ? '<p class="imm-level-t" aria-live="polite"></p>' : '<p class="imm-level-t imm-sr" aria-live="polite"></p>' )
 				. '</div>';
 		}
-		if ( 'two_pane' === $d['submenu_mode'] ) {
-			$html .= $this->two_pane( $items );
+		if ( 'two_pane' === $mode || 'tabs' === $mode ) {
+			$html .= $this->two_pane( $items, 'tabs' === $mode );
 		} else {
-			$html .= '<div class="imm-vp"><ul class="imm-level imm-root" role="list">' . $this->items( $items ) . '</ul></div>';
+			$root  = 'grid' === $mode ? 'imm-level imm-root imm-grid' : 'imm-level imm-root';
+			$html .= '<div class="imm-vp"><ul class="' . $root . '" role="list">' . $this->items( $items ) . '</ul></div>';
 		}
 		$html .= '</nav>';
 		$html .= $this->drawer_foot();
@@ -241,11 +264,14 @@ final class Renderer {
 			}
 			$html .= '</ul>';
 		}
+		if ( $d['language_switcher'] && ! empty( $this->site['multilingual'] ) ) {
+			$html .= self::LANGS_TOKEN; // Depende de la página: se reemplaza en cada visita.
+		}
 		return '' === $html ? '' : '<footer class="imm-d-foot">' . $html . '</footer>';
 	}
 
 	/** @param list<array<string, mixed>> $items */
-	private function items( array $items ): string {
+	private function items( array $items, int $depth = 0 ): string {
 		$html = '';
 		foreach ( $items as $item ) {
 			if ( ! $this->visible( $item ) ) {
@@ -253,8 +279,8 @@ final class Renderer {
 			}
 			$html .= match ( $item['type'] ) {
 				'divider' => '<li class="imm-div" role="separator"></li>',
-				'heading' => '<li class="imm-head">' . esc_html( $item['label'] ) . '</li>' . $this->items( $item['children'] ),
-				default   => $this->item( $item ),
+				'heading' => '<li class="imm-head">' . esc_html( $item['label'] ) . '</li>' . $this->items( $item['children'], $depth ),
+				default   => $this->item( $item, $depth ),
 			};
 		}
 		return $html;
@@ -270,7 +296,7 @@ final class Renderer {
 	}
 
 	/** @param array<string, mixed> $item */
-	private function item( array $item ): string {
+	private function item( array $item, int $depth = 0 ): string {
 		$children = array_values( array_filter( $item['children'], fn( $c ) => $this->visible( $c ) ) );
 		$classes  = 'imm-it' . ( $item['highlight'] ? ' imm-hl' : '' ) . ( '' !== $item['css_class'] ? ' ' . $item['css_class'] : '' );
 		$inner    = $this->item_inner( $item );
@@ -287,11 +313,18 @@ final class Renderer {
 			$label = $this->profile['drawer']['view_all_label'] . ' ' . $item['label'];
 			$sub  .= '<li class="imm-it imm-all"><a class="imm-a" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '><span class="imm-t">' . esc_html( $label ) . '</span></a></li>';
 		}
-		$sub .= $this->items( $children );
+		$rest = $this->items( $children, $depth + 1 );
+		$tpl  = '';
+		if ( $depth >= 1 && $this->hybrid() ) {
+			// Sin JS queda «Ver todo»; con JS el resto se clona al abrir el submenú.
+			$tpl = '<template class="imm-tpl">' . $rest . '</template>';
+		} else {
+			$sub .= $rest;
+		}
 
 		return '<li class="' . esc_attr( $classes . ' imm-has' ) . '"><details class="imm-sub" id="imm-s-' . esc_attr( $item['id'] ) . '">'
 			. '<summary class="imm-a">' . $inner . $this->icons->use( 'chevron-right', 'imm-i imm-chev' ) . '</summary>'
-			. '<ul class="imm-level" role="list" data-title="' . esc_attr( $item['label'] ) . '">' . $sub . '</ul>'
+			. '<ul class="imm-level" role="list" data-title="' . esc_attr( $item['label'] ) . '">' . $sub . '</ul>' . $tpl
 			. '</details></li>';
 	}
 
@@ -306,7 +339,7 @@ final class Renderer {
 	 *
 	 * @param list<array<string, mixed>> $items
 	 */
-	private function two_pane( array $items ): string {
+	private function two_pane( array $items, bool $tabs = false ): string {
 		$rail  = '';
 		$panes = '';
 		$first = true;
@@ -328,14 +361,14 @@ final class Renderer {
 			$id    = 'imm-tp-' . $item['id'];
 			$rail .= '<li><label class="imm-tp-tab' . $hl . ( $first ? ' imm-on' : '' ) . '" for="' . esc_attr( $id ) . '">' . $icon . $label . $badge . '</label></li>';
 			$panes .= '<input class="imm-tp-r imm-sr" type="radio" name="imm-tp" id="' . esc_attr( $id ) . '"' . ( $first ? ' checked' : '' ) . '>'
-				. '<div class="imm-tp-pane" data-title="' . esc_attr( $item['label'] ) . '">' . $this->pane( $item, $children ) . '</div>';
+				. '<div class="imm-tp-pane" data-title="' . esc_attr( $item['label'] ) . '">' . $this->pane( $item, $children, ! $first && $this->hybrid() ) . '</div>';
 			$first = false;
 			++$n;
 		}
 		if ( ! $n && ! $rail ) {
 			return '<div class="imm-vp"><ul class="imm-level imm-root" role="list">' . $this->items( $items ) . '</ul></div>';
 		}
-		return '<div class="imm-tp"><ul class="imm-tp-rail" role="list">' . $rail . '</ul><div class="imm-tp-panes">' . $panes . '</div></div>';
+		return '<div class="imm-tp' . ( $tabs ? ' imm-tabs' : '' ) . '"><ul class="imm-tp-rail" role="list">' . $rail . '</ul><div class="imm-tp-panes">' . $panes . '</div></div>';
 	}
 
 	/**
@@ -362,7 +395,7 @@ final class Renderer {
 	 * @param array<string, mixed>       $item
 	 * @param list<array<string, mixed>> $children
 	 */
-	private function pane( array $item, array $children ): string {
+	private function pane( array $item, array $children, bool $defer = false ): string {
 		$html = '';
 		if ( '' !== $item['url'] ) {
 			$html .= '<a class="imm-tp-all" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>'
@@ -381,10 +414,8 @@ final class Renderer {
 				: esc_html( $child['label'] );
 			$sections .= '<section class="imm-tp-sec"><p class="imm-tp-h">' . $title . '</p>' . $this->tiles( $grand ) . '</section>';
 		}
-		if ( $loose ) {
-			$html .= '<section class="imm-tp-sec">' . $this->tiles( $loose ) . '</section>';
-		}
-		return $html . $sections;
+		$body = ( $loose ? '<section class="imm-tp-sec">' . $this->tiles( $loose ) . '</section>' : '' ) . $sections;
+		return $html . ( $defer ? '<template class="imm-tpl">' . $body . '</template>' : $body );
 	}
 
 	/** @param list<array<string, mixed>> $items */
@@ -435,6 +466,7 @@ final class Renderer {
 		if ( '' !== $rel ) {
 			$out .= ' rel="' . esc_attr( implode( ' ', array_unique( explode( ' ', $rel ) ) ) ) . '"';
 		}
+		$this->labels[ (string) $item['id'] ] = (string) $item['label'];
 		return $out . ' data-imm-id="' . esc_attr( $item['id'] ) . '"';
 	}
 
@@ -445,7 +477,7 @@ final class Renderer {
 		$post_type = $this->site['search_post_type'] ?? '';
 		$hidden    = '' !== $post_type ? '<input type="hidden" name="post_type" value="' . esc_attr( $post_type ) . '">' : '';
 
-		$html  = '<dialog id="imm-search" class="imm-search" popover aria-label="' . esc_attr__( 'Buscar', 'imagina-menu' ) . '"' . ( $s['recent'] ? ' data-recent="1"' : '' ) . '>';
+		$html  = '<dialog id="imm-search" class="imm-search" popover aria-label="' . esc_attr__( 'Buscar', 'imagina-menu' ) . '"' . ( $s['recent'] ? ' data-recent="1"' : '' ) . $this->cfg_attr() . '>';
 		$html .= '<form class="imm-s-form" role="search" method="get" action="' . esc_url( $this->site['home_url'] ) . '">';
 		$html .= '<button type="button" class="imm-s-back" popovertarget="imm-search" popovertargetaction="hide" aria-label="' . esc_attr__( 'Cerrar búsqueda', 'imagina-menu' ) . '" data-imm-close>' . $this->icons->use( 'arrow-left' ) . '</button>';
 		$html .= '<input class="imm-s-input" type="search" name="s" placeholder="' . esc_attr( $s['placeholder'] ) . '" aria-label="' . esc_attr( $s['placeholder'] ) . '" autocomplete="off" enterkeyhint="search" autofocus>' . $hidden;
@@ -474,7 +506,7 @@ final class Renderer {
 	private function bottom_bar(): string {
 		$b     = $this->profile['bottom_bar'];
 		$class = 'imm-bbar imm-bb--' . $b['shape'] . ' imm-bb-ind--' . $b['indicator'] . ' imm-bb-st--' . $b['style'] . ( $b['blur'] ? ' imm-bb--blur' : '' );
-		$html  = '<nav class="' . esc_attr( $class ) . '" aria-label="' . esc_attr__( 'Navegación inferior', 'imagina-menu' ) . '"' . ( $b['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . '><ul role="list">';
+		$html  = '<nav class="' . esc_attr( $class ) . '" aria-label="' . esc_attr__( 'Navegación inferior', 'imagina-menu' ) . '"' . ( $b['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . $this->cfg_attr() . '><ul role="list">';
 		foreach ( $b['items'] as $item ) {
 			$html .= '<li' . ( $item['prominent'] ? ' class="imm-bb-main"' : '' ) . '>' . $this->bottom_item( $item ) . '</li>';
 		}
@@ -485,6 +517,7 @@ final class Renderer {
 	private function bottom_item( array $item ): string {
 		$inner = '<span class="imm-bb-ic">' . $this->icons->use( $item['icon'] ) . $this->bottom_badge( $item ) . '</span><span class="imm-bb-l">' . esc_html( $item['label'] ) . '</span>';
 		$attrs = ' class="imm-bb-it" data-imm-id="' . esc_attr( $item['id'] ) . '"';
+		$this->labels[ (string) $item['id'] ] = (string) $item['label'];
 
 		switch ( $item['action'] ) {
 			case 'drawer':

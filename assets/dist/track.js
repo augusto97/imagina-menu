@@ -1,0 +1,1 @@
+var o={click:"imm_menu_click",bbar:"imm_bbar_click",open:"imm_menu_open",search:"imm_search"};function c(t,i,r,s){let n=t.a;if(n){if(n.s)try{navigator.sendBeacon(n.u,JSON.stringify({p:t.p,e:i,i:r}))}catch{}if(n.g){let a=window,e={imm_id:r,imm_label:s};typeof a.gtag=="function"?a.gtag("event",o[i],e):(a.dataLayer=a.dataLayer||[]).push({event:o[i],...e})}}}export{c as send};

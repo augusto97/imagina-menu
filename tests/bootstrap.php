@@ -34,3 +34,5 @@ function esc_url_raw( $url, $protocols = null ) {
 function esc_url( $url, $protocols = null ) { return esc_attr( esc_url_raw( $url, $protocols ) ); }
 function home_url( $path = '' ) { return 'https://tienda.test' . ( $path ? '/' . ltrim( $path, '/' ) : '' ); }
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function rest_url( $path = '' ) { return 'https://tienda.test/wp-json/' . ltrim( $path, '/' ); }
+function wp_json_encode( $data, $flags = 0 ) { return json_encode( $data, $flags ); }
