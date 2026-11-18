@@ -327,7 +327,9 @@ final class Normalizer {
 		if ( str_starts_with( $value, '/' ) && ! str_starts_with( $value, '//' ) ) {
 			return esc_url_raw( $value, array( 'http', 'https' ) ) ?: '';
 		}
-		return esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
+		$value = esc_url_raw( $value, array( 'http', 'https', 'mailto', 'tel' ) );
+		// esc_url_raw quita tabuladores y saltos: «/\t/otro.sitio» acabaría en «//otro.sitio».
+		return str_starts_with( $value, '//' ) ? 'https:' . $value : $value;
 	}
 
 	public static function id( string $value ): string {
@@ -344,10 +346,43 @@ final class Normalizer {
 	}
 
 	/** Selector CSS para ocultar o vincular elementos del tema. Sin llaves ni "<" para no salir de la regla. */
+	/**
+	 * Selector CSS para ocultar o capturar el botón del tema. Va dentro de una regla CSS crítica: no
+	 * puede abrir ni cerrar bloques, comentarios ni cadenas. Se permiten combinadores (`>`, `+`, `~`)
+	 * y escapes (`.md\\:hidden`), pero los paréntesis, corchetes y comillas deben estar equilibrados y
+	 * no puede terminar en `\\` (escaparía la llave que se añade detrás).
+	 */
 	public static function selector( string $value ): string {
 		$value = trim( wp_strip_all_tags( $value ) );
-		$value = str_replace( array( '{', '}', ';', '<', '>', '\\', '@' ), '', $value );
-		return mb_substr( $value, 0, 300 );
+		$value = str_replace( array( '{', '}', ';', '<', '/*', '*/', '@', "\n", "\r" ), '', $value );
+		$value = rtrim( mb_substr( $value, 0, 300 ), '\\ ' );
+		$depth = array(
+			'(' => 0,
+			'[' => 0,
+		);
+		$quote = '';
+		$len   = strlen( $value );
+		for ( $i = 0; $i < $len; $i++ ) {
+			$ch = $value[ $i ];
+			if ( '\\' === $ch ) {
+				++$i; // Carácter escapado.
+				continue;
+			}
+			if ( '' !== $quote ) {
+				$quote = $ch === $quote ? '' : $quote;
+				continue;
+			}
+			if ( '"' === $ch || "'" === $ch ) {
+				$quote = $ch;
+			} elseif ( '(' === $ch || '[' === $ch ) {
+				++$depth[ $ch ];
+			} elseif ( ')' === $ch && --$depth['('] < 0 ) {
+				return '';
+			} elseif ( ']' === $ch && --$depth['['] < 0 ) {
+				return '';
+			}
+		}
+		return ( '' === $quote && 0 === $depth['('] && 0 === $depth['['] ) ? $value : '';
 	}
 
 	/** CSS propio: sin salir de la etiqueta style, sin imports, sin expresiones de IE. */

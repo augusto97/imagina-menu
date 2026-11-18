@@ -24,11 +24,11 @@ function modeFor( route: Route ): Open {
 	return route === 'constructor' || route === 'panel-lateral' || route === 'diseno' ? 'drawer' : 'none';
 }
 
-// El token de vista previa dura 1 h; se renueva a los 45 min.
+// El token de vista previa dura 30 min; se renueva a los 20.
 let cached: { url: string; at: number; path: string } | null = null;
 
 async function previewUrl( path: string ): Promise<string> {
-	if ( cached && cached.path === path && Date.now() - cached.at < 45 * 60_000 ) {
+	if ( cached && cached.path === path && Date.now() - cached.at < 20 * 60_000 ) {
 		return cached.url;
 	}
 	const { url } = await api<{ url: string }>( 'preview', 'POST', { path } );

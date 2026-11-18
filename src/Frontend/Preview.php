@@ -11,7 +11,10 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Preview {
 
-	private const TTL = HOUR_IN_SECONDS;
+	private const TTL = 30 * MINUTE_IN_SECONDS;
+
+	/** Revisión de los borradores: cambia con cada guardado y renueva la caché de la vista previa. */
+	public const REV_OPTION = 'imm_draft_rev';
 
 	public static function token( int $user_id ): string {
 		$expires = time() + self::TTL;
@@ -41,6 +44,26 @@ final class Preview {
 		}
 		// Si al usuario que lo pidió le quitaron el permiso, sus enlaces dejan de valer.
 		return user_can( (int) $parts[1], \ImaginaMenu\Core\Plugin::CAP );
+	}
+
+	public static function bump(): void {
+		update_option( self::REV_OPTION, uniqid( '', true ), false );
+	}
+
+	/**
+	 * Configuración del borrador. Compilar cuesta (consultas y HTML): se guarda 10 minutos por
+	 * revisión, así quien tenga un enlace de vista previa no fuerza una compilación en cada visita.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function config(): array {
+		$key    = 'imm_prev_' . substr( md5( get_option( self::REV_OPTION, '' ) . IMM_VERSION ), 0, 16 );
+		$config = get_transient( $key );
+		if ( ! is_array( $config ) ) {
+			$config = \ImaginaMenu\Core\Plugin::compiler()->build( true );
+			set_transient( $key, $config, 10 * MINUTE_IN_SECONDS );
+		}
+		return $config;
 	}
 
 	/** La vista previa nunca se guarda en caché ni muestra la barra de administración. */

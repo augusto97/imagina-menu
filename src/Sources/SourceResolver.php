@@ -21,6 +21,11 @@ final class SourceResolver {
 	/** Idioma en el que se resuelve (vacío: el del sitio). */
 	private string $lang = '';
 
+	/** Taxonomías usadas por reglas de perfil: si cambian sus términos, se recompila. */
+	public function ref_taxonomy( string $taxonomy ): void {
+		$this->refs['taxonomies'][ $taxonomy ] = true;
+	}
+
 	public function for_language( string $lang ): self {
 		$this->lang       = $lang;
 		$this->term_count = 0;
@@ -74,13 +79,15 @@ final class SourceResolver {
 		if ( $id > 0 && 'post' === ( $object['kind'] ?? '' ) ) {
 			$this->refs['posts'][ $id ] = true;
 			$link = get_permalink( $id );
-			if ( is_string( $link ) && 'publish' === get_post_status( $id ) ) {
+			$type = get_post_type( $id );
+			if ( is_string( $link ) && 'publish' === get_post_status( $id ) && $type && is_post_type_viewable( $type ) && '' === (string) get_post_field( 'post_password', $id ) ) {
 				return $link;
 			}
 		}
 		if ( $id > 0 && 'term' === ( $object['kind'] ?? '' ) ) {
 			$this->refs['taxonomies'][ (string) ( $object['type'] ?? '' ) ] = true;
-			$link = get_term_link( $id, (string) ( $object['type'] ?? '' ) );
+			$tax  = (string) ( $object['type'] ?? '' );
+			$link = taxonomy_exists( $tax ) && is_taxonomy_viewable( $tax ) ? get_term_link( $id, $tax ) : null;
 			if ( is_string( $link ) ) {
 				return $link;
 			}
@@ -110,7 +117,8 @@ final class SourceResolver {
 		return match ( $source['kind'] ) {
 			'wp_menu'        => $this->wp_menu( (int) $source['menu_id'], (int) $source['depth'] ),
 			'woo_categories' => taxonomy_exists( 'product_cat' ) ? $this->terms( 'product_cat', $source, $this->parent( (int) $source['parent'], 'product_cat' ), 1 ) : array(),
-			'taxonomy'       => taxonomy_exists( (string) $source['taxonomy'] ) ? $this->terms( (string) $source['taxonomy'], $source, $this->parent( (int) $source['parent'], (string) $source['taxonomy'] ), 1 ) : array(),
+			// Solo taxonomías públicas: nunca nav_menu, product_visibility ni las internas de otros plugins.
+			'taxonomy'       => taxonomy_exists( (string) $source['taxonomy'] ) && is_taxonomy_viewable( (string) $source['taxonomy'] ) ? $this->terms( (string) $source['taxonomy'], $source, $this->parent( (int) $source['parent'], (string) $source['taxonomy'] ), 1 ) : array(),
 			default          => array(),
 		};
 	}

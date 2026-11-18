@@ -535,7 +535,7 @@ final class Renderer {
 				if ( '' !== $post_type ) {
 					$args['post_type'] = $post_type;
 				}
-				$html .= '<li><a href="' . esc_url( add_query_arg( $args, $this->site['home_url'] ) ) . '">' . $this->icons->use( 'trending-up' ) . esc_html( $term ) . '</a></li>';
+				$html .= '<li><a href="' . esc_url( add_query_arg( array_map( 'rawurlencode', $args ), $this->site['home_url'] ) ) . '">' . $this->icons->use( 'trending-up' ) . esc_html( $term ) . '</a></li>';
 			}
 			$html .= '</ul></section>';
 		}

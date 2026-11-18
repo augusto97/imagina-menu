@@ -21,6 +21,7 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 - **12 estilos prediseñados** (Aurora, Ajustes, Editorial, Material, Medianoche, Pop…) y **16 opciones de diseño** del panel (forma flotante o cristal, cabecera en degradado o con imagen, ítems en tarjetas, píldoras o grupos, iconos multicolor, tipografía, movimiento con rebote, entrada escalonada…). Cada sitio descarga solo el CSS de su estilo.
 - **Constructor visual** con vista previa en un celular; borradores que no tocan el sitio hasta «Publicar».
 - **Accesible**: diálogo modal con foco atrapado, teclado completo, `aria-current`, `prefers-reduced-motion`, RTL.
+- **Seguro por diseño**: auditado (ver [docs/06-seguridad.md](docs/06-seguridad.md)); nada privado descargable aunque el servidor ignore `.htaccess`, analítica sin cookies y a prueba de relleno, CSS global solo para administradores.
 - Licencia y actualizaciones con **Imagina Updater**.
 
 ## Instalación
@@ -34,6 +35,7 @@ Formas de abrir el panel: botón flotante, el botón del menú móvil de tu tema
 ## Desarrollo
 
 ```bash
+bash bin/build-zip.sh        # ZIP de distribución (solo lo necesario, autoloader optimizado)
 npm ci && npm run build      # frontend (assets/dist) — sin dependencias en runtime
 npm run size                 # presupuesto de rendimiento
 npm run icons                # regenerar icons/icons.json
@@ -50,3 +52,4 @@ La especificación completa está en [`CLAUDE.md`](CLAUDE.md) y [`docs/`](docs/)
 - [03 — Rendimiento, SEO y accesibilidad](docs/03-rendimiento-y-seo.md)
 - [04 — Admin, constructor y API](docs/04-admin-y-api.md)
 - [05 — Roadmap y pruebas](docs/05-roadmap-y-pruebas.md) (incluye el estado de la implementación)
+- [06 — Seguridad](docs/06-seguridad.md)

@@ -9,7 +9,7 @@ import { __ } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 
 /**
- * Código QR de la vista previa firmada (válida 1 h) para abrir el borrador en el celular.
+ * Código QR de la vista previa firmada (válida 30 min) para abrir el borrador en el celular.
  * El QR se genera aquí mismo: la URL con el token nunca se envía a un servicio externo.
  */
 export function QrButton( { path = '/' }: { path?: string } ) {
@@ -61,7 +61,7 @@ export function QrDialog( { open, onOpenChange, path }: { open: boolean; onOpenC
 						<div>
 							<DialogPrimitive.Title className="imm:text-base imm:font-semibold">{ __( 'Ver en mi celular' ) }</DialogPrimitive.Title>
 							<DialogPrimitive.Description className="imm:mt-1 imm:text-[13px] imm:text-zinc-500">
-								{ __( 'Escanea con la cámara: abre el sitio con el borrador sin publicar. El enlace caduca en 1 hora.' ) }
+								{ __( 'Escanea con la cámara: abre el sitio con el borrador sin publicar. El enlace caduca en 30 minutos.' ) }
 							</DialogPrimitive.Description>
 						</div>
 						<DialogPrimitive.Close asChild>

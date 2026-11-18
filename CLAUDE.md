@@ -38,7 +38,7 @@ Tiene que ser **el menú más rápido del mercado**: HTML renderizado en el serv
 6. **Accesible**: WCAG 2.2 AA, navegación completa por teclado, `aria-*` correctos, foco atrapado en el panel, `prefers-reduced-motion` y RTL.
 7. **Coexistencia**: no romper el tema. Ocultar el menú móvil del tema solo si el usuario lo pide (selector CSS configurable). Detectar Imagina Turbo, Perfmatters, WP Rocket (retraso de JS) y LiteSpeed (Guest Mode / delay JS) y documentar exclusiones.
 8. **Todo es opcional**: un módulo desactivado no carga PHP, CSS ni JS.
-9. **Seguridad**: nonces, capacidades, sanitización y escape en todo; el HTML que pega el usuario pasa por `wp_kses` con lista permitida; los SVG subidos se sanitizan.
+9. **Seguridad** (detalle y auditoría en `docs/06-seguridad.md`): nonces, capacidades, sanitización y escape en todo; `defined( 'ABSPATH' ) || exit` en cada PHP; los CPT del plugin solo se escriben desde `JsonPostRepository`; CSS propio y selectores del tema solo con `edit_css`; ajustes del dueño solo con `manage_options`; nada privado descargable por URL aunque el servidor ignore `.htaccess` (OpenLiteSpeed, nginx); el endpoint público `/hit` valida contra el menú publicado y aplica topes; el JS valida todo lo que lee (cookies, localStorage, atributos) y no usa `innerHTML`. La distribución se genera con `bin/build-zip.sh` (lista blanca).
 
 ## Stack y convenciones
 
@@ -60,6 +60,7 @@ Tiene que ser **el menú más rápido del mercado**: HTML renderizado en el serv
 | `docs/03-rendimiento-y-seo.md` | Técnicas de alto rendimiento, presupuestos, Core Web Vitals, SEO, accesibilidad y compatibilidad con plugins de caché/optimización. |
 | `docs/04-admin-y-api.md` | Pantallas del admin, constructor visual, vista previa, endpoints REST, opciones y tablas. |
 | `docs/05-roadmap-y-pruebas.md` | Fases con criterios de aceptación, estrategia de pruebas, decisiones abiertas. |
+| `docs/06-seguridad.md` | Modelo de amenazas, defensas por capa, riesgos aceptados, recomendaciones de servidor y auditoría. |
 
 ## Cómo trabajar en este repo
 

@@ -61,7 +61,7 @@ final class Frontend {
 		}
 		if ( isset( $_GET['imm_preview'] ) && Preview::verify( sanitize_text_field( wp_unslash( $_GET['imm_preview'] ) ) ) ) {
 			self::$preview = true;
-			self::$config  = Plugin::compiler()->build( true );
+			self::$config  = Preview::config();
 			Preview::prepare_request();
 		}
 		// phpcs:enable
@@ -69,6 +69,10 @@ final class Frontend {
 		$config = self::config();
 		if ( ! $config || ! $config['profiles'] ) {
 			return;
+		}
+		// Tras actualizar el plugin, la recompilación va a WP-Cron (nunca en la visita).
+		if ( IMM_VERSION !== ( $config['version'] ?? '' ) && ! self::$preview && ! wp_next_scheduled( 'imm_upgrade' ) ) {
+			wp_schedule_single_event( time(), 'imm_upgrade' );
 		}
 		$profile = null;
 		foreach ( $config['profiles'] as $candidate ) {
@@ -144,7 +148,8 @@ final class Frontend {
 		}
 
 		if ( '' !== $p['css_url'] && null !== $p['css_url'] ) {
-			echo '<link rel="stylesheet" id="imm-css" href="' . esc_url( $p['css_url'] ) . '">'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- se imprime al final del body a propósito: no bloquea el render.
+			// El esquema se ajusta a esta visita (la URL guardada puede venir de una compilación por CLI).
+			echo '<link rel="stylesheet" id="imm-css" href="' . esc_url( set_url_scheme( $p['css_url'] ) ) . '">'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- se imprime al final del body a propósito: no bloquea el render.
 		} else {
 			echo '<style id="imm-css">' . $p['css_inline'] . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}

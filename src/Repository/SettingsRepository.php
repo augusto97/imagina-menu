@@ -25,6 +25,7 @@ final class SettingsRepository {
 	public function save( array $data ): array {
 		$clean = Normalizer::settings( $data );
 		update_option( self::OPTION, $clean, false );
+		\ImaginaMenu\Frontend\Preview::bump();
 		return $clean;
 	}
 }

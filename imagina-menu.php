@@ -3,7 +3,7 @@
  * Plugin Name:       Imagina Menu
  * Plugin URI:        https://imaginawp.com/
  * Description:       Navegación móvil tipo app: panel con submenús deslizantes, barra de navegación inferior y buscador. HTML renderizado en el servidor, sin jQuery y sin afectar PageSpeed.
- * Version:           0.3.0
+ * Version:           0.3.1
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Imagina WP
@@ -29,7 +29,7 @@ if ( defined( 'IMM_VERSION' ) ) {
 }
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- prefijo IMM_ fijado en CLAUDE.md.
-define( 'IMM_VERSION', '0.3.0' );
+define( 'IMM_VERSION', '0.3.1' );
 define( 'IMM_FILE', __FILE__ );
 define( 'IMM_DIR', __DIR__ );
 define( 'IMM_MIN_PHP', 80100 );

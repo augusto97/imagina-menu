@@ -27,19 +27,50 @@ final class Plugin {
 		Frontend::boot();
 		Hydration::boot();
 		Invalidator::boot();
+		\ImaginaMenu\Repository\JsonPostRepository::boot();
 		\ImaginaMenu\Analytics\Stats::boot();
 
 		add_action( 'init', array( self::class, 'init' ) );
 		add_action( 'rest_api_init', array( Routes::class, 'register' ) );
 		add_action( 'imm_recompile', array( self::class, 'recompile' ) );
+		add_action( 'imm_upgrade', array( Installer::class, 'maybe_upgrade' ) );
 
-		if ( is_admin() ) {
+		// Los menús y perfiles solo se escriben desde la API del plugin: nunca por XML-RPC.
+		add_filter( 'xmlrpc_allow_post_type_writes', array( self::class, 'block_xmlrpc' ), 10, 2 );
+		// Cada revisión es una copia completa del JSON: se guardan las últimas 20.
+		add_filter( 'wp_revisions_to_keep', array( self::class, 'revisions' ), 10, 2 );
+
+		if ( is_admin() && ! wp_doing_ajax() ) {
 			AdminPage::boot();
-			if ( in_array( \ImaginaMenu\Integrations\Languages::provider(), array( 'wpml', 'polylang' ), true ) ) {
-				add_action( 'admin_init', array( \ImaginaMenu\Integrations\Languages::class, 'register_strings' ) );
-			}
-			add_action( 'admin_init', array( Installer::class, 'maybe_upgrade' ) );
+			// admin_init también corre en admin-ajax.php (incluso para visitantes): solo con usuarios del plugin.
+			add_action( 'admin_init', array( self::class, 'admin_init' ) );
 		}
+	}
+
+	public static function admin_init(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			return;
+		}
+		Installer::maybe_upgrade();
+		if ( in_array( \ImaginaMenu\Integrations\Languages::provider(), array( 'wpml', 'polylang' ), true ) ) {
+			\ImaginaMenu\Integrations\Languages::register_strings();
+		}
+	}
+
+	/**
+	 * Filtro de WordPress 7.1.1+ (recibe el objeto del tipo). En versiones anteriores no existe; ahí
+	 * protege JsonPostRepository::block_insert().
+	 *
+	 * @param mixed $allowed
+	 * @param mixed $post_type WP_Post_Type (o el nombre, por compatibilidad).
+	 */
+	public static function block_xmlrpc( $allowed, $post_type ): bool {
+		$name = $post_type instanceof \WP_Post_Type ? $post_type->name : (string) $post_type;
+		return in_array( $name, array( MenuRepository::POST_TYPE, ProfileRepository::POST_TYPE ), true ) ? false : (bool) $allowed;
+	}
+
+	public static function revisions( int $num, \WP_Post $post ): int {
+		return in_array( $post->post_type, array( MenuRepository::POST_TYPE, ProfileRepository::POST_TYPE ), true ) ? 20 : $num;
 	}
 
 	public static function init(): void {
@@ -67,8 +98,14 @@ final class Plugin {
 			'query_var'           => false,
 			'exclude_from_search' => true,
 			'supports'            => array( 'title', 'revisions' ),
-			'capability_type'     => 'page',
+			// Permisos propios: con «page», un editor o un gestor de tienda podría editar estos datos
+			// (por XML-RPC o edición rápida) sin tener imm_manage ni edit_css.
+			'capability_type'     => array( 'imm_doc', 'imm_docs' ),
 			'map_meta_cap'        => true,
+			'capabilities'        => array_fill_keys(
+				array( 'create_posts', 'edit_posts', 'edit_others_posts', 'edit_published_posts', 'edit_private_posts', 'publish_posts', 'delete_posts', 'delete_others_posts', 'delete_published_posts', 'delete_private_posts', 'read_private_posts' ),
+				self::CAP
+			),
 		);
 		register_post_type( MenuRepository::POST_TYPE, $args + array( 'label' => __( 'Menús móviles', 'imagina-menu' ) ) );
 		register_post_type( ProfileRepository::POST_TYPE, $args + array( 'label' => __( 'Perfiles de navegación', 'imagina-menu' ) ) );

@@ -46,16 +46,23 @@ final class Compiler {
 	 * @return array<string, mixed> Estado de la compilación.
 	 */
 	public function publish( bool $purge = true ): array {
-		if ( get_transient( self::LOCK ) ) {
-			// Otra compilación en curso: se marca sucio para que la siguiente lo recoja.
-			update_option( self::DIRTY_OPTION, time(), false );
-			return $this->state();
+		// Cerrojo atómico (add_option falla si ya existe): una sola compilación a la vez.
+		if ( ! add_option( self::LOCK, time(), '', false ) ) {
+			if ( (int) get_option( self::LOCK ) > time() - MINUTE_IN_SECONDS ) {
+				// Otra compilación en curso: se marca sucio para que la siguiente lo recoja.
+				update_option( self::DIRTY_OPTION, time(), false );
+				return $this->state();
+			}
+			update_option( self::LOCK, time(), false ); // Cerrojo huérfano.
 		}
-		set_transient( self::LOCK, 1, 60 );
 		try {
-			$config = $this->build( false );
+			$config   = $this->build( false );
+			$previous = $this->state();
+			// Si nada cambió (p. ej. se editó una categoría que no sale en el menú), no se reescribe ni se
+			// vacía la caché de todo el sitio.
+			$same = ( $previous['hash'] ?? '' ) === $config['hash'] && ! empty( $previous['ok'] ) && null !== Storage::load();
 			// Lo que solo usa el admin no va al archivo que se carga en cada visita.
-			$ok     = Storage::write_config( array_diff_key( $config, array_flip( array( 'labels', 'strings', 'refs', 'warnings' ) ) ) );
+			$ok = $same || Storage::write_config( array_diff_key( $config, array_flip( array( 'labels', 'strings', 'refs', 'warnings' ) ) ) );
 			$state  = array(
 				'ok'          => $ok,
 				'time'        => time(),
@@ -65,6 +72,7 @@ final class Compiler {
 				'error'       => $ok ? '' : __( 'No se pudo escribir en wp-content/imagina-menu. Revisa los permisos de la carpeta.', 'imagina-menu' ),
 				'purged'      => array(),
 				'languages'   => $config['languages'],
+				'unchanged'   => $same,
 			);
 			if ( $ok ) {
 				delete_option( self::DIRTY_OPTION );
@@ -73,7 +81,7 @@ final class Compiler {
 				update_option( 'imm_i18n_strings', $config['strings'], false );
 				\ImaginaMenu\Analytics\Stats::sync_schedule( ! empty( $config['settings']['analytics_server'] ) );
 				Storage::cleanup( array_values( array_filter( array_column( $config['profiles'], 'css_url' ) ) ) );
-				if ( $purge ) {
+				if ( $purge && ! $same ) {
 					$state['purged'] = CachePurge::purge_all();
 				}
 			}
@@ -81,7 +89,7 @@ final class Compiler {
 			do_action( 'imm/compiled', $config, $state );
 			return $state;
 		} finally {
-			delete_transient( self::LOCK );
+			delete_option( self::LOCK );
 		}
 	}
 
@@ -163,7 +171,7 @@ final class Compiler {
 		// Primero los perfiles con condiciones (en su orden); los generales al final.
 		usort( $profiles, static fn( $a, $b ) => ( $a['rules']['conditions'] ? 0 : 1 ) <=> ( $b['rules']['conditions'] ? 0 : 1 ) );
 		$config['profiles'] = $profiles;
-		$config['hash']     = substr( md5( (string) wp_json_encode( $profiles ) ), 0, 12 );
+		$config['hash']     = substr( md5( (string) wp_json_encode( array( $profiles, $config['settings'], $config['hit_ids'] ?? array(), IMM_VERSION ) ) ), 0, 12 );
 		return apply_filters( 'imm/compile/config', $config, $draft );
 	}
 
@@ -178,6 +186,12 @@ final class Compiler {
 		if ( 'theme_selector' === $profile['trigger']['mode'] && '' === $profile['trigger']['selector'] ) {
 			/* translators: %s: nombre del perfil */
 			$warnings[] = sprintf( __( 'El perfil «%s» se abre con el botón del tema, pero falta el selector.', 'imagina-menu' ), $profile['title'] );
+		}
+
+		foreach ( $profile['rules']['conditions'] as $c ) {
+			if ( 'term' === $c['type'] && '' !== $c['value'] ) {
+				$this->resolver->ref_taxonomy( (string) $c['value'] );
+			}
 		}
 
 		$provider     = Languages::provider();
@@ -249,7 +263,7 @@ final class Compiler {
 		return array(
 			'id'           => (int) $profile['id'],
 			'title'        => (string) $profile['title'],
-			'rules'        => $profile['rules'],
+			'rules'        => self::expand_rules( $profile['rules'] ),
 			'parts'        => $main['parts'],
 			'sprite'       => $main['sprite'],
 			'i18n'         => $i18n,
@@ -267,6 +281,30 @@ final class Compiler {
 			),
 			'color_mode'   => $profile['design']['color_mode'],
 		);
+	}
+
+	/**
+	 * Precalcula las subcategorías de las reglas por término: en cada visita la comprobación es un
+	 * in_array, sin consultas a la base de datos.
+	 *
+	 * @param array<string, mixed> $rules
+	 * @return array<string, mixed>
+	 */
+	private static function expand_rules( array $rules ): array {
+		foreach ( $rules['conditions'] as $i => $c ) {
+			if ( 'term' !== $c['type'] || ! $c['ids'] || ! taxonomy_exists( $c['value'] ) ) {
+				continue;
+			}
+			$all = $c['ids'];
+			foreach ( $c['ids'] as $id ) {
+				$children = get_term_children( (int) $id, $c['value'] );
+				if ( is_array( $children ) ) {
+					$all = array_merge( $all, array_map( 'intval', $children ) );
+				}
+			}
+			$rules['conditions'][ $i ]['all'] = array_values( array_unique( $all ) );
+		}
+		return $rules;
 	}
 
 	/**

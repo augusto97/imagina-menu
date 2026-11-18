@@ -126,6 +126,8 @@ HTML mínimo por ítem: un `<li>` + `<a>` + (si tiene hijos) `<button>` y el spr
 | Cloudflare (Rocket Loader) | Funciona; recomendado apagar Rocket Loader en general. |
 | Imagina Turbo | Integración nativa (ver `docs/02`, M12). |
 
+Los módulos `track.js` (analítica) y `prefetch.js` (precarga) se cargan bajo demanda junto a `core.js`: si un optimizador combina o mueve `core.js`, debe excluirlos también (o excluir `imagina-menu` completo).
+
 El plugin **detecta** estos plugins y, cuando es posible, añade las exclusiones por sus filtros públicos (p. ej. `rocket_rucss_safelist`, `litespeed_optm_ucss_whitelist`… **verificar los nombres vigentes en su documentación antes de implementar**); si no, muestra instrucciones.
 
 ## Cómo se mide

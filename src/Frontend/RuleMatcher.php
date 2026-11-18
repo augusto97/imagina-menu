@@ -50,7 +50,7 @@ final class RuleMatcher {
 			case 'post_type':
 				return '' !== $value && ( is_singular( $value ) || is_post_type_archive( $value ) || ( 'post' === $value && is_home() ) );
 			case 'term':
-				return self::term( $value, $ids );
+				return self::term( $value, $ids, array_map( 'intval', (array) ( $c['all'] ?? array() ) ) );
 			case 'woo':
 				return self::woo( $value );
 			case 'url':
@@ -69,42 +69,24 @@ final class RuleMatcher {
 	}
 
 	/**
-	 * Archivo del término (o de un descendiente) o contenido individual que lo tiene.
+	 * Archivo del término (o de una subcategoría) o contenido individual que lo tiene. Las
+	 * subcategorías vienen precalculadas desde la compilación ('all'): cero consultas.
 	 *
 	 * @param list<int> $ids
+	 * @param list<int> $all
 	 */
-	private static function term( string $taxonomy, array $ids ): bool {
+	private static function term( string $taxonomy, array $ids, array $all ): bool {
 		if ( '' === $taxonomy ) {
 			return false;
 		}
+		$all    = $all ? $all : $ids;
 		$object = get_queried_object();
 		if ( $object instanceof \WP_Term ) {
-			if ( $object->taxonomy !== $taxonomy ) {
-				return false;
-			}
-			if ( ! $ids || in_array( (int) $object->term_id, $ids, true ) ) {
-				return true;
-			}
-			foreach ( $ids as $id ) {
-				if ( term_is_ancestor_of( $id, (int) $object->term_id, $taxonomy ) ) {
-					return true;
-				}
-			}
-			return false;
+			return $object->taxonomy === $taxonomy && ( ! $ids || in_array( (int) $object->term_id, $all, true ) );
 		}
 		if ( is_singular() ) {
-			if ( ! $ids ) {
-				return has_term( '', $taxonomy, (int) get_queried_object_id() );
-			}
-			// También los contenidos de las subcategorías (la jerarquía está en caché: sin consultas).
-			$all = $ids;
-			foreach ( $ids as $id ) {
-				$children = get_term_children( $id, $taxonomy );
-				if ( is_array( $children ) ) {
-					$all = array_merge( $all, array_map( 'intval', $children ) );
-				}
-			}
-			return has_term( $all, $taxonomy, (int) get_queried_object_id() );
+			// Los términos del contenido actual ya están en caché (los cargó la consulta principal).
+			return has_term( $ids ? $all : '', $taxonomy, (int) get_queried_object_id() );
 		}
 		return false;
 	}

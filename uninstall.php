@@ -12,8 +12,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 $imm_settings = get_option( 'imm_settings', array() );
 if ( empty( $imm_settings['delete_on_uninstall'] ) ) {
 	// Se conserva todo; solo se borran los archivos compilados (el frontend ya no los usa).
-	if ( defined( 'WP_CONTENT_DIR' ) && is_file( WP_CONTENT_DIR . '/imagina-menu/config.php' ) ) {
-		wp_delete_file( WP_CONTENT_DIR . '/imagina-menu/config.php' );
+	if ( defined( 'WP_CONTENT_DIR' ) ) {
+		foreach ( (array) glob( WP_CONTENT_DIR . '/imagina-menu/config*.php' ) as $imm_file ) {
+			if ( is_string( $imm_file ) ) {
+				wp_delete_file( $imm_file );
+			}
+		}
 	}
 	return;
 }

@@ -48,12 +48,25 @@ final class Hydration {
 		}
 	}
 
-	public static function login( string $login, \WP_User $user ): void {
+	/**
+	 * Parámetros opcionales: algunos plugins aún disparan wp_login con un solo argumento y un tipo
+	 * estricto rompería el inicio de sesión.
+	 *
+	 * @param mixed $user
+	 */
+	public static function login( $login = '', $user = null ): void {
 		if ( headers_sent() || ! self::enabled( 'name_cookie' ) ) {
 			return;
 		}
+		if ( ! $user instanceof \WP_User ) {
+			$user = is_string( $login ) && '' !== $login ? get_user_by( 'login', $login ) : null;
+		}
+		if ( ! $user instanceof \WP_User ) {
+			return;
+		}
 		$name = '' !== $user->first_name ? $user->first_name : $user->display_name;
-		self::set( self::NAME_COOKIE, wp_strip_all_tags( mb_substr( $name, 0, 30 ) ), 0 );
+		// WordPress guarda el nombre escapado (O&#039;Brien): se decodifica antes de la cookie.
+		self::set( self::NAME_COOKIE, wp_strip_all_tags( mb_substr( wp_specialchars_decode( $name, ENT_QUOTES ), 0, 30 ) ), 0 );
 	}
 
 	public static function logout(): void {

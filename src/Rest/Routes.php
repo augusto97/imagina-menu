@@ -148,7 +148,10 @@ final class Routes {
 	private static function with_urls( array $items ): array {
 		foreach ( $items as &$item ) {
 			$id = (int) ( $item['object']['id'] ?? 0 );
-			if ( $id > 0 && '' === $item['url'] ) {
+			$visible = 'term' === $item['object']['kind']
+				? taxonomy_exists( (string) $item['object']['type'] ) && is_taxonomy_viewable( (string) $item['object']['type'] )
+				: self::public_post( $id );
+			if ( $id > 0 && '' === $item['url'] && $visible ) {
 				$link = 'term' === $item['object']['kind'] ? get_term_link( $id, (string) $item['object']['type'] ) : get_permalink( $id );
 				if ( is_string( $link ) ) {
 					$item['url'] = $link;
@@ -203,10 +206,12 @@ final class Routes {
 			foreach ( $profile['rules']['conditions'] as $c ) {
 				foreach ( $c['ids'] as $id ) {
 					if ( 'page' === $c['type'] ) {
-						$out[ 'post:' . $id ] = html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' );
+						if ( self::public_post( (int) $id ) ) {
+							$out[ 'post:' . $id ] = html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' );
+						}
 					} elseif ( 'term' === $c['type'] ) {
 						$term = get_term( $id );
-						if ( $term instanceof \WP_Term ) {
+						if ( $term instanceof \WP_Term && is_taxonomy_viewable( $term->taxonomy ) ) {
 							$out[ 'term:' . $id ] = html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' );
 						}
 					}
@@ -214,6 +219,19 @@ final class Routes {
 			}
 		}
 		return $out ? $out : new \stdClass();
+	}
+
+	/**
+	 * Contenido publicado de un tipo público y legible por el usuario: lo único que el admin del menú
+	 * puede nombrar o enlazar (nada de borradores, privados, cupones ni solicitudes de privacidad).
+	 */
+	private static function public_post( int $id ): bool {
+		$post = get_post( $id );
+		return $post instanceof \WP_Post
+			&& 'publish' === $post->post_status
+			&& '' === $post->post_password
+			&& is_post_type_viewable( $post->post_type )
+			&& current_user_can( 'read_post', $id );
 	}
 
 	public static function order_profiles( WP_REST_Request $request ): WP_REST_Response {
@@ -249,7 +267,10 @@ final class Routes {
 			// Solo ítems que existen en el menú publicado (no se aceptan ids inventados).
 			&& ( '' === $item || isset( $config['hit_ids'][ $pid ][ $item ] ) );
 		if ( $ok ) {
-			\ImaginaMenu\Analytics\Stats::record( $pid, $event, $item, \ImaginaMenu\Analytics\Stats::visitor() );
+			$who = \ImaginaMenu\Analytics\Stats::visitor();
+			if ( ! \ImaginaMenu\Analytics\Stats::throttled( $who['ip'] ) ) {
+				\ImaginaMenu\Analytics\Stats::record( $pid, $event, $item, $who );
+			}
 		}
 		$response = new WP_REST_Response( null, 204 );
 		$response->header( 'Cache-Control', 'no-store' );
@@ -274,8 +295,17 @@ final class Routes {
 	}
 
 	public static function save_settings( WP_REST_Request $request ): WP_REST_Response {
-		$data = $request->get_json_params();
-		return new WP_REST_Response( array( 'settings' => ( new SettingsRepository() )->save( is_array( $data['settings'] ?? null ) ? $data['settings'] : array() ) ) );
+		$data     = $request->get_json_params();
+		$incoming = is_array( $data['settings'] ?? null ) ? $data['settings'] : array();
+		$repo     = new SettingsRepository();
+		// Borrar todo al desinstalar y guardar el nombre de cada usuario en una cookie legible por JS
+		// son decisiones del dueño del sitio: solo con manage_options.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			$current                         = $repo->get();
+			$incoming['delete_on_uninstall'] = $current['delete_on_uninstall'];
+			$incoming['name_cookie']         = $current['name_cookie'];
+		}
+		return new WP_REST_Response( array( 'settings' => $repo->save( $incoming ) ) );
 	}
 
 	// ── Menús ───────────────────────────────────────────────────────────────────────────────────
@@ -439,6 +469,10 @@ final class Routes {
 	private static function guard_css( array $doc, ?array $current ): array {
 		if ( current_user_can( 'edit_css' ) ) {
 			return $doc;
+		}
+		// JSON malformado ("design":"x") no debe provocar un error 500.
+		foreach ( array( 'design', 'trigger' ) as $key ) {
+			$doc[ $key ] = is_array( $doc[ $key ] ?? null ) ? $doc[ $key ] : array();
 		}
 		$doc['design']['custom_css'] = $current['design']['custom_css'] ?? '';
 		$doc['hide_theme_selector']  = $current['hide_theme_selector'] ?? '';
@@ -621,7 +655,8 @@ final class Routes {
 			if ( ! is_array( $profile ) ) {
 				continue;
 			}
-			$old = (int) ( $profile['drawer']['menu_id'] ?? 0 );
+			$profile['drawer'] = is_array( $profile['drawer'] ?? null ) ? $profile['drawer'] : array();
+			$old               = (int) ( $profile['drawer']['menu_id'] ?? 0 );
 			if ( isset( $map[ $old ] ) ) {
 				$profile['drawer']['menu_id'] = $map[ $old ];
 			}

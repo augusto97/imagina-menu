@@ -25,6 +25,12 @@ final class Stats {
 	/** Máximo de eventos que cuenta un mismo visitante por día y por ítem + evento (anti-relleno). */
 	private const MAX_PER_VISITOR = 60;
 	private const MAX_PER_ITEM    = 3;
+	/** Por IP (varios visitantes pueden compartirla, p. ej. redes móviles): tope más alto. */
+	private const MAX_PER_IP = 400;
+	/** Por IP e ítem: aunque cambie de navegador en cada petición, un origen no infla un ítem. */
+	private const MAX_PER_IP_ITEM = 50;
+	/** Freno por minuto e IP (con APCu). */
+	private const MAX_PER_MINUTE = 120;
 
 	/** Cabecera de la cola: si alguien pide el archivo por URL, PHP lo ejecuta y no muestra nada. */
 	private const QUEUE_HEADER = "<?php exit; ?>\n";
@@ -85,33 +91,112 @@ final class Stats {
 		return Storage::config_dir() . '/hits-' . substr( wp_hash( 'imm-hits-queue' ), 0, 16 ) . '.php';
 	}
 
+	/** Rangos oficiales de Cloudflare (https://www.cloudflare.com/ips/). */
+	private const CLOUDFLARE = array(
+		'173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18',
+		'190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+		'104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22', '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32',
+		'2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
+	);
+
 	/**
-	 * Identificador anónimo del visitante (no reversible, cambia cada día): solo sirve para que un
-	 * mismo origen no pueda inflar las cifras. No se guarda la IP.
+	 * IP del visitante. CF-Connecting-IP solo se cree si la conexión viene de Cloudflare: si no,
+	 * cualquiera podría inventar una IP distinta en cada petición.
 	 */
-	public static function visitor(): string {
-		$parts = array(
-			isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- solo se usa dentro de un hash.
-			isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? (string) $_SERVER['HTTP_CF_CONNECTING_IP'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-			isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( (string) $_SERVER['HTTP_USER_AGENT'], 0, 200 ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		);
-		return substr( hash_hmac( 'sha256', implode( '|', $parts ), wp_salt( 'nonce' ) . gmdate( 'Y-m-d' ) ), 0, 12 );
+	public static function client_ip(): string {
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- se valida abajo.
+		$remote = false !== filter_var( $remote, FILTER_VALIDATE_IP ) ? $remote : '';
+		$cf     = isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? (string) $_SERVER['HTTP_CF_CONNECTING_IP'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( '' !== $remote && false !== filter_var( $cf, FILTER_VALIDATE_IP ) && self::in_ranges( $remote, self::CLOUDFLARE ) ) {
+			return $cf;
+		}
+		return $remote;
 	}
 
-	/** Añade un evento a la cola. Devuelve false si la cola está llena (protección ante abusos). */
-	public static function record( int $profile, string $event, string $item, string $visitor = '' ): bool {
-		$file = self::queue_file();
-		clearstatcache( true, $file );
-		$exists = is_file( $file );
-		if ( $exists && filesize( $file ) > self::MAX_QUEUE ) {
+	/** @param list<string> $ranges */
+	public static function in_ranges( string $ip, array $ranges ): bool {
+		$bin = @inet_pton( $ip ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( false === $bin ) {
 			return false;
 		}
-		if ( ! $exists && ! is_dir( Storage::config_dir() ) ) {
+		foreach ( $ranges as $range ) {
+			[ $net, $bits ] = explode( '/', $range );
+			$net_bin        = @inet_pton( $net ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( false === $net_bin || strlen( $net_bin ) !== strlen( $bin ) ) {
+				continue;
+			}
+			$bits  = (int) $bits;
+			$bytes = intdiv( $bits, 8 );
+			if ( substr( $bin, 0, $bytes ) !== substr( $net_bin, 0, $bytes ) ) {
+				continue;
+			}
+			$rest = $bits % 8;
+			if ( 0 === $rest || ( ( ord( $bin[ $bytes ] ) ^ ord( $net_bin[ $bytes ] ) ) & ( 0xFF << ( 8 - $rest ) ) & 0xFF ) === 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Identificadores anónimos (no reversibles, cambian cada día): solo sirven para que un mismo
+	 * origen no pueda inflar las cifras. No se guarda la IP.
+	 *
+	 * @return array{visitor: string, ip: string} visitor = IP + navegador; ip = solo la IP.
+	 */
+	public static function visitor(): array {
+		$ip   = self::client_ip();
+		$ua   = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( (string) $_SERVER['HTTP_USER_AGENT'], 0, 200 ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- solo dentro de un hash.
+		$salt = wp_salt( 'nonce' ) . gmdate( 'Y-m-d' );
+		return array(
+			'visitor' => substr( hash_hmac( 'sha256', $ip . '|' . $ua, $salt ), 0, 12 ),
+			'ip'      => substr( hash_hmac( 'sha256', $ip, $salt ), 0, 12 ),
+		);
+	}
+
+	/** Freno inmediato por IP (solo si hay APCu: sin escribir en la base de datos). */
+	public static function throttled( string $ip_key ): bool {
+		if ( ! function_exists( 'apcu_inc' ) || ! apcu_enabled() ) {
+			return false;
+		}
+		$key = 'imm_hit_' . $ip_key . '_' . intdiv( time(), 60 );
+		$n   = apcu_inc( $key, 1, $ok, 120 );
+		return is_int( $n ) && $n > self::MAX_PER_MINUTE;
+	}
+
+	/**
+	 * Añade un evento a la cola. Con la cola casi llena se registra una muestra (1 de cada 4) en
+	 * vez de descartar todo; llena, se descarta.
+	 *
+	 * @param array{visitor: string, ip: string} $who
+	 */
+	public static function record( int $profile, string $event, string $item, array $who ): bool {
+		$file = self::queue_file();
+		if ( ! is_dir( Storage::config_dir() ) ) {
 			return false; // Sin compilación previa no hay dónde escribir (y no se crea nada aquí).
 		}
-		$visitor = preg_replace( '/[^a-f0-9]/', '', $visitor ) ?? '';
-		$line    = ( $exists ? '' : self::QUEUE_HEADER ) . gmdate( 'Y-m-d' ) . "\t" . $profile . "\t" . $event . "\t" . $item . "\t" . $visitor . "\n";
-		return false !== file_put_contents( $file, $line, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		clearstatcache( true, $file );
+		$size = is_file( $file ) ? (int) filesize( $file ) : 0;
+		if ( $size > self::MAX_QUEUE || ( $size > self::MAX_QUEUE * 0.75 && wp_rand( 1, 4 ) > 1 ) ) {
+			return false;
+		}
+		$clean = static fn( string $v ): string => preg_replace( '/[^a-f0-9]/', '', $v ) ?? '';
+		$line  = gmdate( 'Y-m-d' ) . "\t" . $profile . "\t" . $event . "\t" . $item . "\t" . $clean( $who['visitor'] ) . "\t" . $clean( $who['ip'] ) . "\n";
+		$fh    = @fopen( $file, 'ab' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $fh ) {
+			return false;
+		}
+		flock( $fh, LOCK_EX );
+		// La cabecera se escribe bajo el cerrojo si el archivo está vacío: aunque flush() lo haya
+		// renombrado justo antes, el nuevo archivo nunca queda sin «exit».
+		$stat = fstat( $fh );
+		if ( ! $stat || 0 === (int) $stat['size'] ) {
+			fwrite( $fh, self::QUEUE_HEADER ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+		}
+		$ok = false !== fwrite( $fh, $line ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+		flock( $fh, LOCK_UN );
+		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		return $ok;
 	}
 
 	/** Agrega la cola en la tabla y limpia lo antiguo. */
@@ -128,12 +213,21 @@ final class Stats {
 				$counts      = array();
 				$per_visitor = array();
 				$per_item    = array();
+				$per_ip      = array();
+				$per_ip_item = array();
 				foreach ( (array) file( $work, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) as $line ) {
 					$parts = explode( "\t", (string) $line );
-					if ( 5 !== count( $parts ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $parts[0] ) || ! ctype_digit( $parts[1] ) || ! in_array( $parts[2], self::EVENTS, true ) || ! preg_match( '/^[a-z0-9_]{0,24}$/', $parts[3] ) ) {
+					if ( 6 !== count( $parts ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $parts[0] ) || ! ctype_digit( $parts[1] ) || ! in_array( $parts[2], self::EVENTS, true ) || ! preg_match( '/^[a-z0-9_]{0,24}$/', $parts[3] ) ) {
 						continue; // Incluye la línea de cabecera de la cola.
 					}
-					[ $day, $profile, $event, $item, $visitor ] = $parts;
+					[ $day, $profile, $event, $item, $visitor, $ip ] = $parts;
+					$pkey                 = $day . $ip;
+					$pikey                = $pkey . "\t" . $event . "\t" . $item;
+					$per_ip[ $pkey ]      = ( $per_ip[ $pkey ] ?? 0 ) + 1;
+					$per_ip_item[ $pikey ] = ( $per_ip_item[ $pikey ] ?? 0 ) + 1;
+					if ( '' === $ip || $per_ip[ $pkey ] > self::MAX_PER_IP || $per_ip_item[ $pikey ] > self::MAX_PER_IP_ITEM ) {
+						continue;
+					}
 					// Un mismo visitante no puede inflar las cifras: tope diario y por ítem.
 					$vkey = $day . $visitor;
 					$ikey = $vkey . "\t" . $event . "\t" . $item;

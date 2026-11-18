@@ -53,16 +53,27 @@ final class Installer {
 			}
 			return;
 		}
-		$role = get_role( 'administrator' );
-		if ( $role && ! $role->has_cap( Plugin::CAP ) ) {
-			$role->add_cap( Plugin::CAP );
+		// Un solo proceso hace la actualización (add_option es atómico: falla si ya existe).
+		if ( ! add_option( 'imm_upgrade_lock', time(), '', false ) ) {
+			if ( (int) get_option( 'imm_upgrade_lock' ) > time() - 120 ) {
+				return;
+			}
+			update_option( 'imm_upgrade_lock', time(), false ); // Cerrojo huérfano (proceso caído).
 		}
-		if ( ! ( new ProfileRepository() )->all() ) {
-			self::seed();
+		try {
+			$role = get_role( 'administrator' );
+			if ( $role && ! $role->has_cap( Plugin::CAP ) ) {
+				$role->add_cap( Plugin::CAP );
+			}
+			if ( ! ( new ProfileRepository() )->all() ) {
+				self::seed();
+			}
+			\ImaginaMenu\Analytics\Stats::install();
+			update_option( self::VERSION_OPTION, IMM_VERSION, false );
+			Plugin::compiler()->publish();
+		} finally {
+			delete_option( 'imm_upgrade_lock' );
 		}
-		\ImaginaMenu\Analytics\Stats::install();
-		update_option( self::VERSION_OPTION, IMM_VERSION, false );
-		Plugin::compiler()->publish();
 	}
 
 	public static function seed(): void {
@@ -193,6 +204,7 @@ final class Installer {
 
 	/** Desinstalación (la llama uninstall.php si el usuario lo pidió en Ajustes). */
 	public static function uninstall(): void {
+		\ImaginaMenu\Repository\JsonPostRepository::allow_writes( true );
 		foreach ( array( MenuRepository::POST_TYPE, ProfileRepository::POST_TYPE ) as $type ) {
 			$ids = get_posts(
 				array(
@@ -206,16 +218,21 @@ final class Installer {
 				wp_delete_post( (int) $id, true );
 			}
 		}
-		foreach ( array( SettingsRepository::OPTION, Compiler::STATE_OPTION, Compiler::DIRTY_OPTION, Compiler::REFS_OPTION, self::VERSION_OPTION, 'imm_labels', 'imm_i18n_strings' ) as $option ) {
+		foreach ( array( SettingsRepository::OPTION, Compiler::STATE_OPTION, Compiler::DIRTY_OPTION, Compiler::REFS_OPTION, self::VERSION_OPTION, 'imm_labels', 'imm_i18n_strings', Storage::POINTER_OPTION, 'imm_draft_rev', 'imm_upgrade_lock', 'imm_compile_lock' ) as $option ) {
 			delete_option( $option );
+		}
+		foreach ( array( 'imm_recompile', 'imm_upgrade' ) as $hook ) {
+			wp_clear_scheduled_hook( $hook );
 		}
 		global $wpdb;
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . \ImaginaMenu\Analytics\Stats::table() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuerySchemaChange
 		wp_clear_scheduled_hook( \ImaginaMenu\Analytics\Stats::CRON );
 		Storage::delete_all();
-		$role = get_role( 'administrator' );
-		if ( $role ) {
-			$role->remove_cap( Plugin::CAP );
+		// El permiso puede haberse dado a otros roles (gestor de tienda, editor…).
+		foreach ( wp_roles()->role_objects as $role ) {
+			if ( $role->has_cap( Plugin::CAP ) ) {
+				$role->remove_cap( Plugin::CAP );
+			}
 		}
 	}
 }
