@@ -51,10 +51,16 @@ Auditoría completa el 18-11-2026 (v0.3.1): revisión propia + dos revisores ind
 - Precarga (solo si ni WordPress 6.8+ ni Imagina Turbo la hacen): nunca URLs con parámetros (`?add-to-cart=`), `wp-login`/`wp-admin`/`wp-content`, descargas, `nofollow`/`sponsored`/`ugc`, `.no-prefetch` ni con ahorro de datos; con el dedo espera intención y se cancela si es un desplazamiento.
 - Iconos: lista blanca de elementos y atributos geométricos al compilar `icons.json`.
 
+**Escritorio e Imagina Search (v0.4)**
+- El selector de escritorio (`desktop.selector`) pasa por el mismo saneador y el mismo permiso (`edit_css`) que el del botón del tema.
+- Los atributos del shortcode `style` y `only` son listas cerradas.
+- El widget de Imagina Search lo genera Imagina Search; el menú solo cambia dos marcadores por él y añade CSS fijo (sin datos del usuario). Si Imagina Search falla, queda el buscador propio.
+
 **Vista previa**
 - Token HMAC-SHA256 (sales de WordPress), formato y caducidad estrictos (30 min), comparado con `hash_equals`, inválido si el usuario pierde `imm_manage`.
 - Respuestas `no-store`, `DONOTCACHEPAGE`, sin caché de LiteSpeed, `X-Robots-Tag: noindex` y `Referrer-Policy: no-referrer`. Sin analítica.
 - La compilación del borrador se guarda 10 min por revisión: un enlace filtrado no fuerza compilaciones.
+- `preview.js` (vista previa en vivo) solo se imprime con un token válido; pide la misma página del mismo origen, valida el formato del token y usa `DOMParser` + `importNode` sobre HTML propio ya escapado en el servidor (los scripts del documento analizado no se ejecutan).
 
 **Rendimiento como seguridad (DoS)**
 - Cero consultas propias por visita (las reglas por categoría llevan las subcategorías precalculadas). `admin_init` no hace trabajo en `admin-ajax.php` ni para visitantes; la actualización tras cambiar de versión se agenda en WP-Cron con cerrojo atómico.

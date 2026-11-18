@@ -4,7 +4,7 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 
 | | |
 |---|---|
-| JS en la carga | 3,8 KB gzip (opcional: 0 KB hasta el primer toque) |
+| JS en la carga | 4 KB gzip (opcional: 0 KB hasta el primer toque) |
 | CSS total | ~4 KB gzip con un estilo típico, 5,2 KB en el peor caso (1,45 KB inline crítico) |
 | PHP por visita | ~0,03 ms, 0 consultas a la base de datos |
 | CLS | 0 |
@@ -14,12 +14,14 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 
 - **Panel lateral** (izquierda, derecha o abajo) con submenús **deslizantes** tipo app (flecha de regreso, título del nivel, «Ver todo», gestos) o **acordeón**.
 - **Barra inferior** con iconos, etiquetas, insignias (contador del carrito sin peticiones al servidor), botón central destacado, estilo isla flotante y ocultar al hacer scroll.
-- **Buscador** a pantalla completa con búsquedas recientes y populares.
+- **Buscador** a pantalla completa con búsquedas recientes y populares; con **Imagina Search** activo muestra sus resultados instantáneos (foto, precio, categorías) dentro del mismo buscador.
+- **Escritorio**: el mismo panel con un botón «☰ Todo» en la cabecera (como Amazon) o en **cascada**, con las subcategorías en una columna a la derecha al pasar el mouse (como Falabella o Mercado Libre).
+- **«Ver todo {categoría}»** al final de cada submenú: la categoría padre siempre tiene su enlace.
 - **Bloques de conversión**: saludo y cuenta, WhatsApp, botón CTA, enlaces de servicio, redes sociales.
 - **Fuentes dinámicas**: menús de WordPress, categorías de WooCommerce (con imágenes) o cualquier taxonomía. Se recompila solo cuando cambian.
 - **Por ítem**: icono (1.850 de Lucide + marcas), imagen, insignia, descripción, destacado, visibilidad por sesión, `rel`.
 - **12 estilos prediseñados** (Aurora, Ajustes, Editorial, Material, Medianoche, Pop…) y **16 opciones de diseño** del panel (forma flotante o cristal, cabecera en degradado o con imagen, ítems en tarjetas, píldoras o grupos, iconos multicolor, tipografía, movimiento con rebote, entrada escalonada…). Cada sitio descarga solo el CSS de su estilo.
-- **Constructor visual** con vista previa en un celular; borradores que no tocan el sitio hasta «Publicar».
+- **Constructor visual** con vista previa en vivo (celular o escritorio) que se actualiza sin recargar; borradores que no tocan el sitio hasta «Publicar».
 - **Accesible**: diálogo modal con foco atrapado, teclado completo, `aria-current`, `prefers-reduced-motion`, RTL.
 - **Seguro por diseño**: auditado (ver [docs/06-seguridad.md](docs/06-seguridad.md)); nada privado descargable aunque el servidor ignore `.htaccess`, analítica sin cookies y a prueba de relleno, CSS global solo para administradores.
 - Licencia y actualizaciones con **Imagina Updater**.
@@ -34,7 +36,7 @@ El plugin listo para instalar está en la rama [`release`](https://github.com/au
 2. Actívalo. Se crea un menú inicial: categorías de WooCommerce, el menú del tema o tus páginas.
 3. Ve a **Imagina Menu** en el admin, ajusta y pulsa **Publicar**.
 
-Formas de abrir el panel: botón flotante, el botón del menú móvil de tu tema (selector CSS), el bloque «Botón de Imagina Menu», el shortcode `[imagina_menu_toggle label="Menú"]`, cualquier elemento con `data-imm-open`, o `immMenu.open()` desde JS.
+Formas de abrir el panel: botón flotante, el botón del menú móvil de tu tema (selector CSS), el bloque «Botón de Imagina Menu», el shortcode `[imagina_menu_toggle label="Menú"]` (en escritorio: `[imagina_menu_toggle label="Todo" only="desktop" style="solid"]`), cualquier elemento con `data-imm-open`, o `immMenu.open()` desde JS.
 
 ## Desarrollo
 

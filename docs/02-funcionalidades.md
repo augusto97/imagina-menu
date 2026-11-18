@@ -59,7 +59,7 @@ Estructura HTML (simplificada):
 </nav>
 ```
 
-**Decisión de UX importante**: el texto del ítem padre es un enlace real a la categoría y la flecha `›` es el botón que abre el submenú (dos áreas táctiles). Opción alternativa «toda la fila abre el submenú» + «Ver todo {padre}» como primer ítem del submenú (patrón Amazon). Ambas disponibles; la segunda por defecto en móvil porque es más fácil de tocar.
+**Decisión de UX importante**: toda la fila del padre abre el submenú (más fácil de tocar) y, como el padre ya no se puede tocar como enlace, cada submenú lleva **«Ver todo {padre}»** con el enlace a su página. Desde v0.4 va **al final** del submenú (opción `drawer.view_all_position`: al final o al inicio; el texto admite `%s`: «Todo en %s»). Se puede quitar por ítem (`view_all`). No se genera si el padre no tiene página (vacío o `#`). Sin flecha: es un enlace, no un submenú (igual que el bloque de cuenta, que tampoco lleva flecha).
 
 **Aceptación**: foco atrapado y devuelto al disparador al cerrar; scroll del `body` bloqueado sin salto; `inert` en el resto de la página; funciona en RTL; 60 fps en la animación en un Moto G (perfil de CPU 4× en DevTools).
 
@@ -161,7 +161,7 @@ Reglas: se oculta automáticamente en checkout y cuando el teclado virtual está
 
 - Overlay a pantalla completa con campo enfocado y teclado abierto al instante (el input existe en el HTML; el foco se da en el mismo gesto del usuario para que iOS abra el teclado).
 - Búsquedas recientes (localStorage), búsquedas populares (configurables) y categorías sugeridas.
-- **Con Imagina Search activo**: delega en su motor y su UI de resultados (integración, no reimplementación).
+- **Con Imagina Search activo** (implementado en v0.4, `search.provider = auto`): el diálogo del menú muestra el widget de Imagina Search en lugar del campo propio: resultados instantáneos con foto, precio y categorías mientras se escribe, y su página de resultados con Enter. La flecha del menú queda a la izquierda del campo y los resultados ocupan el resto de la pantalla (se anula la barra fija y la segunda flecha que Imagina Search pone en celulares). Las búsquedas populares del menú se ven antes de escribir. Se decide **en cada visita** (dos marcadores en el HTML compilado): activar o desactivar Imagina Search no exige volver a publicar. Se usa un diseño de desplegable (standard/compact/amazon; los de capa propia no caben dentro de otro diálogo) y una sola versión del widget. Al cerrar el diálogo se cierra su desplegable (libera el scroll). Con `search.provider = native` se usa siempre el buscador propio.
 - Sin Imagina Search: formulario normal a `/?s=` (y `post_type=product` si hay WooCommerce). Sugerencias en vivo opcionales con la Store API de productos (con `debounce`, solo tras 3 caracteres).
 
 ## M8. Barra superior móvil (app bar) — fase 5, opcional
@@ -215,7 +215,7 @@ Condiciones por perfil y por ítem: tipo de página (portada, entrada, página, 
 |---|---|
 | WooCommerce | Fuente de categorías con imágenes, cuenta, carrito (contador por cookie, mini-carrito opcional), ocultar en checkout. |
 | Imagina Turbo | Si está activo: no emitir prefetch propio, usar su purga, respetar su navegación (View Transitions), evento de carrito de su Store API. |
-| Imagina Search | Delegar el buscador. |
+| Imagina Search (Woo Smart Search) | Su widget dentro del buscador del menú (v0.4, ver M7). |
 | WPML / Polylang / TranslatePress | Compilar por idioma, registrar textos, selector de idioma. |
 | Elementor | Widget «Botón Imagina Menu» y aviso para excluir el script del «delay JS» de Elementor si aplica. |
 | Gutenberg | Bloque «Botón de menú» (sin JS en el front) y patrón de cabecera móvil. |
@@ -230,3 +230,33 @@ Condiciones por perfil y por ítem: tipo de página (portada, entrada, página, 
 - Contraste: el admin avisa si la combinación de colores no cumple AA.
 - RTL completo (los lados y las animaciones se invierten con propiedades lógicas: `inset-inline-start`, `translate` con `--imm-dir`).
 - Todos los textos traducibles; los textos del usuario, registrables en WPML/Polylang.
+
+## M14. Escritorio — implementado en v0.4
+
+Cómo lo hacen las tiendas grandes en computador (y por qué hay clientes que lo quieren igual):
+
+| Tienda | Botón | Qué abre |
+|---|---|---|
+| Amazon, Walmart | «☰ Todo» / «Departamentos» a la izquierda de la cabecera | El **mismo panel** del celular (~365 px), con submenús que se deslizan y flecha de regreso. |
+| Falabella (y Linio, que se integró a Falabella) | «☰ Menú» junto al logo | La lista de categorías a la izquierda y, **al pasar el mouse**, una columna ancha a la derecha con las subcategorías agrupadas («Ver todo …»). |
+| Mercado Libre, AliExpress, Temu, Shein | «Categorías» | Lista a la izquierda y subcategorías a la derecha al pasar el mouse (con fotos en Temu/Shein). |
+
+Opciones por perfil (`desktop`, pantalla **Escritorio** del admin):
+
+| Opción | Valores | Por defecto |
+|---|---|---|
+| Usar el menú en escritorio | sí / no (sin activarlo, el panel se abre en escritorio solo con el bloque o el shortcode, con el ancho del celular) | no |
+| Estilo | **Panel** (Amazon) o **Cascada** (Falabella, Mercado Libre; necesita el modo deslizante o rejilla) | panel |
+| Ancho del panel | 280–640 px | 380 px |
+| Ancho de la columna de subcategorías | 320–1000 px (con ≥ 600 px se reparten en varias columnas) | 640 px |
+| Abrir al pasar el mouse | cascada y dos columnas/pestañas (con 90 ms de intención para cruzar en diagonal) | sí |
+| Botón | bloque «Botón de Imagina Menu» o `[imagina_menu_toggle label="Todo" only="desktop" style="solid"]` en la cabecera; un **elemento del tema** (selector, p. ej. `.imm-open > a`, solo con `edit_css`); o el botón flotante también en escritorio | — |
+| Barra inferior en escritorio | sí / no | no |
+
+Notas:
+
+- El ancho de corte es el `breakpoint` de Ajustes (escritorio = más ancho). Todo se decide con CSS: nada depende del dispositivo en PHP (compatible con la caché de página).
+- La cascada usa el mismo HTML del celular: el compilador añade `cascade.css` dentro de `@media (min-width: …)` y `desktop.js` (0,9 KB gzip) se descarga **solo en pantallas anchas** y solo si el perfil la usa. Mueve los niveles con la API pública del menú (`immMenu.goTo`): el estado sigue en `core.js`.
+- Teclado: flecha derecha abre la columna y enfoca su primer enlace; flecha izquierda vuelve; Esc cierra. Los títulos de grupo llevan a la página del grupo.
+- Si la barra inferior es la que abre el panel en el celular, el botón flotante de escritorio se genera solo para escritorio (`imm-only-desktop`).
+

@@ -126,7 +126,9 @@ HTML mínimo por ítem: un `<li>` + `<a>` + (si tiene hijos) `<button>` y el spr
 | Cloudflare (Rocket Loader) | Funciona; recomendado apagar Rocket Loader en general. |
 | Imagina Turbo | Integración nativa (ver `docs/02`, M12). |
 
-Los módulos `track.js` (analítica) y `prefetch.js` (precarga) se cargan bajo demanda junto a `core.js`: si un optimizador combina o mueve `core.js`, debe excluirlos también (o excluir `imagina-menu` completo).
+Los módulos `track.js` (analítica), `prefetch.js` (precarga) y `desktop.js` (cascada y «pasar el mouse» en escritorio, solo en pantallas anchas) se cargan bajo demanda junto a `core.js`: si un optimizador combina o mueve `core.js`, debe excluirlos también (o excluir `imagina-menu` completo). `preview.js` solo se carga en la vista previa del admin.
+
+Desde v0.4 el build hace una segunda pasada con terser sobre la salida de esbuild (~3 % menos gzip): `core.js` queda en 3,99 KB con la integración de Imagina Search, el arranque reutilizable para la vista previa en vivo y el cargador del módulo de escritorio. Con Imagina Search activo, su plantilla añade ~0,14 ms por visita (su código; el del menú sigue en ~0,04 ms).
 
 El plugin **detecta** estos plugins y, cuando es posible, añade las exclusiones por sus filtros públicos (p. ej. `rocket_rucss_safelist`, `litespeed_optm_ucss_whitelist`… **verificar los nombres vigentes en su documentación antes de implementar**); si no, muestra instrucciones.
 

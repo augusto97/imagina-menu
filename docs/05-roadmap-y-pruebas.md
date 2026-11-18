@@ -143,7 +143,15 @@ Probado en el sitio de pruebas (WordPress 7.1 + WooCommerce + Polylang es/en): e
 - Herramientas: `bin/presets/render.php` (páginas de demostración por preset) y `bin/presets/shoot.cjs` (capturas y miniaturas).
 - Probado: e2e completo en el sitio real con Aurora, Ajustes, Medianoche y Editorial; axe sin violaciones en los 12 presets.
 
-Pendiente: integración con Imagina Search (cuando se comparta su código), barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos recientemente, favoritos en la barra inferior, Lighthouse CI en GitHub Actions y pruebas en Safari/iPhone reales (aquí solo hay Chromium).
+Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos recientemente, favoritos en la barra inferior, Lighthouse CI en GitHub Actions y pruebas en Safari/iPhone reales (aquí solo hay Chromium).
+
+## Estado de la implementación (v0.4.0) — Imagina Search, escritorio y vista previa en vivo
+
+- **Imagina Search** (Woo Smart Search 6.36): su widget dentro del buscador del menú (M7), elegido en cada visita; opción por perfil «Imagina Search / buscador propio».
+- **«Ver todo {categoría}» al final** de cada submenú (también en dos columnas y en catálogos grandes con niveles diferidos); el bloque de cuenta y «Ver todo» ya no llevan flecha.
+- **Escritorio** (M14): panel tipo Amazon o cascada tipo Falabella/Mercado Libre, botón por bloque/shortcode (`only`, `style`), selector del tema o flotante.
+- **Vista previa en vivo** sin recargar ni robar el foco; marco de escritorio.
+- Probado en el sitio de pruebas con Imagina Search real (motor local, 33 productos): e2e móvil y de escritorio en verde (28 comprobaciones, incluidas resultados bajo la cabecera, una sola flecha, scroll liberado al cerrar y cascada con mouse), 46 pruebas unitarias, prueba de la vista previa escribiendo en el admin (0 recargas del iframe, foco siempre en el campo).
 
 ### Cambios respecto a la planeación (justificados)
 

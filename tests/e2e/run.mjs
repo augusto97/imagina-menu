@@ -49,7 +49,8 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 	} );
 	check( nodes <= 600, 'Nodos DOM añadidos por el menú', String( nodes ) );
 
-	const opener = ( await page.$( '.imm-fab' ) ) ? '.imm-fab' : '.imm-bbar [data-imm-open]';
+	// El botón flotante solo de escritorio (desktop.floating) no se ve en el celular.
+	const opener = ( await page.$( '.imm-fab:not(.imm-only-desktop)' ) ) ? '.imm-fab:not(.imm-only-desktop)' : '.imm-bbar [data-imm-open]';
 	await page.click( opener );
 	await page.waitForTimeout( 450 );
 	check( await page.evaluate( () => document.getElementById( 'imm-drawer' ).open ), 'El panel abre como diálogo modal' );
@@ -96,8 +97,25 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 		await page.click( ( await page.$( '.imm-bbar [data-imm-search]' ) ) ? '.imm-bbar [data-imm-search]' : '[data-imm-search]' );
 		await page.waitForTimeout( 300 );
 		check( await isOpen( page, 'imm-search' ), 'El buscador abre' );
-		check( ( await page.evaluate( () => document.activeElement?.className ) ) === 'imm-s-input', 'El campo de búsqueda recibe el foco' );
-		await page.keyboard.press( 'Escape' );
+		// Con Imagina Search activo el campo es el de su widget.
+		check( [ 'imm-s-input', 'wss-search-input' ].includes( await page.evaluate( () => document.activeElement?.className ) ), 'El campo de búsqueda recibe el foco' );
+		if ( await page.$( '#imm-search .wss-search-wrapper' ) ) {
+			// Imagina Search: resultados dentro del diálogo, debajo de la cabecera del menú.
+			await page.keyboard.type( process.env.IMM_SEARCH || 'pro', { delay: 50 } );
+			await page.waitForTimeout( 1500 );
+			const r = await page.evaluate( () => {
+				const d = document.querySelector( '#imm-search .wss-results-dropdown' );
+				const head = document.querySelector( '#imm-search .imm-s-form' ).getBoundingClientRect();
+				return { visible: !! d?.classList.contains( 'wss-visible' ), below: ( d?.getBoundingClientRect().top || 0 ) >= head.bottom - 1, back: getComputedStyle( document.querySelector( '#imm-search .wss-mobile-back-btn' ) ).display };
+			} );
+			check( r.visible && r.below, 'Imagina Search: resultados bajo la cabecera del menú', JSON.stringify( r ) );
+			check( r.back === 'none', 'Imagina Search: una sola flecha de regreso (la del menú)' );
+			await page.click( '#imm-search .imm-s-back' );
+			await page.waitForTimeout( 400 );
+			check( ! ( await page.evaluate( () => document.body.classList.contains( 'wss-body-locked' ) ) ), 'Imagina Search: al cerrar se libera el scroll' );
+		} else {
+			await page.keyboard.press( 'Escape' );
+		}
 	}
 
 	if ( await page.$( '.imm-bbar' ) ) {
@@ -127,11 +145,46 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 	}
 }
 
+// ── Escritorio (si el perfil lo usa) ────────────────────────────────────────────────────────────
+{
+	const ctx = await browser.newContext( { viewport: { width: 1366, height: 820 } } );
+	const page = await ctx.newPage();
+	const errors = [];
+	page.on( 'pageerror', ( e ) => errors.push( String( e ) ) );
+	await page.goto( BASE + '/', { waitUntil: 'networkidle' } );
+	const casc = await page.$( '#imm-drawer.imm-casc' );
+	const fab = await page.$( 'button.imm-fab' );
+	if ( casc && fab && ( await fab.isVisible() ) ) {
+		await fab.click();
+		await page.waitForTimeout( 500 );
+		const summaries = page.locator( '#imm-drawer .imm-root > li > details > summary' );
+		await summaries.first().hover();
+		await page.waitForTimeout( 400 );
+		const st = await page.evaluate( () => {
+			const d = document.querySelector( '#imm-drawer' );
+			const cur = d.querySelector( '.imm-vp > .imm-level[data-pos="cur"]:not(.imm-root)' );
+			const r = cur?.getBoundingClientRect();
+			const panel = d.getBoundingClientRect();
+			return { open: !! cur, right: !! r && r.left >= panel.right - 1, rootActive: ! d.querySelector( '.imm-root' ).inert, groups: cur ? cur.querySelectorAll( ':scope > li > details[open]' ).length : 0 };
+		} );
+		check( st.open && st.right, 'Escritorio: la columna de subcategorías se abre a la derecha', JSON.stringify( st ) );
+		check( st.rootActive, 'Escritorio: la lista principal sigue activa' );
+		await summaries.nth( 1 ).hover();
+		await page.waitForTimeout( 400 );
+		check( ( await page.evaluate( () => document.querySelector( '#imm-drawer .imm-sub[data-on]' )?.closest( 'li' ) === document.querySelectorAll( '#imm-drawer .imm-root > li.imm-has' )[ 1 ] ) ), 'Escritorio: pasar el mouse cambia de categoría' );
+		await page.keyboard.press( 'Escape' );
+		check( errors.length === 0, 'Escritorio: sin errores de consola', errors.join( ' | ' ) );
+	} else {
+		console.log( '· Escritorio en cascada no activo en este perfil; se omite' );
+	}
+	await ctx.close();
+}
+
 // ── Sin JavaScript ──────────────────────────────────────────────────────────────────────────────
 {
 	const { page } = await mobile( { javaScriptEnabled: false } );
 	await page.goto( BASE + '/' );
-	const opener = ( await page.$( '.imm-fab' ) ) ? '.imm-fab' : '.imm-bbar [data-imm-open]';
+	const opener = ( await page.$( '.imm-fab:not(.imm-only-desktop)' ) ) ? '.imm-fab:not(.imm-only-desktop)' : '.imm-bbar [data-imm-open]';
 	if ( await page.$( opener ) ) {
 		await page.click( opener );
 		// Espera a que termine la entrada escalonada (si el estilo la usa): con JS desactivado,

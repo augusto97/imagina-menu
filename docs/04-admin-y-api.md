@@ -41,6 +41,7 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 | **Menús** | Lista de menús (tarjetas con número de ítems, perfiles que lo usan, última edición). Crear, duplicar, importar desde un menú de WordPress, eliminar. |
 | **Constructor de menú** | Ver detalle abajo. |
 | **Perfiles** | Lista ordenable (arrastrar = prioridad). Cada perfil: reglas (constructor de condiciones «Mostrar cuando… y/o…»), disparador, panel (menú, lado, modo de submenú, cabecera/pie), barra inferior (activar y elegir), barra superior, diseño (preset + sobrescrituras). Indicador «Este perfil se muestra en: …» con ejemplos de URLs. |
+| **Escritorio** (v0.4) | Usar el menú en escritorio, estilo Panel (Amazon) o Cascada (Falabella) con bocetos, anchos, abrir al pasar el mouse, cómo poner el botón (bloque, shortcode con `only`/`style`, selector del tema, flotante) y barra inferior en escritorio. La vista previa cambia sola al marco de escritorio. |
 | **Barra inferior** | Editor visual: la barra se dibuja grande arriba; los ítems se arrastran; cada ítem tiene acción, icono, etiqueta, insignia; opciones de estilo/indicador/comportamiento con vista previa en vivo (incluido el ocultar-al-scroll simulado). |
 | **Diseño** | Presets en tarjetas; editor de tokens agrupado (Colores, Tipografía, Espaciado, Forma, Movimiento, Insignias) con controles visuales (selector de color con contraste AA calculado, deslizadores de radio/duración, curvas de animación con previsualización). Claro/oscuro. CSS personalizado (editor con resaltado ligero). Exportar/importar diseño. |
 | **Analítica** | Ítems más tocados, ítems sin clics, aperturas, uso de barra inferior y buscador, embudo, filtro por perfil y rango. Exportar CSV. Configuración: activar, destino (servidor/GA4/ambos), muestreo, retención. |
@@ -73,8 +74,9 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 ## Vista previa
 
 - **Iframe con el sitio real** (la portada u otra URL elegida) cargado con un parámetro firmado `?imm_preview={token}` que hace que el frontend use el **borrador** en lugar de la compilación publicada. Así se ve con el tema real, sus fuentes y colores: lo que se ve es exactamente lo que se publica.
-- Marcos: iPhone (390 × 844), Android (412 × 915), tablet, y botón para escritorio.
-- Cambios de tokens de diseño: se aplican al instante vía `postMessage` (sin recargar el iframe). Cambios de estructura: re-render del fragmento por REST (`/preview/render`, < 150 ms) e inyección en el iframe.
+- Marcos: iPhone (390 × 844), Android (412 × 915) y escritorio (1280 × 800, o más ancho que el corte de Ajustes).
+- **En vivo, sin recargar** (v0.4): la página del iframe se carga una vez. Al guardar el borrador, el admin llama a `immPreview.refresh()` (script `assets/dist/preview.js`, que solo se carga con un token de vista previa): se pide de nuevo la misma página con `fetch` y se cambian **solo** las partes del menú cuya huella (`data-imm-h`, solo en la vista previa) cambió, además del CSS. El panel sigue abierto en el mismo nivel o pestaña y con el mismo desplazamiento; un cambio de solo diseño no toca el HTML. Nada roba el foco del campo que se edita en el admin (los diálogos se abren inertes y como popover, y el admin devuelve el foco si algo se lo llevara). Se recarga entera solo al cambiar de ruta, con «Recargar» o si el script no responde. Antes, cada cambio recargaba el iframe: parpadeo, espera y el foco saltaba al iframe mientras el usuario escribía, lo que parecía un error.
+- Con Imagina Search, un cambio que toque el buscador deja su widget sin iniciar en la vista previa hasta recargar (su JS no se puede reiniciar desde fuera); en el sitio no afecta.
 - Controles: abrir/cerrar panel, ir a un nivel, simular usuario conectado, simular carrito con N productos, modo claro/oscuro, `prefers-reduced-motion`.
 - Botón «Ver en mi celular»: muestra un QR con la URL de vista previa firmada (válida 1 h).
 

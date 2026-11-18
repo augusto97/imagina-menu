@@ -4,7 +4,7 @@
 
 ## Qué es
 
-Plugin de navegación **mobile-first** para WordPress y WooCommerce. No es un mega menú de escritorio: es la navegación que un usuario de celular espera de una app de comercio como Amazon, Mercado Libre, AliExpress o Temu.
+Plugin de navegación **mobile-first** para WordPress y WooCommerce. No es un mega menú de escritorio: es la navegación que un usuario de celular espera de una app de comercio como Amazon, Mercado Libre, AliExpress o Temu. En escritorio, el mismo panel se abre con un botón «☰ Todo» (Amazon) o en cascada con las subcategorías en una columna a la derecha (Falabella, Mercado Libre).
 
 Piezas principales:
 
@@ -21,7 +21,7 @@ Tiene que ser **el menú más rápido del mercado**: HTML renderizado en el serv
 - Servidores: Hetzner con ServerAvatar (OpenLiteSpeed + LiteSpeed Cache) y Plesk (Apache/nginx + WP Rocket), Cloudflare delante.
 - Plugins propios con los que se integra (no se reconstruye lo que ya hacen):
   - **Imagina Turbo** (`augusto97/Imagina-Turbo`): Speculation Rules, carrito por Store API, purga por tags. Si está activo, el menú no emite sus propias reglas de prefetch y le avisa qué purgar.
-  - **Imagina Search** (`augusto97/imagina-search`): la búsqueda del panel y de la barra inferior la delega en él cuando existe.
+  - **Imagina Search** (`augusto97/imagina-search`; el plugin se llama «Woo Smart Search», carpeta `woo-smart-search`, constante `WSS_VERSION`): la búsqueda del panel y de la barra inferior muestra su widget dentro del diálogo del menú cuando está activo (`Integrations\SmartSearch`, se decide en cada visita, sin modificar Imagina Search).
   - **Imagina Updater** (`augusto97/imagina-updater`): licencias y actualizaciones.
 
 ## Reglas no negociables
