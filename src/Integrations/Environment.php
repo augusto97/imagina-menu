@@ -21,9 +21,14 @@ final class Environment {
 		'twentytwentyfour'  => array( '.wp-block-navigation__responsive-container-open' ),
 	);
 
-	/** @return list<string> */
+	/**
+	 * Temas cuyo botón móvil existe siempre (verificado con Playwright). Hello Elementor no está:
+	 * sin el constructor de cabeceras de Elementor no imprime botón de menú.
+	 *
+	 * @return list<string>
+	 */
 	public static function known_themes(): array {
-		return array_keys( self::THEME_SELECTORS );
+		return array_values( array_diff( array_keys( self::THEME_SELECTORS ), array( 'hello-elementor' ) ) );
 	}
 
 	/** @return array<string, mixed> */

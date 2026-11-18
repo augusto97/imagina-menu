@@ -61,6 +61,10 @@ button.imm-fab {
 	transition: transform .25s var(--imm-ease), opacity .25s;
 }
 
+button.imm-fab[hidden] {
+	display: none;
+}
+
 .imm-fab .imm-i {
 	width: 24px;
 	height: 24px;

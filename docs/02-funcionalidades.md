@@ -18,7 +18,9 @@ Cómo se abre el panel.
 
 El botón es un `<button popovertarget="imm-drawer" aria-controls aria-expanded>`: abre el panel sin JS.
 
-Implementado (v0.1): si la barra inferior ya tiene un ítem que abre el panel, el botón flotante no se imprime. En una instalación nueva con un tema conocido, el botón del menú móvil del tema abre el panel (modo `theme_selector`, sugerido automáticamente).
+Implementado (v0.1): si la barra inferior ya tiene un ítem que abre el panel, el botón flotante no se imprime.
+
+Compatibilidad verificada (v0.2, Playwright en móvil, `tests/e2e/themes.cjs`): el botón del tema abre el panel de Imagina Menu (y no el menú del tema) en **Twenty Twenty-Five, Astra, Kadence, Blocksy, GeneratePress, Storefront y OceanWP**. **Hello Elementor** no imprime botón de menú sin el constructor de cabeceras de Elementor: no se sugiere su selector y, como red de seguridad en el modo «botón del tema», si el selector no encuentra ningún botón visible el JS muestra el botón flotante de respaldo. WoodMart y Flatsome (de pago) no se pudieron probar. En una instalación nueva con un tema conocido, el botón del menú móvil del tema abre el panel (modo `theme_selector`, sugerido automáticamente).
 
 **Aceptación**: abrir/cerrar funciona con JS desactivado (Chrome, Safari ≥ 17, Firefox ≥ 125); el botón tiene nombre accesible; el selector del tema funciona con Astra, GeneratePress, Kadence, Blocksy, Hello Elementor, WoodMart y Flatsome (lista de selectores sugeridos en el admin).
 

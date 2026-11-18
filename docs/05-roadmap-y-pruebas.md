@@ -135,6 +135,8 @@ Medido en el sitio de pruebas (WordPress + WooCommerce, 40 categorías en 3 nive
 - **Prefetch** al tocar un enlace del menú (Speculation Rules con respaldo `<link rel=prefetch>`). Solo se activa si no lo hace ya otro: con Imagina Turbo o con WordPress 6.8+ (que trae Speculation Rules «conservative» en todo el sitio, menú incluido) queda apagado.
 - **Admin**: pantalla de perfiles con reglas y orden, menú por idioma, analítica, deshacer/rehacer, QR de la vista previa.
 
+Probado en el sitio de pruebas (WordPress 7.1 + WooCommerce + Polylang es/en): e2e móvil en verde en los dos idiomas (menú, textos propios, categorías, portada y buscador por idioma; selector de idioma), perfiles por reglas (archivo de categoría, subcategorías y productos de esas subcategorías), analítica de punta a punta (beacon → cola → cron → /stats; evento GA4 en dataLayer) y 7 temas (ver `docs/02`, M1). PHP por visita: 0,031 ms + 0,009 ms de reglas.
+
 Pendiente: integración con Imagina Search (cuando se comparta su código), barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos recientemente, favoritos en la barra inferior, Lighthouse CI en GitHub Actions y pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
 ### Cambios respecto a la planeación (justificados)

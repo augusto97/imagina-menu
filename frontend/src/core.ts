@@ -388,6 +388,16 @@ function initDrawer( d: HTMLDialogElement ): void {
 	// Botón del menú del tema: se intercepta antes que su propio JS (fase de captura).
 	const themeSelector = d.dataset.trigger;
 	if ( themeSelector ) {
+		// Si el tema no imprime su botón en esta página (cabeceras de Elementor, plantillas sin menú…),
+		// se muestra el botón flotante de respaldo para que el panel siempre se pueda abrir.
+		const fallback = qs<HTMLElement>( '[data-imm-fallback]' );
+		if ( fallback ) {
+			let found = false;
+			try {
+				found = qsa<HTMLElement>( themeSelector ).some( ( el ) => el.getClientRects().length > 0 );
+			} catch {}
+			fallback.hidden = found;
+		}
 		addEventListener( 'click', ( e ) => {
 			let match: Element | null = null;
 			try {

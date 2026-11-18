@@ -111,6 +111,9 @@ final class Renderer {
 			// Si la barra inferior ya tiene un botón que abre el panel, el botón flotante sobra.
 			if ( 'floating' === $this->profile['trigger']['mode'] && ! $this->bar_opens_drawer() ) {
 				$parts['fab'] = $this->fab();
+			} elseif ( 'theme_selector' === $this->profile['trigger']['mode'] && ! $this->bar_opens_drawer() ) {
+				// Red de seguridad: si el botón del tema no está en la página, el JS muestra este.
+				$parts['fab'] = $this->fab( true );
 			}
 			$this->variant         = 'guest';
 			$parts['drawer_guest'] = $this->drawer( $items );
@@ -157,11 +160,11 @@ final class Renderer {
 
 	// ── Disparador flotante ─────────────────────────────────────────────────────────────────────
 
-	private function fab(): string {
+	private function fab( bool $fallback = false ): string {
 		$t     = $this->profile['trigger'];
 		$label = '' !== $t['label'] ? $t['label'] : $this->s( 'Menú' );
 		$class = 'imm-fab imm-fab--' . $t['position'] . ( '' !== $t['label'] ? ' imm-fab--label' : '' ) . ( $t['hide_on_scroll'] ? ' imm-hide-scroll' : '' );
-		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open>'
+		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open' . ( $fallback ? ' data-imm-fallback hidden' : '' ) . '>'
 			. $this->icons->use( $t['icon'] )
 			. ( '' !== $t['label'] ? '<span>' . esc_html( $label ) . '</span>' : '' )
 			. '</button>';
