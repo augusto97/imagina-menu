@@ -229,6 +229,7 @@ export interface Env {
 	roles?: { slug: string; label: string }[];
 	core_speculation?: boolean;
 	rule_labels?: Record<string, string>;
+	can_edit_css?: boolean;
 }
 
 export interface StatsDay {

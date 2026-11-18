@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Frontend;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Botón para abrir el panel desde el tema: shortcode [imagina_menu_toggle], bloque de Gutenberg y
  * función imagina_menu_toggle(). Funciona sin JS (popovertarget).

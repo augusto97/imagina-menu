@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Integrations;
 
+defined( 'ABSPATH' ) || exit;
+
 /** Detección del entorno para el admin (avisos y sugerencias). Solo se usa en el admin. */
 final class Environment {
 

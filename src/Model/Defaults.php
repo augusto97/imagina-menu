@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Model;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Valores por defecto del modelo. Son también la "forma" contra la que el Normalizer valida:
  * una clave que no está aquí no entra; un valor de otro tipo se convierte al tipo del defecto.

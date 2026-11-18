@@ -20,6 +20,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Licensing;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Estado de licencia y actualizaciones.
  */

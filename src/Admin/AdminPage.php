@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Admin;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Core\Plugin;
 
 /** Página del admin: un contenedor donde se monta la app React. */

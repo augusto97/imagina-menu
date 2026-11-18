@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Integrations;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Multi-idioma con WPML, Polylang o TranslatePress (solo APIs públicas de cada uno).
  *

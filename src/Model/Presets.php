@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Model;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Estilos prediseñados. Cada uno combina colores (tokens), un estilo visual completo del panel
  * (forma, cabecera, ítems, iconos, tipografía, movimiento…) y una estructura sugerida (lado,

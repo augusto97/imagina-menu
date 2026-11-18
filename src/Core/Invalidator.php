@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Core;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Compiler\Compiler;
 
 /**

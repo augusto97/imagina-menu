@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Rest;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Compiler\Compiler;
 use ImaginaMenu\Core\Plugin;
 use ImaginaMenu\Frontend\Preview;
@@ -68,8 +70,12 @@ final class Routes {
 		self::route( '/export', 'GET', 'export', $auth );
 		self::route( '/profiles/order', 'PUT', 'order_profiles', $auth );
 		self::route( '/stats', 'GET', 'stats', $auth );
-		// Público: recibe los clics de la analítica (sin cookies). Validación estricta y cola en archivo.
-		self::route( '/hit', 'POST', 'hit', '__return_true' );
+		// Público: recibe los clics de la analítica (sin cookies). Solo existe si la analítica en el
+		// servidor está activa; validación estricta y cola en archivo.
+		$config = \ImaginaMenu\Frontend\Frontend::config();
+		if ( ! empty( $config['settings']['analytics_server'] ) ) {
+			self::route( '/hit', 'POST', 'hit', '__return_true' );
+		}
 		self::route( '/import', 'POST', 'import', $auth );
 	}
 
@@ -181,6 +187,8 @@ final class Routes {
 			// WordPress 6.8+ ya precarga los enlaces al tocarlos: el prefetch propio no se usa.
 			'core_speculation' => function_exists( 'wp_get_speculation_rules_configuration' ),
 			'rule_labels'      => self::rule_labels(),
+			// CSS propio y selectores que ocultan o capturan partes del tema: como «CSS adicional».
+			'can_edit_css'     => current_user_can( 'edit_css' ),
 		);
 	}
 
@@ -228,21 +236,41 @@ final class Routes {
 	/** Un evento de analítica. Siempre 204: nunca se le da información a quien llama. */
 	public static function hit( WP_REST_Request $request ): WP_REST_Response {
 		$config = \ImaginaMenu\Frontend\Frontend::config();
-		$data   = json_decode( (string) $request->get_body(), true );
-		$data   = is_array( $data ) ? $data : $request->get_params();
-		$event  = (string) ( $data['e'] ?? '' );
-		$item   = (string) ( $data['i'] ?? '' );
-		$pid    = (int) ( $data['p'] ?? 0 );
+		$body   = (string) $request->get_body();
+		$data   = strlen( $body ) <= 256 ? json_decode( $body, true ) : null;
+		$data   = is_array( $data ) ? $data : array();
+		$event  = is_string( $data['e'] ?? null ) ? $data['e'] : '';
+		$item   = is_string( $data['i'] ?? null ) ? $data['i'] : '';
+		$pid    = is_int( $data['p'] ?? null ) ? $data['p'] : 0;
 		$ok     = $config && ! empty( $config['settings']['analytics_server'] )
+			&& self::same_site( $request )
 			&& in_array( $event, \ImaginaMenu\Analytics\Stats::EVENTS, true )
-			&& ( '' === $item || preg_match( '/^[a-z0-9_]{1,24}$/', $item ) )
-			&& in_array( $pid, array_map( 'intval', array_column( $config['profiles'], 'id' ) ), true );
+			&& isset( $config['hit_ids'][ $pid ] )
+			// Solo ítems que existen en el menú publicado (no se aceptan ids inventados).
+			&& ( '' === $item || isset( $config['hit_ids'][ $pid ][ $item ] ) );
 		if ( $ok ) {
-			\ImaginaMenu\Analytics\Stats::record( $pid, $event, $item );
+			\ImaginaMenu\Analytics\Stats::record( $pid, $event, $item, \ImaginaMenu\Analytics\Stats::visitor() );
 		}
 		$response = new WP_REST_Response( null, 204 );
 		$response->header( 'Cache-Control', 'no-store' );
 		return $response;
+	}
+
+	/**
+	 * Los navegadores marcan de dónde viene la petición: se rechazan los envíos desde otros sitios
+	 * (alguien usando a sus visitantes para inflar tus cifras). Un cliente sin esas cabeceras
+	 * (curl) pasa, pero igual le aplican los topes por visitante.
+	 */
+	private static function same_site( WP_REST_Request $request ): bool {
+		$fetch = (string) $request->get_header( 'sec_fetch_site' );
+		if ( '' !== $fetch && ! in_array( $fetch, array( 'same-origin', 'none' ), true ) ) {
+			return false;
+		}
+		$origin = (string) $request->get_header( 'origin' );
+		if ( '' !== $origin ) {
+			return strtolower( (string) wp_parse_url( $origin, PHP_URL_HOST ) ) === strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+		}
+		return true;
 	}
 
 	public static function save_settings( WP_REST_Request $request ): WP_REST_Response {
@@ -391,10 +419,31 @@ final class Routes {
 		$id   = (int) $request['id'];
 		$data = $request->get_json_params();
 		$repo = new ProfileRepository();
-		if ( ! $repo->save_draft( $id, is_array( $data['profile'] ?? null ) ? $data['profile'] : array() ) ) {
+		$doc  = is_array( $data['profile'] ?? null ) ? $data['profile'] : array();
+		$doc  = self::guard_css( $doc, $repo->get( $id, true ) );
+		if ( ! $repo->save_draft( $id, $doc ) ) {
 			return new WP_Error( 'imm_not_found', __( 'El perfil no existe.', 'imagina-menu' ), array( 'status' => 404 ) );
 		}
 		return new WP_REST_Response( array( 'profile' => self::out( $repo->get( $id, true ) ) ) );
+	}
+
+	/**
+	 * El CSS propio y los selectores que ocultan partes del tema cambian el aspecto de todo el sitio:
+	 * igual que el «CSS adicional» de WordPress, solo los edita quien tiene `edit_css` (normalmente
+	 * el administrador). A los demás se les conserva el valor actual.
+	 *
+	 * @param array<mixed>              $doc
+	 * @param array<string, mixed>|null $current
+	 * @return array<mixed>
+	 */
+	private static function guard_css( array $doc, ?array $current ): array {
+		if ( current_user_can( 'edit_css' ) ) {
+			return $doc;
+		}
+		$doc['design']['custom_css'] = $current['design']['custom_css'] ?? '';
+		$doc['hide_theme_selector']  = $current['hide_theme_selector'] ?? '';
+		$doc['trigger']['selector']  = $current['trigger']['selector'] ?? '';
+		return $doc;
 	}
 
 	public static function delete_profile( WP_REST_Request $request ): WP_REST_Response|WP_Error {
@@ -556,6 +605,9 @@ final class Routes {
 		if ( 'imagina-menu' !== ( $data['plugin'] ?? '' ) ) {
 			return new WP_Error( 'imm_bad_import', __( 'El archivo no es una exportación de Imagina Menu.', 'imagina-menu' ), array( 'status' => 400 ) );
 		}
+		if ( count( (array) ( $data['menus'] ?? array() ) ) > 30 || count( (array) ( $data['profiles'] ?? array() ) ) > 30 ) {
+			return new WP_Error( 'imm_import_too_big', __( 'La importación tiene demasiados menús o perfiles (máximo 30 de cada uno).', 'imagina-menu' ), array( 'status' => 400 ) );
+		}
 		$menus = new MenuRepository();
 		$map   = array();
 		foreach ( (array) ( $data['menus'] ?? array() ) as $menu ) {
@@ -575,10 +627,11 @@ final class Routes {
 			}
 			$profile['is_default'] = false;
 			$profile['enabled']    = false; // Se activa a mano: evita que un perfil importado tape al actual.
+			$profile               = self::guard_css( $profile, null );
 			$profiles->create( $profile + array( 'menu_order' => 100 + $count ) );
 			++$count;
 		}
-		if ( ! empty( $data['import_settings'] ) && is_array( $data['settings'] ?? null ) ) {
+		if ( ! empty( $data['import_settings'] ) && is_array( $data['settings'] ?? null ) && current_user_can( 'manage_options' ) ) {
 			( new SettingsRepository() )->save( $data['settings'] );
 		}
 		return self::state();

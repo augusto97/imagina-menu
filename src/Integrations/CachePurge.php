@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Integrations;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * El HTML del menú está en todas las páginas: al publicar hay que purgar la caché de página.
  * Solo se usan funciones y acciones públicas de cada plugin.

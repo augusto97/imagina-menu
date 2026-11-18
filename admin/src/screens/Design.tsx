@@ -4,7 +4,7 @@ import { MediaField } from '@/components/MediaField';
 import { Textarea } from '@/components/ui/input';
 import { contrast } from '@/lib/color';
 import { __ } from '@/lib/i18n';
-import { setProfile, useActiveProfile } from '@/lib/store';
+import { setProfile, useActiveProfile, useStore } from '@/lib/store';
 import type { DesignStyle, Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { PresetGallery } from './design/PresetGallery';
@@ -85,6 +85,7 @@ const DARK_KEYS = [ 'bg', 'fg', 'muted', 'border', 'hover_bg', 'head_bg', 'head_
 
 export function Design() {
 	const profile = useActiveProfile();
+	const canEditCss = useStore( ( s ) => s.env?.can_edit_css );
 	if ( ! profile ) {
 		return null;
 	}
@@ -273,7 +274,8 @@ export function Design() {
 
 				<Section title={ __( 'CSS personalizado' ) } description={ __( 'Se añade al final del CSS del menú. Las clases empiezan por .imm-' ) }>
 					<div className="imm:p-5">
-						<Textarea rows={ 8 } value={ d.custom_css } onChange={ ( e ) => setProfile( [ 'design', 'custom_css' ], e.target.value ) } placeholder={ '.imm-drawer .imm-a {\n  font-weight: 600;\n}' } spellCheck={ false } />
+						<Textarea rows={ 8 } value={ d.custom_css } disabled={ canEditCss === false } onChange={ ( e ) => setProfile( [ 'design', 'custom_css' ], e.target.value ) } placeholder={ '.imm-drawer .imm-a {\n  font-weight: 600;\n}' } spellCheck={ false } />
+						{ canEditCss === false && <p className="imm:mt-2 imm:text-[12px] imm:text-amber-700">{ __( 'Solo un administrador puede cambiar esto: afecta a todo el sitio, igual que el «CSS adicional» de WordPress.' ) }</p> }
 					</div>
 				</Section>
 			</div>

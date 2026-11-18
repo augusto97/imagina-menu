@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Admin;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Core\Plugin;
 use ImaginaMenu\Rest\Routes;
 

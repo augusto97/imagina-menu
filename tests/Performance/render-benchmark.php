@@ -9,6 +9,8 @@
  * @package ImaginaMenu
  */
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Compiler\Storage;
 use ImaginaMenu\Frontend\Frontend;
 

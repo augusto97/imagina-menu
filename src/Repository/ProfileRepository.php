@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Repository;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Model\Normalizer;
 
 final class ProfileRepository extends JsonPostRepository {

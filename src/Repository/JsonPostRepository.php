@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Repository;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Guarda documentos JSON en un CPT no público.
  *

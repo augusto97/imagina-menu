@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Model;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Valida y limpia todo lo que entra al modelo (REST, importación, migraciones).
  *

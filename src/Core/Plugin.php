@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Core;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Admin\AdminPage;
 use ImaginaMenu\Compiler\Compiler;
 use ImaginaMenu\Frontend\Frontend;

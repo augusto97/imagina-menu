@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Compiler;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Integrations\CachePurge;
 use ImaginaMenu\Integrations\Languages;
 use ImaginaMenu\Repository\MenuRepository;
@@ -151,6 +153,13 @@ final class Compiler {
 			'strings'  => $this->strings,
 			'languages' => array_values( array_filter( Languages::compiled() ) ),
 		);
+		// Ids válidos para /hit (solo con la analítica en el servidor): el endpoint rechaza los demás.
+		if ( ! empty( $config['settings']['analytics_server'] ) ) {
+			foreach ( $this->labels as $pid => $map ) {
+				$config['hit_ids'][ (int) $pid ] = array_fill_keys( array_map( 'strval', array_keys( $map ) ), 1 );
+			}
+		}
+
 		// Primero los perfiles con condiciones (en su orden); los generales al final.
 		usort( $profiles, static fn( $a, $b ) => ( $a['rules']['conditions'] ? 0 : 1 ) <=> ( $b['rules']['conditions'] ? 0 : 1 ) );
 		$config['profiles'] = $profiles;

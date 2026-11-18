@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Compiler;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Iconos del menú. Al renderizar se registran los usados y al final se genera un sprite SVG con
  * solo esos símbolos (se incrusta una vez en la página: cero peticiones).

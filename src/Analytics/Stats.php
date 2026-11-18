@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Analytics;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Compiler\Storage;
 use ImaginaMenu\Repository\SettingsRepository;
 
@@ -19,6 +21,13 @@ final class Stats {
 	public const EVENTS     = array( 'open', 'click', 'search', 'bbar' );
 	public const CRON       = 'imm_flush_hits';
 	private const MAX_QUEUE = 2 * MB_IN_BYTES;
+
+	/** Máximo de eventos que cuenta un mismo visitante por día y por ítem + evento (anti-relleno). */
+	private const MAX_PER_VISITOR = 60;
+	private const MAX_PER_ITEM    = 3;
+
+	/** Cabecera de la cola: si alguien pide el archivo por URL, PHP lo ejecuta y no muestra nada. */
+	private const QUEUE_HEADER = "<?php exit; ?>\n";
 
 	public static function table(): string {
 		global $wpdb;
@@ -68,17 +77,40 @@ final class Stats {
 		}
 	}
 
+	/**
+	 * Cola de eventos. Es un .php con «exit» al principio y un nombre impredecible: no se puede
+	 * descargar aunque el servidor ignore .htaccess (nginx, OpenLiteSpeed).
+	 */
 	private static function queue_file(): string {
-		return Storage::config_dir() . '/hits.log';
+		return Storage::config_dir() . '/hits-' . substr( wp_hash( 'imm-hits-queue' ), 0, 16 ) . '.php';
+	}
+
+	/**
+	 * Identificador anónimo del visitante (no reversible, cambia cada día): solo sirve para que un
+	 * mismo origen no pueda inflar las cifras. No se guarda la IP.
+	 */
+	public static function visitor(): string {
+		$parts = array(
+			isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- solo se usa dentro de un hash.
+			isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? (string) $_SERVER['HTTP_CF_CONNECTING_IP'] : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( (string) $_SERVER['HTTP_USER_AGENT'], 0, 200 ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		);
+		return substr( hash_hmac( 'sha256', implode( '|', $parts ), wp_salt( 'nonce' ) . gmdate( 'Y-m-d' ) ), 0, 12 );
 	}
 
 	/** Añade un evento a la cola. Devuelve false si la cola está llena (protección ante abusos). */
-	public static function record( int $profile, string $event, string $item ): bool {
+	public static function record( int $profile, string $event, string $item, string $visitor = '' ): bool {
 		$file = self::queue_file();
-		if ( is_file( $file ) && filesize( $file ) > self::MAX_QUEUE ) {
+		clearstatcache( true, $file );
+		$exists = is_file( $file );
+		if ( $exists && filesize( $file ) > self::MAX_QUEUE ) {
 			return false;
 		}
-		$line = gmdate( 'Y-m-d' ) . "\t" . $profile . "\t" . $event . "\t" . $item . "\n";
+		if ( ! $exists && ! is_dir( Storage::config_dir() ) ) {
+			return false; // Sin compilación previa no hay dónde escribir (y no se crea nada aquí).
+		}
+		$visitor = preg_replace( '/[^a-f0-9]/', '', $visitor ) ?? '';
+		$line    = ( $exists ? '' : self::QUEUE_HEADER ) . gmdate( 'Y-m-d' ) . "\t" . $profile . "\t" . $event . "\t" . $item . "\t" . $visitor . "\n";
 		return false !== file_put_contents( $file, $line, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 	}
 
@@ -86,16 +118,31 @@ final class Stats {
 	public static function flush(): void {
 		global $wpdb;
 		$file = self::queue_file();
+		// Cola de versiones anteriores (texto plano): se descarta.
+		if ( is_file( Storage::config_dir() . '/hits.log' ) ) {
+			wp_delete_file( Storage::config_dir() . '/hits.log' );
+		}
 		if ( is_file( $file ) ) {
-			$work = $file . '.' . wp_generate_password( 6, false );
+			$work = $file . '.' . wp_generate_password( 12, false ) . '.php';
 			if ( @rename( $file, $work ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
-				$counts = array();
+				$counts      = array();
+				$per_visitor = array();
+				$per_item    = array();
 				foreach ( (array) file( $work, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) as $line ) {
 					$parts = explode( "\t", (string) $line );
-					if ( 4 !== count( $parts ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $parts[0] ) || ! in_array( $parts[2], self::EVENTS, true ) ) {
+					if ( 5 !== count( $parts ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $parts[0] ) || ! ctype_digit( $parts[1] ) || ! in_array( $parts[2], self::EVENTS, true ) || ! preg_match( '/^[a-z0-9_]{0,24}$/', $parts[3] ) ) {
+						continue; // Incluye la línea de cabecera de la cola.
+					}
+					[ $day, $profile, $event, $item, $visitor ] = $parts;
+					// Un mismo visitante no puede inflar las cifras: tope diario y por ítem.
+					$vkey = $day . $visitor;
+					$ikey = $vkey . "\t" . $event . "\t" . $item;
+					$per_visitor[ $vkey ] = ( $per_visitor[ $vkey ] ?? 0 ) + 1;
+					$per_item[ $ikey ]    = ( $per_item[ $ikey ] ?? 0 ) + 1;
+					if ( '' === $visitor || $per_visitor[ $vkey ] > self::MAX_PER_VISITOR || $per_item[ $ikey ] > self::MAX_PER_ITEM ) {
 						continue;
 					}
-					$key            = implode( "\t", $parts );
+					$key            = $day . "\t" . $profile . "\t" . $event . "\t" . $item;
 					$counts[ $key ] = ( $counts[ $key ] ?? 0 ) + 1;
 				}
 				$table = self::table();

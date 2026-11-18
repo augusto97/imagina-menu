@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Compiler;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Genera el HTML del menú (se ejecuta al compilar, no en cada visita).
  *

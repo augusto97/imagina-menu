@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Frontend;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Datos dinámicos sin romper la caché de página: cookies propias, pequeñas y legibles por JS.
  *

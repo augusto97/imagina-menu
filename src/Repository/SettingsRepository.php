@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Repository;
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Model\Normalizer;
 
 /** Ajustes globales: opción sin autoload (solo se leen en el admin y al compilar). */

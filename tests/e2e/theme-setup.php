@@ -1,4 +1,6 @@
 <?php
+
+defined( 'ABSPATH' ) || exit;
 // Solo para pruebas locales: activa el tema indicado, le asigna un menú y apunta el disparador de
 // Imagina Menu al botón móvil del tema (selector de Integrations\\Environment).
 // Uso: wp eval-file theme-setup.php <tema>

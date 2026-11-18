@@ -115,8 +115,9 @@ export function DrawerScreen() {
 					) }
 					{ t.mode === 'theme_selector' && (
 						<Row label={ __( 'Selector del botón del tema' ) } hint={ __( 'Al tocarlo se abre este panel en lugar del menú del tema. Si el JS no ha cargado, el tema abre su propio menú (respaldo seguro).' ) } stacked>
-							<Input value={ t.selector } onChange={ ( e ) => set( [ 'trigger', 'selector' ], e.target.value ) } placeholder=".menu-toggle" className="imm:font-mono imm:text-xs" />
-							<Suggestions values={ env?.theme.selectors ?? [] } theme={ env?.theme.name ?? '' } onPick={ ( v ) => set( [ 'trigger', 'selector' ], v ) } />
+							<Input value={ t.selector } disabled={ env?.can_edit_css === false } onChange={ ( e ) => set( [ 'trigger', 'selector' ], e.target.value ) } placeholder=".menu-toggle" className="imm:font-mono imm:text-xs" />
+							{ env?.can_edit_css !== false && <Suggestions values={ env?.theme.selectors ?? [] } theme={ env?.theme.name ?? '' } onPick={ ( v ) => set( [ 'trigger', 'selector' ], v ) } /> }
+							{ env?.can_edit_css === false && <p className="imm:text-[12px] imm:text-amber-700">{ __( 'Solo un administrador puede cambiar esto: afecta a todo el sitio, igual que el «CSS adicional» de WordPress.' ) }</p> }
 						</Row>
 					) }
 					{ t.mode === 'manual' && (
@@ -142,8 +143,9 @@ export function DrawerScreen() {
 						</div>
 					</Row>
 					<Row label={ __( 'Ocultar el menú móvil del tema' ) } hint={ __( 'Selector CSS de lo que quieres esconder en celulares (por ejemplo, la hamburguesa del tema si usas el botón flotante).' ) } stacked>
-						<Input value={ profile.hide_theme_selector } onChange={ ( e ) => set( [ 'hide_theme_selector' ], e.target.value ) } placeholder=".menu-toggle" className="imm:font-mono imm:text-xs" />
-						<Suggestions values={ env?.theme.selectors ?? [] } theme={ env?.theme.name ?? '' } onPick={ ( v ) => set( [ 'hide_theme_selector' ], v ) } />
+						<Input value={ profile.hide_theme_selector } disabled={ env?.can_edit_css === false } onChange={ ( e ) => set( [ 'hide_theme_selector' ], e.target.value ) } placeholder=".menu-toggle" className="imm:font-mono imm:text-xs" />
+						{ env?.can_edit_css !== false && <Suggestions values={ env?.theme.selectors ?? [] } theme={ env?.theme.name ?? '' } onPick={ ( v ) => set( [ 'hide_theme_selector' ], v ) } /> }
+						{ env?.can_edit_css === false && <p className="imm:text-[12px] imm:text-amber-700">{ __( 'Solo un administrador puede cambiar esto: afecta a todo el sitio, igual que el «CSS adicional» de WordPress.' ) }</p> }
 					</Row>
 				</Section>
 

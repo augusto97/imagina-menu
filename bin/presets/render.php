@@ -8,6 +8,8 @@
  * @package ImaginaMenu
  */
 
+defined( 'ABSPATH' ) || exit;
+
 use ImaginaMenu\Compiler\CssBuilder;
 use ImaginaMenu\Compiler\Renderer;
 use ImaginaMenu\Model\Defaults;
