@@ -120,12 +120,16 @@
 	margin-top: 10px;
 }
 
+/* Logo del panel: tamaño fijo con !important (temas y plugins de imágenes fuerzan «height: auto»). */
 .imm-logo img {
-	display: block;
-	width: auto;
-	max-width: 170px;
-	height: 32px;
+	display: block !important;
+	width: auto !important;
+	max-width: 170px !important;
+	height: 32px !important;
+	max-height: 32px !important;
+	margin: 0 !important;
 	object-fit: contain;
+	object-position: left center;
 }
 
 .imm-d-title {

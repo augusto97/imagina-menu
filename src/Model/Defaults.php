@@ -125,11 +125,31 @@ final class Defaults {
 			// siempre a la vista (Amazon, Mercado Libre). Se imprime al inicio del <body> (wp_body_open).
 			'app_bar'             => array(
 				'enabled'        => false,
-				'logo'           => true, // logo del sitio (sin logo: el nombre)
+				'logo'           => true, // mostrar logo (sin imagen: el nombre del sitio)
+				'logo_image'     => array( // otra imagen solo para la barra (vacía = el logo del sitio)
+					'id'  => 0,
+					'url' => '',
+				),
+				'logo_height'    => 28, // alto en px (la barra mide 52)
+				'logo_width'     => 150, // ancho máximo en px
+				'logo_align'     => 'left', // left (junto al menú) | center
+				// Cabecera del tema que se oculta en celulares cuando la barra está activa (selector CSS).
+				'hide_header'    => '',
 				'account'        => true,
 				'cart'           => true,
 				'search'         => true, // campo de búsqueda debajo (abre el buscador)
 				'hide_on_scroll' => 'top', // none | top (al bajar queda el buscador) | all
+				// Colores propios (apagado: los de la cabecera del panel, en Diseño).
+				'custom_colors'  => false,
+				'colors'         => array(
+					'bg'        => '#0f172a', // fondo
+					'bg2'       => '', // segundo color: degradado (vacío = color sólido)
+					'fg'        => '#ffffff', // iconos, nombre del sitio
+					'search_bg' => '#ffffff', // fondo del campo de búsqueda
+					'search_fg' => '#62626b', // texto e icono del campo de búsqueda
+					'badge_bg'  => '#e11d48', // contador del carrito
+					'badge_fg'  => '#ffffff',
+				),
 			),
 			// Escritorio: el mismo panel con un botón tipo «☰ Todo» (Amazon) o con submenús en columnas
 			// a la derecha (Falabella, Mercado Libre). Se decide con CSS a partir del breakpoint.

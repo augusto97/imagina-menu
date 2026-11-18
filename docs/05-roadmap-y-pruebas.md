@@ -163,6 +163,8 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 
 Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
+**v0.5.1**: colores propios de la barra superior (con degradado y contraste), controles del logo (imagen propia, alto, ancho, centrado) con tamaño blindado contra el CSS de temas y plugins (en un sitio real el logo se desbordaba de la barra), y opción para reemplazar la cabecera del tema en celulares (selector con sugerencias por tema; ver SEO en docs/03).
+
 ### Cambios respecto a la planeación (justificados)
 
 - **Sin JSON Schema**: el modelo se valida con `Model\Normalizer` (lista blanca guiada por `Model\Defaults`); el admin usa tipos TypeScript equivalentes. Menos piezas y la misma garantía: nada entra sin pasar por la lista blanca.

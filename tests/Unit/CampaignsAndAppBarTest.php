@@ -146,6 +146,59 @@ final class CampaignsAndAppBarTest extends TestCase {
 		$this->assertStringContainsString( '@media (min-width:1025px){.imm-appbar{display:none!important}}', $on['critical'] );
 	}
 
+	public function test_app_bar_custom_colors(): void {
+		$settings = Normalizer::settings( array() );
+		$profile  = Normalizer::profile(
+			array(
+				'app_bar' => array(
+					'enabled'       => true,
+					'custom_colors' => true,
+					'colors'        => array( 'bg' => '#FFFFFF', 'bg2' => '#f1f5f9', 'fg' => '#111827', 'search_bg' => 'red;}body{x', 'badge_bg' => '#16a34a' ),
+				),
+			)
+		);
+		$this->assertSame( '#ffffff', $profile['app_bar']['colors']['bg'] );
+		$this->assertSame( '#ffffff', $profile['app_bar']['colors']['search_bg'], 'Un color no hexadecimal vuelve al de por defecto' );
+		$css = CssBuilder::build( $profile, $settings )['critical'];
+		$this->assertStringContainsString( '.imm-appbar{--imm-ab-bg:linear-gradient(135deg,#ffffff,#f1f5f9);--imm-ab-ring:#ffffff;--imm-ab-fg:#111827;', $css );
+		$this->assertStringContainsString( '--imm-ab-bbg:#16a34a', $css );
+		$this->assertStringNotContainsString( 'body{x', $css );
+
+		// Apagados: no se emite nada (la barra usa los colores de la cabecera).
+		$profile['app_bar']['custom_colors'] = false;
+		$this->assertStringNotContainsString( '.imm-appbar{--imm-ab-bg:', CssBuilder::build( $profile, $settings )['critical'] );
+	}
+
+	public function test_app_bar_logo_options_and_theme_header(): void {
+		$settings = Normalizer::settings( array() );
+		$profile  = Normalizer::profile(
+			array(
+				'app_bar' => array(
+					'enabled'     => true,
+					'logo_image'  => array( 'id' => 5, 'url' => 'https://cdn.test/logo-blanco.webp' ),
+					'logo_height' => 99,
+					'logo_width'  => 200,
+					'logo_align'  => 'center',
+					'hide_header' => '#masthead{color:red}',
+				),
+			)
+		);
+		$this->assertSame( 44, $profile['app_bar']['logo_height'], 'Alto limitado a la fila' );
+		$this->assertStringNotContainsString( '{', $profile['app_bar']['hide_header'] );
+
+		$bar = $this->render( $profile )['appbar'];
+		$this->assertStringContainsString( 'imm-ab-center', $bar );
+		$this->assertStringContainsString( 'src="https://cdn.test/logo-blanco.webp"', $bar );
+
+		$css = CssBuilder::build( $profile, $settings )['critical'];
+		$this->assertStringContainsString( '.imm-appbar{--imm-ab-logo-h:44px;--imm-ab-logo-w:200px}', $css );
+		// La cabecera del tema se oculta solo en celulares (dentro del @media de la barra).
+		$rule = strpos( $css, '{display:none!important}', (int) strpos( $css, '#masthead' ) );
+		$this->assertNotFalse( strpos( $css, '#masthead' ) );
+		$this->assertGreaterThan( (int) strpos( $css, '@media (max-width:1024px){.imm-appbar{' ), (int) strpos( $css, '#masthead' ) );
+		$this->assertLessThan( (int) strpos( $css, '@media (min-width:1025px){.imm-appbar{display:none' ), (int) $rule );
+	}
+
 	public function test_wishlist_item_and_badge(): void {
 		$bar  = array(
 			'enabled' => true,

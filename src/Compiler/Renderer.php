@@ -661,13 +661,16 @@ final class Renderer {
 	private function app_bar(): string {
 		$a     = $this->profile['app_bar'];
 		$keep  = 'top' === $a['hide_on_scroll'] && $a['search'];
-		$class = 'imm-appbar' . ( $keep ? ' imm-ab-keep' : '' );
+		$class = 'imm-appbar' . ( $keep ? ' imm-ab-keep' : '' ) . ( 'center' === $a['logo_align'] ? ' imm-ab-center' : '' );
 		$html  = '<div class="' . $class . '" role="navigation" aria-label="' . esc_attr( $this->s( 'Barra superior' ) ) . '"' . ( 'none' !== $a['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . '><div class="imm-ab-row">';
 		if ( $this->profile['drawer']['enabled'] ) {
 			$html .= '<button type="button" class="imm-ab-btn" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open>' . $this->icons->inline( $this->profile['trigger']['icon'] ) . '</button>';
 		}
-		$logo  = $a['logo'] && '' !== ( $this->site['logo'] ?? '' )
-			? '<img src="' . esc_url( $this->site['logo'] ) . '" alt="' . esc_attr( $this->site['name'] ) . '" height="28" decoding="async">'
+		// Imagen propia de la barra, o el logo del sitio; sin imagen, el nombre. Su tamaño lo fija el
+		// CSS (alto y ancho máximo con !important: un tema o un plugin de imágenes no la agranda).
+		$src   = '' !== $a['logo_image']['url'] ? $a['logo_image']['url'] : (string) ( $this->site['logo'] ?? '' );
+		$logo  = $a['logo'] && '' !== $src
+			? '<img src="' . esc_url( $src ) . '" alt="' . esc_attr( $this->site['name'] ) . '" height="' . (int) $a['logo_height'] . '" decoding="async">'
 			: esc_html( $this->site['name'] );
 		$html .= '<a class="imm-ab-logo" href="' . esc_url( $this->site['home_url'] ) . '">' . $logo . '</a><span class="imm-ab-sp"></span>';
 		if ( $a['account'] && '' !== ( $this->site['account_url'] ?? '' ) ) {

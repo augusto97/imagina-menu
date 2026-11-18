@@ -71,7 +71,9 @@ final class CssBuilder {
 		$ab = $profile['app_bar'];
 		if ( $ab['enabled'] ) {
 			$height    = 52 + ( $ab['search'] ? 50 : 0 );
-			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
+			// La cabecera del tema se oculta solo en celulares y solo con la barra activa (la reemplaza).
+			$header    = '' !== $ab['hide_header'] ? $ab['hide_header'] . '{display:none!important}' : '';
+			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
 				. '@media (min-width:' . ( $bp + 1 ) . 'px){.imm-appbar{display:none!important}}';
 		}
 
@@ -110,6 +112,32 @@ final class CssBuilder {
 			'bbar_space' => $bbar_space,
 			'full'       => $full,
 		);
+	}
+
+	/**
+	 * Medidas del logo de la barra superior (solo si no son las de por defecto).
+	 *
+	 * @param array<string, mixed> $ab
+	 */
+	private static function app_bar_vars( array $ab ): string {
+		$h = (int) $ab['logo_height'];
+		$w = (int) $ab['logo_width'];
+		return 28 === $h && 150 === $w ? '' : '.imm-appbar{--imm-ab-logo-h:' . $h . 'px;--imm-ab-logo-w:' . $w . 'px}';
+	}
+
+	/**
+	 * Colores propios de la barra superior (los mismos en modo claro y oscuro). Valores ya validados
+	 * como hexadecimales por el Normalizer.
+	 *
+	 * @param array<string, mixed> $ab
+	 */
+	private static function app_bar_colors( array $ab ): string {
+		if ( empty( $ab['custom_colors'] ) ) {
+			return '';
+		}
+		$c  = $ab['colors'];
+		$bg = '' !== $c['bg2'] ? 'linear-gradient(135deg,' . $c['bg'] . ',' . $c['bg2'] . ')' : $c['bg'];
+		return '.imm-appbar{--imm-ab-bg:' . $bg . ';--imm-ab-ring:' . $c['bg'] . ';--imm-ab-fg:' . $c['fg'] . ';--imm-ab-sbg:' . $c['search_bg'] . ';--imm-ab-sfg:' . $c['search_fg'] . ';--imm-ab-bbg:' . $c['badge_bg'] . ';--imm-ab-bfg:' . $c['badge_fg'] . '}';
 	}
 
 	/** Familias tipográficas del sistema (no se descarga ninguna fuente). */

@@ -147,3 +147,10 @@ El plugin **detecta** estos plugins y, cuando es posible, añade las exclusiones
 - Las campañas no hacen consultas por visita: marcas de tiempo precalculadas y un evento de WP-Cron en cada límite.
 - Análisis estático y CI: PHPStan nivel 6 sin errores, ESLint, presupuesto y build en GitHub Actions en cada push.
 
+### Reemplazar la cabecera del tema en celulares (v0.5.1)
+
+- La barra superior puede reemplazar la cabecera del tema en celulares: la del tema se oculta con CSS (selector configurable) solo hasta el breakpoint y solo con la barra activa.
+- **SEO**: no cambia lo que Google rastrea. La cabecera del tema sigue en el HTML con sus enlaces (Google indexa la versión móvil y sigue los enlaces aunque el elemento esté oculto); todos los visitantes y Googlebot reciben el mismo HTML (no hay *cloaking*). La barra y el panel suman enlaces reales: logo → portada, cuenta, carrito y el menú completo.
+- **Qué cuidar**: que el H1 esté en el contenido de la página (no solo en la cabecera oculta) y que la cabecera del tema no cargue imágenes pesadas (las imágenes dentro de un elemento oculto se pueden descargar igual; un logo pequeño no importa).
+- **Rendimiento**: la barra va al inicio del `<body>` con su CSS crítico y su alto reservado (CLS 0); su logo tiene tamaño fijo, así que no puede convertirse en el elemento LCP por accidente ni mover nada al cargar.
+

@@ -203,10 +203,20 @@ export interface Profile {
 	app_bar: {
 		enabled: boolean;
 		logo: boolean;
+		/** Otra imagen solo para la barra (url vacía = el logo del sitio). */
+		logo_image: { id: number; url: string };
+		logo_height: number;
+		logo_width: number;
+		logo_align: 'left' | 'center';
+		/** Selector de la cabecera del tema que se oculta en celulares (requiere edit_css). */
+		hide_header: string;
 		account: boolean;
 		cart: boolean;
 		search: boolean;
 		hide_on_scroll: 'none' | 'top' | 'all';
+		/** Apagado: los colores de la cabecera del panel (Diseño). */
+		custom_colors: boolean;
+		colors: { bg: string; bg2: string; fg: string; search_bg: string; search_fg: string; badge_bg: string; badge_fg: string };
 	};
 	desktop: {
 		enabled: boolean;
@@ -253,7 +263,7 @@ export interface CompileState {
 export interface Env {
 	woo: boolean;
 	wp_menus: { id: number; name: string; count: number }[];
-	theme: { name: string; template: string; selectors: string[] };
+	theme: { name: string; template: string; selectors: string[]; header?: string[] };
 	optimizers: { name: string; advice: string }[];
 	imagina_turbo: boolean;
 	/** Plugin de favoritos activo: YITH o TI Wishlist. */

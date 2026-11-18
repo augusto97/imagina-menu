@@ -1,7 +1,8 @@
 /*
  * Barra superior móvil (app bar). Va en el CSS crítico solo si el perfil la usa; el compilador la
  * envuelve en @media (max-width: breakpoint) y reserva su alto en el <body> (CLS = 0).
- * Colores de la cabecera del panel (--imm-head-bg / --imm-head-fg).
+ * Colores: los propios de la barra (--imm-ab-*, ajuste «Colores propios») o, si no, los de la
+ * cabecera del panel (--imm-head-bg / --imm-head-fg).
  */
 .imm-appbar {
 	position: fixed;
@@ -10,9 +11,9 @@
 	left: 0;
 	z-index: 99990;
 	padding-top: env(safe-area-inset-top, 0px);
-	background: var(--imm-head-bg, #111);
+	background: var(--imm-ab-bg, var(--imm-head-bg, #111));
 	box-shadow: 0 1px 0 rgb(0 0 0 / .08), 0 4px 14px -8px rgb(0 0 0 / .3);
-	color: var(--imm-head-fg, #fff);
+	color: var(--imm-ab-fg, var(--imm-head-fg, #fff));
 	font-family: var(--imm-ff, inherit);
 	transition: transform .25s var(--imm-ease, ease);
 }
@@ -65,28 +66,59 @@ a.imm-ab-btn {
 	position: absolute;
 	top: 4px;
 	right: 0;
+	border-color: var(--imm-ab-ring, var(--imm-head-bg, #111));
+	background: var(--imm-ab-bbg, var(--imm-badge-bg));
+	color: var(--imm-ab-bfg, var(--imm-badge-fg));
 }
 
+/* Logo: caja de alto y ancho fijos que recorta. Con !important porque temas y plugins de imágenes
+   (WebP en <picture>, lazy load) suelen forzar «height: auto» o tamaños propios en todo <img>. */
 a.imm-ab-logo {
 	display: flex;
+	flex: 0 1 auto;
 	align-items: center;
 	min-width: 0;
+	max-width: var(--imm-ab-logo-w, 150px);
+	height: var(--imm-ab-logo-h, 28px);
 	padding: 0 4px;
 	overflow: hidden;
 	color: inherit;
 	font-size: 17px;
 	font-weight: 700;
+	line-height: 1;
 	text-decoration: none;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.imm-ab-logo img {
-	display: block;
-	width: auto;
-	max-width: 150px;
-	height: 28px;
+.imm-ab-logo img,
+.imm-ab-logo picture {
+	display: block !important;
+	width: auto !important;
+	max-width: 100% !important;
+	height: 100% !important;
+	max-height: 100% !important;
+	margin: 0 !important;
+	padding: 0 !important;
 	object-fit: contain;
+	object-position: left center;
+}
+
+/* Logo centrado (como muchas apps): sin tapar los botones de los lados */
+.imm-ab-center .imm-ab-row {
+	position: relative;
+}
+
+.imm-ab-center a.imm-ab-logo {
+	position: absolute;
+	left: 50%;
+	max-width: min(var(--imm-ab-logo-w, 150px), calc(100% - 200px));
+	justify-content: center;
+	transform: translateX(-50%);
+}
+
+.imm-ab-center .imm-ab-logo img {
+	object-position: center;
 }
 
 .imm-ab-search {
@@ -103,8 +135,8 @@ button.imm-ab-field {
 	padding: 0 16px;
 	border: 0;
 	border-radius: 999px;
-	background: var(--imm-bg, #fff);
-	color: var(--imm-muted, #62626b);
+	background: var(--imm-ab-sbg, var(--imm-bg, #fff));
+	color: var(--imm-ab-sfg, var(--imm-muted, #62626b));
 	font: inherit;
 	font-size: 15px;
 	text-align: start;

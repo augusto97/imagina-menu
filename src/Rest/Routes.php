@@ -476,13 +476,14 @@ final class Routes {
 			return $doc;
 		}
 		// JSON malformado ("design":"x") no debe provocar un error 500.
-		foreach ( array( 'design', 'trigger', 'desktop' ) as $key ) {
+		foreach ( array( 'design', 'trigger', 'desktop', 'app_bar' ) as $key ) {
 			$doc[ $key ] = is_array( $doc[ $key ] ?? null ) ? $doc[ $key ] : array();
 		}
 		$doc['design']['custom_css'] = $current['design']['custom_css'] ?? '';
 		$doc['hide_theme_selector']  = $current['hide_theme_selector'] ?? '';
 		$doc['trigger']['selector']  = $current['trigger']['selector'] ?? '';
 		$doc['desktop']['selector']  = $current['desktop']['selector'] ?? '';
+		$doc['app_bar']['hide_header'] = $current['app_bar']['hide_header'] ?? '';
 		return $doc;
 	}
 

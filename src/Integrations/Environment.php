@@ -23,6 +23,21 @@ final class Environment {
 		'twentytwentyfour'  => array( '.wp-block-navigation__responsive-container-open' ),
 	);
 
+	/** Cabecera de temas populares (para reemplazarla en celulares por la barra superior). */
+	private const HEADER_SELECTORS = array(
+		'astra'            => array( '#masthead' ),
+		'generatepress'    => array( '.site-header' ),
+		'kadence'          => array( '#masthead' ),
+		'blocksy'          => array( 'header#header' ),
+		'hello-elementor'  => array( '.elementor-location-header', '.site-header' ),
+		'woodmart'         => array( '.whb-header' ),
+		'flatsome'         => array( '#header' ),
+		'oceanwp'          => array( '#site-header' ),
+		'storefront'       => array( '#masthead' ),
+		'twentytwentyfive' => array( 'header.wp-block-template-part' ),
+		'twentytwentyfour' => array( 'header.wp-block-template-part' ),
+	);
+
 	/**
 	 * Temas cuyo botón móvil existe siempre (verificado con Playwright). Hello Elementor no está:
 	 * sin el constructor de cabeceras de Elementor no imprime botón de menú.
@@ -52,6 +67,8 @@ final class Environment {
 				'name'      => $theme->get( 'Name' ),
 				'template'  => $template,
 				'selectors' => self::THEME_SELECTORS[ $template ] ?? array( '.menu-toggle' ),
+				// Elementor Pro (constructor de temas) usa .elementor-location-header con cualquier tema.
+				'header'    => array_values( array_unique( array_merge( self::HEADER_SELECTORS[ $template ] ?? array( '.site-header' ), defined( 'ELEMENTOR_PRO_VERSION' ) ? array( '.elementor-location-header' ) : array() ) ) ),
 			),
 			'optimizers'       => self::optimizers(),
 			'imagina_turbo'    => defined( 'ITB_VERSION' ),

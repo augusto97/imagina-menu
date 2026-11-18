@@ -48,6 +48,7 @@ final class Normalizer {
 		'drawer.banners_position' => array( 'top', 'bottom' ),
 		'desktop.layout'          => array( 'panel', 'cascade' ),
 		'app_bar.hide_on_scroll'  => array( 'none', 'top', 'all' ),
+		'app_bar.logo_align'      => array( 'left', 'center' ),
 		'design.color_mode'       => array( 'light', 'dark', 'auto' ),
 		'item.type'               => array( 'link', 'heading', 'divider', 'source' ),
 		'item.target'             => array( '_self', '_blank' ),
@@ -69,6 +70,8 @@ final class Normalizer {
 		'drawer.max_width'         => array( 240, 1200 ),
 		'desktop.width'            => array( 280, 640 ),
 		'desktop.flyout'           => array( 320, 1000 ),
+		'app_bar.logo_height'      => array( 16, 44 ),
+		'app_bar.logo_width'       => array( 60, 240 ),
 		'item.source.depth'        => array( 1, 4 ),
 		'item.source.limit'        => array( 1, 300 ),
 		'design.tokens.overlay'    => array( 0, 95 ),
@@ -122,6 +125,16 @@ final class Normalizer {
 		$out['hide_theme_selector'] = self::selector( (string) $out['hide_theme_selector'] );
 		$out['trigger']['selector'] = self::selector( (string) $out['trigger']['selector'] );
 		$out['desktop']['selector'] = self::selector( (string) $out['desktop']['selector'] );
+
+		$out['app_bar']['logo_image']['url'] = self::url( (string) $out['app_bar']['logo_image']['url'] );
+		$out['app_bar']['hide_header']       = self::selector( (string) $out['app_bar']['hide_header'] );
+
+		// Colores de la barra superior: solo hexadecimales (van al CSS crítico); el degradado es opcional.
+		$ab_defaults = Defaults::profile()['app_bar']['colors'];
+		foreach ( $ab_defaults as $key => $default ) {
+			$value = self::color( (string) ( $out['app_bar']['colors'][ $key ] ?? '' ) );
+			$out['app_bar']['colors'][ $key ] = $value ?? ( 'bg2' === $key ? '' : $default );
+		}
 
 		$drawer                 = &$out['drawer'];
 		$drawer['whatsapp']['number'] = preg_replace( '/[^0-9]/', '', (string) $drawer['whatsapp']['number'] ) ?? '';

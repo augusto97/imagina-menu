@@ -299,7 +299,7 @@ function DarkTokens( { profile }: { profile: Profile } ) {
 	);
 }
 
-function ContrastRow( { label, fg, bg }: { label: string; fg: string; bg: string } ) {
+export function ContrastRow( { label, fg, bg }: { label: string; fg: string; bg: string } ) {
 	const ratio = contrast( fg, bg );
 	const tone = ratio >= 4.5 ? 'imm:bg-emerald-50 imm:text-emerald-700' : ratio >= 3 ? 'imm:bg-amber-50 imm:text-amber-800' : 'imm:bg-red-50 imm:text-red-700';
 	return (
