@@ -320,6 +320,21 @@ summary.imm-a::marker {
 	content: "";
 }
 
+/* Temas con «a:focus / a:hover / a:visited { color: … }» (más específicos que .imm-a) pintaban el
+   ítem enfocado al entrar a un submenú como si fuera el activo. Antes de [aria-current] y .imm-hl,
+   que con la misma especificidad ganan por ir después. */
+.imm-a:focus,
+.imm-a:hover,
+.imm-a:active,
+.imm-a:visited {
+	color: inherit;
+	text-decoration: none;
+}
+
+.imm-level:focus {
+	outline: none;
+}
+
 .imm-a:focus-visible {
 	background: var(--imm-hover-bg);
 	color: inherit;

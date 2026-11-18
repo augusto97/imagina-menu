@@ -163,6 +163,8 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 
 Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
+**v0.5.3**: al entrar a un submenú con el dedo o el ratón el primer ítem aparecía marcado (el JS le daba el foco y el tema pintaba `a:focus` con su color). Ahora, con el dedo o el ratón, el foco va a la lista (el lector de pantalla la anuncia) y, con teclado, al primer ítem con su estilo de foco; además los estados `:focus`, `:hover`, `:active` y `:visited` de los ítems ya no toman el color ni el subrayado de los enlaces del tema.
+
 **v0.5.2**: colores propios para el contador de la barra inferior (carrito, favoritos e insignias de texto), independientes de las insignias del panel y de la barra superior.
 
 **v0.5.1**: colores propios de la barra superior (con degradado y contraste), controles del logo (imagen propia, alto, ancho, centrado) con tamaño blindado contra el CSS de temas y plugins (en un sitio real el logo se desbordaba de la barra), y opción para reemplazar la cabecera del tema en celulares (selector con sugerencias por tema; ver SEO en docs/03).

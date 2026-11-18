@@ -85,6 +85,8 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 		await page.waitForTimeout( 450 );
 		const depth = await page.evaluate( () => document.getElementById( 'imm-drawer' ).dataset.depth );
 		check( depth === '1', 'Drill-down al submenú', 'profundidad ' + depth );
+		// Con el dedo o el ratón el foco va a la lista: ningún ítem aparece marcado (el tema puede pintar a:focus).
+		check( await page.evaluate( () => document.activeElement?.matches( '#imm-drawer .imm-vp > .imm-level' ) ?? false ), 'Al entrar con el dedo ningún ítem queda enfocado' );
 		const title = await page.locator( '.imm-level-t' ).innerText();
 		check( title.trim() === parentLabel, 'Título del nivel', title );
 		check( await page.locator( '.imm-vp > .imm-level[data-pos="cur"] > .imm-all' ).count() === 1, 'Enlace «Ver todo» en el submenú' );

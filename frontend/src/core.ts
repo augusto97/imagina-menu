@@ -205,12 +205,18 @@ function initDrawer( d: HTMLDialogElement ): void {
 		if ( title ) title.textContent = depth ? current.dataset.title || '' : '';
 	};
 
-	const focusFirst = ( level: Element ) => {
-		qs<HTMLElement>( '.imm-a', level )?.focus( { preventScroll: true } );
+	/**
+	 * Foco al entrar a un nivel. Con teclado, al primer enlace; con el dedo o el ratón, a la lista
+	 * (el lector de pantalla la anuncia y nada aparece marcado como si estuviera activo).
+	 */
+	const focusIn = ( level: HTMLElement, keyboard: boolean ) => {
+		const to = keyboard ? qs<HTMLElement>( '.imm-a', level ) : level;
+		if ( ! keyboard ) level.tabIndex = -1;
+		to?.focus( { preventScroll: true } );
 	};
 
 	/** Entra al submenú de un <details>. */
-	const forward = ( details: HTMLDetailsElement, animate = true ) => {
+	const forward = ( details: HTMLDetailsElement, animate = true, keyboard = false ) => {
 		const level = details.querySelector<Level>( ':scope > .imm-level' ) || ( details as unknown as { _level?: Level } )._level;
 		if ( ! level ) return;
 		fill( details, level );
@@ -236,7 +242,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 		stack.push( level );
 		render();
 		if ( animate ) {
-			focusFirst( level );
+			focusIn( level, keyboard );
 		} else {
 			requestAnimationFrame( () => {
 				level.classList.remove( 'imm-now' );
@@ -295,7 +301,8 @@ function initDrawer( d: HTMLDialogElement ): void {
 		const summary = t.closest( 'summary' );
 		if ( summary && slide ) {
 			e.preventDefault();
-			forward( summary.parentElement as HTMLDetailsElement );
+			// detail 0: «clic» generado con Enter o Espacio (teclado).
+			forward( summary.parentElement as HTMLDetailsElement, true, ! ( e as MouseEvent ).detail );
 		}
 	} );
 
@@ -313,7 +320,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 		if ( ! slide ) return;
 		if ( e.key === 'ArrowRight' && t.matches( 'summary' ) ) {
 			e.preventDefault();
-			forward( t.parentElement as HTMLDetailsElement );
+			forward( t.parentElement as HTMLDetailsElement, true, true );
 		} else if ( e.key === 'ArrowLeft' && stack.length > 1 ) {
 			e.preventDefault();
 			back();
