@@ -67,6 +67,20 @@ final class Translator {
 		return $p;
 	}
 
+	/**
+	 * Textos propios del menú («Hola, inicia sesión», «Cerrar menú»…) en el idioma que se compila.
+	 *
+	 * @param array<string, string> $defaults texto fuente => texto con la traducción de WordPress
+	 * @return array<string, string>
+	 */
+	public function ui( array $defaults ): array {
+		$out = array();
+		foreach ( $defaults as $source => $text ) {
+			$out[ $source ] = $this->t( 'ui: ' . $source, $text );
+		}
+		return $out;
+	}
+
 	private function t( string $name, string $value ): string {
 		if ( '' === $value ) {
 			return '';

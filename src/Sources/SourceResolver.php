@@ -86,9 +86,16 @@ final class SourceResolver {
 		return self::absolute( (string) $item['url'] );
 	}
 
+	/** Portada del idioma que se compila (vacío: la del sitio). Las URL relativas cuelgan de ella. */
+	private static string $home = '';
+
+	public static function set_home( string $home ): void {
+		self::$home = $home;
+	}
+
 	public static function absolute( string $url ): string {
 		if ( str_starts_with( $url, '/' ) && ! str_starts_with( $url, '//' ) ) {
-			return home_url( $url );
+			return '' !== self::$home ? rtrim( self::$home, '/' ) . $url : home_url( $url );
 		}
 		return $url;
 	}

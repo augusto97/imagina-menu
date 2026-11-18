@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 const require = createRequire( import.meta.url );
 const { chromium, devices } = require( 'playwright' );
-const BASE = process.env.IMM_URL || 'http://localhost:8890';
+const BASE = ( process.env.IMM_URL || 'http://localhost:8890' ).replace( /\/$/, '' );
 const axe = readFileSync( new URL( '../../node_modules/axe-core/axe.min.js', import.meta.url ), 'utf8' );
 
 let failures = 0;

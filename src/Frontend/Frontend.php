@@ -134,12 +134,12 @@ final class Frontend {
 			$drawer  = str_replace( Renderer::NAME_TOKEN, esc_html( $name ), $drawer );
 		}
 
-		if ( str_contains( $drawer, Renderer::LANGS_TOKEN ) ) {
-			$drawer = str_replace( Renderer::LANGS_TOKEN, Languages::switcher(), $drawer );
-		}
-
 		$html = $p['sprite'] . $parts['fab'] . $drawer . $parts['search'] . ( self::$show_bbar ? $parts['bbar'] : '' );
 		$html = self::mark_current( $html );
+		// Después de marcar la página actual: el selector de idioma marca el suyo.
+		if ( str_contains( $html, Renderer::LANGS_TOKEN ) ) {
+			$html = str_replace( Renderer::LANGS_TOKEN, Languages::switcher(), $html );
+		}
 
 		if ( '' !== $p['css_url'] && null !== $p['css_url'] ) {
 			echo '<link rel="stylesheet" id="imm-css" href="' . esc_url( $p['css_url'] ) . '">'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- se imprime al final del body a propósito: no bloquea el render.

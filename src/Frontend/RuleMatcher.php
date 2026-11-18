@@ -91,7 +91,18 @@ final class RuleMatcher {
 			return false;
 		}
 		if ( is_singular() ) {
-			return has_term( $ids ? $ids : '', $taxonomy, (int) get_queried_object_id() );
+			if ( ! $ids ) {
+				return has_term( '', $taxonomy, (int) get_queried_object_id() );
+			}
+			// También los contenidos de las subcategorías (la jerarquía está en caché: sin consultas).
+			$all = $ids;
+			foreach ( $ids as $id ) {
+				$children = get_term_children( $id, $taxonomy );
+				if ( is_array( $children ) ) {
+					$all = array_merge( $all, array_map( 'intval', $children ) );
+				}
+			}
+			return has_term( $all, $taxonomy, (int) get_queried_object_id() );
 		}
 		return false;
 	}

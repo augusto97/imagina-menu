@@ -49,6 +49,37 @@ final class Renderer {
 		return $this->labels;
 	}
 
+	/**
+	 * Textos propios del menú. Se escriben con __() aquí para que las herramientas de traducción los
+	 * encuentren; el compilador además los pasa por WPML/Polylang por idioma (site['ui']).
+	 *
+	 * @return array<string, string> texto fuente => texto en el idioma del sitio
+	 */
+	public static function ui_strings(): array {
+		return array(
+			'Menú'                   => __( 'Menú', 'imagina-menu' ),
+			'Abrir menú'             => __( 'Abrir menú', 'imagina-menu' ),
+			'Cerrar menú'            => __( 'Cerrar menú', 'imagina-menu' ),
+			'Menú principal'         => __( 'Menú principal', 'imagina-menu' ),
+			'Hola, %s'               => __( 'Hola, %s', 'imagina-menu' ),
+			'Mi cuenta'              => __( 'Mi cuenta', 'imagina-menu' ),
+			'Hola, inicia sesión'    => __( 'Hola, inicia sesión', 'imagina-menu' ),
+			'Ingresar o registrarse' => __( 'Ingresar o registrarse', 'imagina-menu' ),
+			'Buscar'                 => __( 'Buscar', 'imagina-menu' ),
+			'Cerrar búsqueda'        => __( 'Cerrar búsqueda', 'imagina-menu' ),
+			'Búsquedas recientes'    => __( 'Búsquedas recientes', 'imagina-menu' ),
+			'Populares'              => __( 'Populares', 'imagina-menu' ),
+			'Navegación inferior'    => __( 'Navegación inferior', 'imagina-menu' ),
+		);
+	}
+
+	private function s( string $source ): string {
+		if ( isset( $this->site['ui'][ $source ] ) ) {
+			return (string) $this->site['ui'][ $source ];
+		}
+		return self::ui_strings()[ $source ] ?? $source;
+	}
+
 	/** Niveles desde el 3.º en <template> (catálogos grandes: menos nodos DOM). */
 	private function hybrid(): bool {
 		return ! empty( $this->site['hybrid'] );
@@ -128,9 +159,9 @@ final class Renderer {
 
 	private function fab(): string {
 		$t     = $this->profile['trigger'];
-		$label = '' !== $t['label'] ? $t['label'] : __( 'Menú', 'imagina-menu' );
+		$label = '' !== $t['label'] ? $t['label'] : $this->s( 'Menú' );
 		$class = 'imm-fab imm-fab--' . $t['position'] . ( '' !== $t['label'] ? ' imm-fab--label' : '' ) . ( $t['hide_on_scroll'] ? ' imm-hide-scroll' : '' );
-		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( __( 'Abrir menú', 'imagina-menu' ) ) . '" data-imm-open>'
+		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open>'
 			. $this->icons->use( $t['icon'] )
 			. ( '' !== $t['label'] ? '<span>' . esc_html( $label ) . '</span>' : '' )
 			. '</button>';
@@ -159,10 +190,10 @@ final class Renderer {
 		}
 
 		$style = '--imm-w:' . (int) $d['width'] . 'vw;--imm-mw:' . (int) $d['max_width'] . 'px';
-		$html  = '<dialog id="imm-drawer" class="' . esc_attr( $class ) . '" style="' . esc_attr( $style ) . '" popover aria-label="' . esc_attr__( 'Menú', 'imagina-menu' ) . '"' . self::attrs( $data ) . $this->cfg_attr() . '>';
+		$html  = '<dialog id="imm-drawer" class="' . esc_attr( $class ) . '" style="' . esc_attr( $style ) . '" popover aria-label="' . esc_attr( $this->s( 'Menú' ) ) . '"' . self::attrs( $data ) . $this->cfg_attr() . '>';
 		$html .= '<div class="imm-d-in">';
 		$html .= $this->drawer_head();
-		$html .= '<nav class="imm-nav" aria-label="' . esc_attr__( 'Menú principal', 'imagina-menu' ) . '">';
+		$html .= '<nav class="imm-nav" aria-label="' . esc_attr( $this->s( 'Menú principal' ) ) . '">';
 		if ( 'slide' === $mode || 'grid' === $mode ) {
 			$html .= '<div class="imm-nav-bar" hidden><button type="button" class="imm-back" data-imm-back>'
 				. $this->icons->use( 'chevron-left' ) . '<span class="imm-back-l">' . esc_html( $d['back_label'] ) . '</span></button>'
@@ -186,7 +217,7 @@ final class Renderer {
 	}
 
 	private function close_button( string $class ): string {
-		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" popovertargetaction="hide" aria-label="' . esc_attr__( 'Cerrar menú', 'imagina-menu' ) . '" data-imm-close>'
+		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" popovertargetaction="hide" aria-label="' . esc_attr( $this->s( 'Cerrar menú' ) ) . '" data-imm-close>'
 			. $this->icons->use( 'x' ) . '</button>';
 	}
 
@@ -223,15 +254,15 @@ final class Renderer {
 	private function account(): string {
 		$url = (string) ( $this->site['account_url'] ?? '' );
 		if ( 'user' === $this->variant ) {
-			$hello = sprintf( /* translators: %s: nombre */ __( 'Hola, %s', 'imagina-menu' ), self::NAME_TOKEN );
-			$cta   = __( 'Mi cuenta', 'imagina-menu' );
+			$hello = sprintf( /* translators: %s: nombre */ $this->s( 'Hola, %s' ), self::NAME_TOKEN );
+			$cta   = $this->s( 'Mi cuenta' );
 		} else {
-			$hello = __( 'Hola, inicia sesión', 'imagina-menu' );
-			$cta   = __( 'Ingresar o registrarse', 'imagina-menu' );
+			$hello = $this->s( 'Hola, inicia sesión' );
+			$cta   = $this->s( 'Ingresar o registrarse' );
 		}
 		// Invitado: el JS puede saludar por nombre si existe la cookie opcional imm_un (páginas en caché).
 		$data = 'guest' === $this->variant
-			? ' data-hello="' . esc_attr( __( 'Hola, %s', 'imagina-menu' ) ) . '" data-cta="' . esc_attr__( 'Mi cuenta', 'imagina-menu' ) . '"'
+			? ' data-hello="' . esc_attr( $this->s( 'Hola, %s' ) ) . '" data-cta="' . esc_attr( $this->s( 'Mi cuenta' ) ) . '"'
 			: '';
 		return '<a class="imm-account" href="' . esc_url( $url ) . '"' . $data . '>'
 			. '<span class="imm-avatar">' . $this->icons->use( 'user-round' ) . '</span>'
@@ -477,17 +508,17 @@ final class Renderer {
 		$post_type = $this->site['search_post_type'] ?? '';
 		$hidden    = '' !== $post_type ? '<input type="hidden" name="post_type" value="' . esc_attr( $post_type ) . '">' : '';
 
-		$html  = '<dialog id="imm-search" class="imm-search" popover aria-label="' . esc_attr__( 'Buscar', 'imagina-menu' ) . '"' . ( $s['recent'] ? ' data-recent="1"' : '' ) . $this->cfg_attr() . '>';
+		$html  = '<dialog id="imm-search" class="imm-search" popover aria-label="' . esc_attr( $this->s( 'Buscar' ) ) . '"' . ( $s['recent'] ? ' data-recent="1"' : '' ) . $this->cfg_attr() . '>';
 		$html .= '<form class="imm-s-form" role="search" method="get" action="' . esc_url( $this->site['home_url'] ) . '">';
-		$html .= '<button type="button" class="imm-s-back" popovertarget="imm-search" popovertargetaction="hide" aria-label="' . esc_attr__( 'Cerrar búsqueda', 'imagina-menu' ) . '" data-imm-close>' . $this->icons->use( 'arrow-left' ) . '</button>';
+		$html .= '<button type="button" class="imm-s-back" popovertarget="imm-search" popovertargetaction="hide" aria-label="' . esc_attr( $this->s( 'Cerrar búsqueda' ) ) . '" data-imm-close>' . $this->icons->use( 'arrow-left' ) . '</button>';
 		$html .= '<input class="imm-s-input" type="search" name="s" placeholder="' . esc_attr( $s['placeholder'] ) . '" aria-label="' . esc_attr( $s['placeholder'] ) . '" autocomplete="off" enterkeyhint="search" autofocus>' . $hidden;
-		$html .= '<button type="submit" class="imm-s-go" aria-label="' . esc_attr__( 'Buscar', 'imagina-menu' ) . '">' . $this->icons->use( 'search' ) . '</button>';
+		$html .= '<button type="submit" class="imm-s-go" aria-label="' . esc_attr( $this->s( 'Buscar' ) ) . '">' . $this->icons->use( 'search' ) . '</button>';
 		$html .= '</form><div class="imm-s-body">';
 		if ( $s['recent'] ) {
-			$html .= '<section class="imm-s-sec imm-s-recent" hidden><p class="imm-s-h">' . esc_html__( 'Búsquedas recientes', 'imagina-menu' ) . '</p><ul class="imm-chips" role="list"></ul></section>';
+			$html .= '<section class="imm-s-sec imm-s-recent" hidden><p class="imm-s-h">' . esc_html( $this->s( 'Búsquedas recientes' ) ) . '</p><ul class="imm-chips" role="list"></ul></section>';
 		}
 		if ( $s['popular'] ) {
-			$html .= '<section class="imm-s-sec"><p class="imm-s-h">' . esc_html__( 'Populares', 'imagina-menu' ) . '</p><ul class="imm-chips" role="list">';
+			$html .= '<section class="imm-s-sec"><p class="imm-s-h">' . esc_html( $this->s( 'Populares' ) ) . '</p><ul class="imm-chips" role="list">';
 			foreach ( $s['popular'] as $term ) {
 				$args = array( 's' => $term );
 				if ( '' !== $post_type ) {
@@ -506,7 +537,7 @@ final class Renderer {
 	private function bottom_bar(): string {
 		$b     = $this->profile['bottom_bar'];
 		$class = 'imm-bbar imm-bb--' . $b['shape'] . ' imm-bb-ind--' . $b['indicator'] . ' imm-bb-st--' . $b['style'] . ( $b['blur'] ? ' imm-bb--blur' : '' );
-		$html  = '<nav class="' . esc_attr( $class ) . '" aria-label="' . esc_attr__( 'Navegación inferior', 'imagina-menu' ) . '"' . ( $b['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . $this->cfg_attr() . '><ul role="list">';
+		$html  = '<nav class="' . esc_attr( $class ) . '" aria-label="' . esc_attr( $this->s( 'Navegación inferior' ) ) . '"' . ( $b['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . $this->cfg_attr() . '><ul role="list">';
 		foreach ( $b['items'] as $item ) {
 			$html .= '<li' . ( $item['prominent'] ? ' class="imm-bb-main"' : '' ) . '>' . $this->bottom_item( $item ) . '</li>';
 		}

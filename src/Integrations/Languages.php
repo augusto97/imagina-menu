@@ -83,6 +83,36 @@ final class Languages {
 		return '';
 	}
 
+	/** Portada de un idioma (vacío si no hay plugin de idiomas o es el idioma por defecto sin prefijo). */
+	public static function home( string $lang ): string {
+		if ( '' === $lang ) {
+			return '';
+		}
+		if ( 'polylang' === self::provider() && function_exists( 'pll_home_url' ) ) {
+			return (string) pll_home_url( $lang );
+		}
+		if ( 'wpml' === self::provider() ) {
+			return (string) apply_filters( 'wpml_permalink', home_url( '/' ), $lang );
+		}
+		return '';
+	}
+
+	/** Locale de WordPress de un idioma (para las traducciones .mo de los textos propios). */
+	public static function locale( string $lang ): string {
+		if ( '' === $lang ) {
+			return '';
+		}
+		if ( 'wpml' === self::provider() ) {
+			$details = apply_filters( 'wpml_language_details', null, $lang );
+			return is_array( $details ) ? (string) ( $details['default_locale'] ?? '' ) : '';
+		}
+		if ( 'polylang' === self::provider() && function_exists( 'PLL' ) ) {
+			$language = PLL()->model->get_language( $lang );
+			return $language ? (string) $language->locale : '';
+		}
+		return '';
+	}
+
 	/** Idioma de la página actual (frontend). */
 	public static function current(): string {
 		return match ( self::provider() ) {

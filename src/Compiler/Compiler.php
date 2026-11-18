@@ -180,6 +180,8 @@ final class Compiler {
 
 		foreach ( $langs as $lang ) {
 			$previous = Languages::switch_to( $lang );
+			$locale   = Languages::locale( $lang );
+			$switched = '' !== $locale && switch_to_locale( $locale );
 			try {
 				$tr      = new Translator( $lang );
 				$p       = $tr->profile( $profile );
@@ -196,10 +198,12 @@ final class Compiler {
 				}
 
 				$depth = (string) $settings['html_depth'];
-				$site  = self::site( $p ) + array(
+				SourceResolver::set_home( Languages::home( $lang ) );
+				$site  = self::site( $p, $lang ) + array(
 					'hybrid'       => 'hybrid' === $depth || ( 'auto' === $depth && self::count_items( $items ) > self::HYBRID_FROM ),
 					'multilingual' => in_array( $provider, array( 'wpml', 'polylang' ), true ),
 					'cfg'          => $cfg,
+					'ui'           => $tr->ui( Renderer::ui_strings() ),
 				);
 				$renderer      = new Renderer( $p, $site );
 				$parts         = $renderer->render( $items );
@@ -210,6 +214,10 @@ final class Compiler {
 				$this->labels[ (int) $profile['id'] ] = ( $this->labels[ (int) $profile['id'] ] ?? array() ) + $renderer->labels();
 				$this->strings                        = $this->strings + $tr->strings();
 			} finally {
+				SourceResolver::set_home( '' );
+				if ( $switched ) {
+					restore_previous_locale();
+				}
 				Languages::restore( $previous );
 			}
 		}
@@ -292,10 +300,16 @@ final class Compiler {
 	 * @param array<string, mixed> $profile
 	 * @return array<string, string>
 	 */
-	public static function site( array $profile ): array {
+	public static function site( array $profile, string $lang = '' ): array {
 		$woo     = function_exists( 'wc_get_page_permalink' );
 		$logo_id = (int) get_theme_mod( 'custom_logo' );
-		$account = $woo ? (string) wc_get_page_permalink( 'myaccount' ) : '';
+		$home    = Languages::home( $lang );
+		$home    = '' !== $home ? $home : home_url( '/' );
+		$page    = static function ( string $option ) use ( $lang ): string {
+			$id = Languages::object_id( (int) get_option( $option ), 'post', 'page', $lang );
+			return $id > 0 && 'publish' === get_post_status( $id ) ? (string) get_permalink( $id ) : '';
+		};
+		$account = $woo ? $page( 'woocommerce_myaccount_page_id' ) : '';
 		if ( '' === $account || home_url( '/' ) === $account ) {
 			$account = wp_login_url();
 		}
@@ -308,9 +322,9 @@ final class Compiler {
 		return array(
 			'name'             => wp_strip_all_tags( (string) get_bloginfo( 'name' ) ),
 			'logo'             => $logo_id ? (string) wp_get_attachment_image_url( $logo_id, 'medium' ) : '',
-			'home_url'         => home_url( '/' ),
+			'home_url'         => $home,
 			'account_url'      => $account,
-			'cart_url'         => $woo && function_exists( 'wc_get_cart_url' ) ? (string) wc_get_cart_url() : '',
+			'cart_url'         => $woo ? $page( 'woocommerce_cart_page_id' ) : '',
 			'search_post_type' => $post_type,
 		);
 	}
