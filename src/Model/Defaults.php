@@ -73,6 +73,7 @@ final class Defaults {
 				'search'           => true,
 				'back_label'       => 'Menú principal',
 				'view_all_label'   => 'Ver todo',
+				'view_all_position' => 'bottom', // bottom | top — «Ver todo …» al final o al inicio de cada submenú
 				'show_level_title' => true,
 				'open_active'      => true,
 				'remember_level'   => false,
@@ -106,6 +107,19 @@ final class Defaults {
 				'post_type'   => 'auto', // auto | any | product | post
 				'popular'     => array(), // [string]
 				'recent'      => true,
+				'provider'    => 'auto', // auto (Imagina Search si está activo) | native
+			),
+			// Escritorio: el mismo panel con un botón tipo «☰ Todo» (Amazon) o con submenús en columnas
+			// a la derecha (Falabella, Mercado Libre). Se decide con CSS a partir del breakpoint.
+			'desktop'             => array(
+				'enabled'    => false,
+				'floating'   => false, // botón flotante también en escritorio (si no: shortcode, bloque o selector)
+				'selector'   => '', // elementos del tema que abren el panel (p. ej. un ítem del menú principal)
+				'width'      => 380, // ancho del panel en px
+				'layout'     => 'panel', // panel (como en el celular) | cascade (submenús en columnas a la derecha)
+				'flyout'     => 640, // ancho de la columna de subcategorías en cascada (px)
+				'hover'      => true, // abrir subcategorías al pasar el mouse (cascada y dos columnas)
+				'bottom_bar' => false, // barra inferior también en escritorio
 			),
 			'design'              => array(
 				'preset'      => 'marketplace',

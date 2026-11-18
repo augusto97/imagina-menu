@@ -1,4 +1,4 @@
-import { BarChart3, Layers, LayoutDashboard, ListTree, Menu as MenuIcon, Palette, PanelLeft, PanelBottom, Search, Settings2 } from 'lucide-react';
+import { BarChart3, Layers, LayoutDashboard, ListTree, Menu as MenuIcon, Monitor, Palette, PanelLeft, PanelBottom, Search, Settings2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Preview } from './Preview';
 import { TopBar } from './TopBar';
@@ -15,12 +15,13 @@ const items: { route: Route; label: string; icon: typeof MenuIcon; group?: strin
 	{ route: 'panel-lateral', label: __( 'Panel lateral' ), icon: PanelLeft },
 	{ route: 'barra', label: __( 'Barra inferior' ), icon: PanelBottom },
 	{ route: 'buscador', label: __( 'Buscador' ), icon: Search },
+	{ route: 'escritorio', label: __( 'Escritorio' ), icon: Monitor },
 	{ route: 'diseno', label: __( 'Diseño' ), icon: Palette },
 	{ route: 'analitica', label: __( 'Analítica' ), icon: BarChart3, group: __( 'Sitio' ) },
 	{ route: 'ajustes', label: __( 'Ajustes' ), icon: Settings2 },
 ];
 
-const WITH_PREVIEW: Route[] = [ 'panel', 'constructor', 'panel-lateral', 'barra', 'buscador', 'diseno' ];
+const WITH_PREVIEW: Route[] = [ 'panel', 'constructor', 'panel-lateral', 'barra', 'buscador', 'escritorio', 'diseno' ];
 
 export function Layout( { children }: { children: ReactNode } ) {
 	const { route, go } = useRouter();

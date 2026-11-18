@@ -43,6 +43,9 @@ final class Normalizer {
 		'bottom_bar.indicator'    => array( 'pill', 'line', 'dot', 'color' ),
 		'bottom_bar.shape'        => array( 'bar', 'floating' ),
 		'search.post_type'        => array( 'auto', 'any', 'product', 'post' ),
+		'search.provider'         => array( 'auto', 'native' ),
+		'drawer.view_all_position' => array( 'bottom', 'top' ),
+		'desktop.layout'          => array( 'panel', 'cascade' ),
 		'design.color_mode'       => array( 'light', 'dark', 'auto' ),
 		'item.type'               => array( 'link', 'heading', 'divider', 'source' ),
 		'item.target'             => array( '_self', '_blank' ),
@@ -62,6 +65,8 @@ final class Normalizer {
 		'trigger.size'             => array( 36, 80 ),
 		'drawer.width'             => array( 50, 100 ),
 		'drawer.max_width'         => array( 240, 1200 ),
+		'desktop.width'            => array( 280, 640 ),
+		'desktop.flyout'           => array( 320, 1000 ),
 		'item.source.depth'        => array( 1, 4 ),
 		'item.source.limit'        => array( 1, 300 ),
 		'design.tokens.overlay'    => array( 0, 95 ),
@@ -114,6 +119,7 @@ final class Normalizer {
 
 		$out['hide_theme_selector'] = self::selector( (string) $out['hide_theme_selector'] );
 		$out['trigger']['selector'] = self::selector( (string) $out['trigger']['selector'] );
+		$out['desktop']['selector'] = self::selector( (string) $out['desktop']['selector'] );
 
 		$drawer                 = &$out['drawer'];
 		$drawer['whatsapp']['number'] = preg_replace( '/[^0-9]/', '', (string) $drawer['whatsapp']['number'] ) ?? '';

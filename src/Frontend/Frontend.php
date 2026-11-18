@@ -10,6 +10,7 @@ use ImaginaMenu\Compiler\Renderer;
 use ImaginaMenu\Compiler\Storage;
 use ImaginaMenu\Core\Plugin;
 use ImaginaMenu\Integrations\Languages;
+use ImaginaMenu\Integrations\SmartSearch;
 
 /**
  * Lo que corre en cada visita. Presupuesto: < 1 ms, 0 consultas propias.
@@ -140,11 +141,16 @@ final class Frontend {
 			$drawer  = str_replace( Renderer::NAME_TOKEN, esc_html( $name ), $drawer );
 		}
 
-		$html = $p['sprite'] . $parts['fab'] . $drawer . $parts['search'] . ( self::$show_bbar ? $parts['bbar'] : '' );
-		$html = self::mark_current( $html );
-		// Después de marcar la página actual: el selector de idioma marca el suyo.
-		if ( str_contains( $html, Renderer::LANGS_TOKEN ) ) {
-			$html = str_replace( Renderer::LANGS_TOKEN, Languages::switcher(), $html );
+		$search = SmartSearch::apply( $parts['search'], (string) ( $p['search'] ?? 'auto' ) );
+		$list   = array( $p['sprite'], $parts['fab'], $drawer, $search, self::$show_bbar ? $parts['bbar'] : '' );
+		if ( self::$preview ) {
+			// Vista previa en vivo: cada parte lleva una huella para cambiar solo las que cambiaron.
+			$html = '';
+			foreach ( $list as $part ) {
+				$html .= Preview::fingerprint( self::finish( $part ) );
+			}
+		} else {
+			$html = self::finish( implode( '', $list ) );
 		}
 
 		if ( '' !== $p['css_url'] && null !== $p['css_url'] ) {
@@ -155,8 +161,17 @@ final class Frontend {
 		}
 		echo "\n<!-- Imagina Menu -->\n" . $html . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML renderizado y escapado al compilar.
 
+		if ( self::$preview ) {
+			wp_print_script_tag(
+				array(
+					'type' => 'module',
+					'src'  => plugins_url( 'assets/dist/preview.js', IMM_FILE ) . '?ver=' . IMM_VERSION,
+				)
+			);
+		}
+
 		$config = self::config();
-		if ( $config && 'interaction' === $config['settings']['load_js'] && 'theme_selector' !== $p['trigger']['mode'] ) {
+		if ( $config && 'interaction' === $config['settings']['load_js'] && ! self::eager( $p ) ) {
 			// El panel abre sin JS (Popover API); el JS se descarga con el primer gesto del usuario.
 			// Con wp_get_inline_script_tag los plugins de CSP pueden añadir su nonce (filtro wp_inline_script_attributes).
 			echo wp_get_inline_script_tag( 'const e=["pointerdown","keydown","scroll","touchstart"],l=()=>{e.forEach(t=>removeEventListener(t,l,{capture:!0}));import(' . wp_json_encode( self::script_url() ) . ')};e.forEach(t=>addEventListener(t,l,{capture:!0,passive:!0,once:!0}))', array( 'type' => 'module' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- código propio; la única variable es JSON.
@@ -169,7 +184,7 @@ final class Frontend {
 		if ( ! $config || ! $p ) {
 			return;
 		}
-		if ( 'interaction' === $config['settings']['load_js'] && 'theme_selector' !== $p['trigger']['mode'] ) {
+		if ( 'interaction' === $config['settings']['load_js'] && ! self::eager( $p ) ) {
 			return; // Lo carga el cargador por interacción del footer.
 		}
 		if ( function_exists( 'wp_enqueue_script_module' ) ) {
@@ -177,8 +192,30 @@ final class Frontend {
 		}
 	}
 
+	/**
+	 * El JS va al inicio (no con el primer gesto) si debe capturar botones del tema o si es la vista previa.
+	 *
+	 * @param array<string, mixed> $p Perfil compilado.
+	 */
+	private static function eager( array $p ): bool {
+		return self::$preview || ! empty( $p['eager'] ) || 'theme_selector' === ( $p['trigger']['mode'] ?? '' );
+	}
+
 	private static function script_url(): string {
 		return plugins_url( 'assets/dist/core.js', IMM_FILE ) . '?ver=' . IMM_VERSION;
+	}
+
+	/** Lo que depende de la página: el enlace actual y el selector de idioma. */
+	private static function finish( string $html ): string {
+		if ( '' === $html ) {
+			return '';
+		}
+		$html = self::mark_current( $html );
+		// Después de marcar la página actual: el selector de idioma marca el suyo.
+		if ( str_contains( $html, Renderer::LANGS_TOKEN ) ) {
+			$html = str_replace( Renderer::LANGS_TOKEN, Languages::switcher(), $html );
+		}
+		return $html;
 	}
 
 	/**

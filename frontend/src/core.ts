@@ -17,12 +17,17 @@ const doc = document;
 const root = doc.documentElement;
 const qs = <T extends Element>( sel: string, ctx: ParentNode = doc ) => ctx.querySelector<T>( sel );
 const qsa = <T extends Element>( sel: string, ctx: ParentNode = doc ) => Array.from( ctx.querySelectorAll<T>( sel ) );
+/** Botones propios: nunca se capturan como si fueran el botón del tema. */
+const OWN = '.imm-fab,.imm-bbar,.imm-search';
 const RECENT_KEY = 'imm-recent';
 const LEVEL_KEY = 'imm-level';
 
 // Solo los nodos propios (dialog + clase): un elemento del contenido con el mismo id no los suplanta.
-const drawer = qs<HTMLDialogElement>( 'dialog#imm-drawer.imm-drawer' );
-const search = qs<HTMLDialogElement>( 'dialog#imm-search.imm-search' );
+// `let`: la vista previa en vivo los cambia por los del borrador y vuelve a arrancar (boot).
+const DRAWER = 'dialog#imm-drawer.imm-drawer';
+const SEARCH = 'dialog#imm-search.imm-search';
+let drawer = qs<HTMLDialogElement>( DRAWER );
+let search = qs<HTMLDialogElement>( SEARCH );
 
 // ── Utilidades de diálogos (modal con JS; popover si ya se abrió sin JS) ─────────────────────────
 
@@ -50,7 +55,7 @@ function afterHide(): void {
 }
 
 function setExpanded( id: string, value: boolean ): void {
-	for ( const el of qsa( `[aria-controls="${ id }"]` ) ) el.setAttribute( 'aria-expanded', String( value ) );
+	for ( const el of qsa( `[aria-controls="${ id }"]` ) ) el.setAttribute( 'aria-expanded', '' + value );
 }
 
 /** Clic fuera del panel (en el fondo) cierra, como un popover. */
@@ -83,7 +88,9 @@ function loadImages( level: Element | null ): void {
 function fill( host: Element | null, target?: Element | null ): void {
 	const tpl = host?.querySelector<HTMLTemplateElement>( ':scope > template.imm-tpl' );
 	if ( ! tpl ) return;
-	( target || host )?.append( tpl.content );
+	const to = ( target || host ) as Element;
+	// Antes de «Ver todo …» si va al final del submenú.
+	to.insertBefore( tpl.content, qs( ':scope > .imm-end', to ) );
 	tpl.remove();
 }
 
@@ -146,7 +153,7 @@ function track( e: 'open' | 'click' | 'search' | 'bbar', id = '', label = '' ): 
 
 /** Módulos bajo demanda, junto a core.js y con su misma versión (?ver=). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const lazy = ( name: 'track' | 'prefetch' ): Promise<any> => {
+const lazy = ( name: 'track' | 'prefetch' | 'desktop' ): Promise<any> => {
 	const url = new URL( name + '.js', import.meta.url );
 	url.search = new URL( import.meta.url ).search;
 	return import( /* @vite-ignore */ url.href );
@@ -169,6 +176,9 @@ function initDrawer( d: HTMLDialogElement ): void {
 	const title = qs<HTMLElement>( '.imm-level-t', d );
 	const tp = qs<HTMLElement>( '.imm-tp', d );
 	if ( tp ) initTwoPane( d, tp );
+	// Escritorio (cascada o pasar el mouse): módulo bajo demanda, solo en pantallas anchas.
+	const desk = d.dataset.desk;
+	if ( desk && matchMedia( desk ).matches ) lazy( 'desktop' ).then( ( m ) => m.start( d ) ).catch( () => {} );
 	if ( ! vp || ! rootLevel ) {
 		open = ( from?: HTMLElement | null ) => {
 			opener = from || ( doc.activeElement as HTMLElement );
@@ -407,7 +417,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 			const check = () => {
 				let found = false;
 				try {
-					found = qsa<HTMLElement>( themeSelector ).some( ( el ) => ! el.closest( '.imm-fab, .imm-bbar, .imm-search' ) && el.getClientRects().length > 0 );
+					found = qsa<HTMLElement>( themeSelector ).some( ( el ) => ! el.closest( OWN ) && el.getClientRects().length > 0 );
 				} catch {}
 				fallback.hidden = found;
 			};
@@ -419,7 +429,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 				match = e.target instanceof Element ? e.target.closest( themeSelector ) : null;
 			} catch {}
 			// Nunca se capturan los botones propios (barra inferior, buscador, botón flotante).
-			if ( match && ! d.contains( match ) && ! match.closest( '.imm-bbar, .imm-search, .imm-fab' ) ) {
+			if ( match && ! d.contains( match ) && ! match.closest( OWN ) ) {
 				e.preventDefault();
 				e.stopImmediatePropagation();
 				open( match as HTMLElement );
@@ -468,7 +478,8 @@ let goTo: ( id: string ) => void = () => {};
 
 function initSearch( s: HTMLDialogElement ): void {
 	lightDismiss( s );
-	const input = qs<HTMLInputElement>( '.imm-s-input', s );
+	// Con Imagina Search el campo es el de su widget (Integrations\SmartSearch).
+	const input = qs<HTMLInputElement>( '.imm-s-input,.wss-search-input', s );
 	const recent = qs<HTMLElement>( '.imm-s-recent', s );
 	const list = recent ? qs<HTMLElement>( 'ul', recent ) : null;
 	const form = qs<HTMLFormElement>( 'form', s );
@@ -517,12 +528,17 @@ function initSearch( s: HTMLDialogElement ): void {
 		input?.focus();
 	};
 
-	s.addEventListener( 'close', () => {
+	const closed = () => {
 		afterHide();
+		// Imagina Search cierra sus resultados (y libera el scroll de la página) con Escape.
+		input?.dispatchEvent( new KeyboardEvent( 'keydown', { key: 'Escape' } ) );
+	};
+	s.addEventListener( 'close', () => {
+		closed();
 		searchOpener?.focus( { preventScroll: true } );
 	} );
 	s.addEventListener( 'toggle', ( e ) => {
-		if ( e.target === s && ( e as ToggleEvent ).newState === 'closed' ) afterHide();
+		if ( e.target === s && ( e as ToggleEvent ).newState === 'closed' ) closed();
 	} );
 }
 
@@ -550,7 +566,7 @@ function updateCart(): void {
 }
 
 function initHideOnScroll(): void {
-	const els = qsa<HTMLElement>( '.imm-bbar[data-hide-scroll], .imm-fab.imm-hide-scroll' );
+	const els = qsa<HTMLElement>( '.imm-bbar[data-hide-scroll],.imm-fab.imm-hide-scroll' );
 	if ( ! els.length ) return;
 	let last = scrollY;
 	let ticking = false;
@@ -585,7 +601,7 @@ doc.addEventListener( 'click', ( e ) => {
 	if ( ! ( e.target instanceof Element ) ) return;
 	const t = e.target;
 	const tracked = t.closest<HTMLElement>( '[data-imm-id]' );
-	if ( tracked ) track( tracked.closest( '.imm-bbar' ) ? 'bbar' : 'click', tracked.dataset.immId, ( tracked.textContent || '' ).trim().slice( 0, 60 ) );
+	if ( tracked ) track( tracked.closest( '.imm-bbar' ) ? 'bbar' : 'click', tracked.dataset.immId, ( tracked.textContent as string ).trim().slice( 0, 60 ) );
 	const btn = t.closest<HTMLElement>( '[popovertarget]' );
 	if ( btn ) {
 		const id = btn.getAttribute( 'popovertarget' );
@@ -658,26 +674,36 @@ bindJq();
 addEventListener( 'load', bindJq, { once: true } );
 addEventListener( 'pointerdown', bindJq, { once: true, passive: true } );
 
-/** Cada parte arranca por separado: un fallo en una no deja sin funcionar a las demás. */
+/**
+ * Cada parte arranca por separado: un fallo en una no deja sin funcionar a las demás.
+ * La vista previa en vivo la vuelve a llamar tras cambiar los nodos (immMenu.r): solo se inician
+ * los diálogos nuevos (los ya iniciados llevan .imm-js o closedby).
+ */
 let drawerReady = false;
 let searchReady = false;
-for ( const fn of [
-	() => drawer && ( initDrawer( drawer ), ( drawerReady = true ) ),
-	() => search && ( initSearch( search ), ( searchReady = true ) ),
-	updateCart,
-	initHideOnScroll,
-	initKeyboardWatch,
-] ) {
-	try {
-		fn();
-	} catch ( err ) {
-		console.error( err );
+function boot(): void {
+	drawer = qs<HTMLDialogElement>( DRAWER );
+	search = qs<HTMLDialogElement>( SEARCH );
+	for ( const fn of [
+		() => drawer && ! drawer.classList.contains( 'imm-js' ) && ( initDrawer( drawer ), ( drawerReady = true ) ),
+		() => search && ! search.hasAttribute( 'closedby' ) && ( initSearch( search ), ( searchReady = true ) ),
+		updateCart,
+		initHideOnScroll,
+		initKeyboardWatch,
+	] ) {
+		try {
+			fn();
+		} catch ( err ) {
+			console.error( err );
+		}
 	}
 }
+boot();
 
 ( window as unknown as { immMenu: unknown } ).immMenu = {
 	open: () => open( null ),
 	close: () => drawer && hide( drawer ),
 	goTo: ( id: string ) => goTo( id ),
 	search: () => openSearch( null ),
+	r: boot,
 };

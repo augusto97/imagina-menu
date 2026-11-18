@@ -1,5 +1,7 @@
+import { Clipboard } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Switch } from './ui/switch';
+import { __ } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 export function PageHeader( { title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode } ) {
@@ -116,6 +118,17 @@ export function Empty( { icon, title, children }: { icon?: ReactNode; title: str
 			{ icon && <div className="imm:text-zinc-400 imm:[&_svg]:size-6">{ icon }</div> }
 			<p className="imm:text-sm imm:font-medium imm:text-zinc-800">{ title }</p>
 			{ children && <div className="imm:max-w-sm imm:text-[13px] imm:text-zinc-500">{ children }</div> }
+		</div>
+	);
+}
+
+export function CopyCode( { code }: { code: string } ) {
+	return (
+		<div className="imm:flex imm:items-center imm:justify-between imm:gap-2 imm:rounded-md imm:bg-zinc-900 imm:px-3 imm:py-2 imm:font-mono imm:text-xs imm:text-zinc-100">
+			<code>{ code }</code>
+			<button type="button" onClick={ () => void navigator.clipboard?.writeText( code ) } aria-label={ __( 'Copiar' ) } className="imm:text-zinc-400 imm:hover:text-white">
+				<Clipboard className="imm:size-3.5" aria-hidden />
+			</button>
 		</div>
 	);
 }

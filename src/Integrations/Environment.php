@@ -55,7 +55,8 @@ final class Environment {
 			),
 			'optimizers'       => self::optimizers(),
 			'imagina_turbo'    => defined( 'ITB_VERSION' ),
-			'imagina_search'   => self::plugin_active( 'imagina-search/imagina-search.php' ),
+			// Imagina Search es el plugin «Woo Smart Search» (carpeta woo-smart-search).
+			'imagina_search'   => SmartSearch::active() ? SmartSearch::version() : '',
 			'writable'         => wp_is_writable( WP_CONTENT_DIR ),
 			'has_logo'         => (bool) get_theme_mod( 'custom_logo' ),
 		);
@@ -89,10 +90,5 @@ final class Environment {
 			);
 		}
 		return $out;
-	}
-
-	/** is_plugin_active sin depender de wp-admin/includes/plugin.php. */
-	private static function plugin_active( string $plugin ): bool {
-		return in_array( $plugin, (array) get_option( 'active_plugins', array() ), true );
 	}
 }

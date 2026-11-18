@@ -43,9 +43,24 @@ final class CssBuilder {
 		}
 		$critical .= self::asset( 'critical.css' );
 
+		$desk = $profile['desktop'];
+		$on   = (bool) $desk['enabled'];
 		if ( $mobile ) {
-			$critical .= '@media (min-width:' . ( $bp + 1 ) . 'px){.imm-fab,.imm-bbar{display:none!important}}';
+			// En escritorio el botón flotante y la barra inferior se ocultan, salvo que el perfil los pida.
+			$hide = array_keys(
+				array_filter(
+					array(
+						'.imm-fab'  => ! ( $on && $desk['floating'] ),
+						'.imm-bbar' => ! ( $on && $desk['bottom_bar'] ),
+					)
+				)
+			);
+			if ( $hide ) {
+				$critical .= '@media (min-width:' . ( $bp + 1 ) . 'px){' . implode( ',', $hide ) . '{display:none!important}}';
+			}
 		}
+		// Botón del shortcode/bloque solo en escritorio o solo en celular (only="desktop|mobile").
+		$critical .= '@media (max-width:' . $bp . 'px){.imm-only-desktop{display:none!important}}@media (min-width:' . ( $bp + 1 ) . 'px){.imm-only-mobile{display:none!important}}';
 		if ( '' !== $profile['hide_theme_selector'] ) {
 			$rule      = $profile['hide_theme_selector'] . '{display:none!important}';
 			$critical .= $mobile ? '@media (max-width:' . $bp . 'px){' . $rule . '}' : $rule;
@@ -54,7 +69,7 @@ final class CssBuilder {
 		// Reserva el alto de la barra (sin saltos) y sube el botón flotante por encima de ella.
 		$gap        = 'floating' === $profile['bottom_bar']['shape'] ? 10 : 0;
 		$space      = ':root{--imm-fab-y:calc(var(--imm-bb-h) + ' . ( $gap + 16 ) . 'px)}body{padding-bottom:calc(var(--imm-bb-h) + ' . $gap . 'px + env(safe-area-inset-bottom,0px))}';
-		$bbar_space = $mobile ? '@media (max-width:' . $bp . 'px){' . $space . '}' : $space;
+		$bbar_space = $mobile && ! ( $on && $desk['bottom_bar'] ) ? '@media (max-width:' . $bp . 'px){' . $space . '}' : $space;
 
 		$full = self::asset( 'drawer.css' );
 		$mode = $profile['drawer']['submenu_mode'];
@@ -66,6 +81,12 @@ final class CssBuilder {
 		}
 		if ( 'grid' === $mode ) {
 			$full .= self::asset( 'grid.css' );
+		}
+		if ( $on ) {
+			// Escritorio: panel de ancho fijo (Amazon: ~380 px). !important gana a las variables inline del panel.
+			$wide  = '.imm-drawer{--imm-w:100vw!important;--imm-mw:' . (int) $desk['width'] . 'px!important;--imm-fly:' . (int) $desk['flyout'] . 'px}';
+			$wide .= in_array( $mode, array( 'slide', 'grid' ), true ) && 'cascade' === $desk['layout'] && 'bottom' !== $profile['drawer']['side'] ? self::asset( 'cascade.css' ) : '';
+			$full .= '@media (min-width:' . ( $bp + 1 ) . 'px){' . $wide . '}';
 		}
 		$full .= self::style( $design['style'], $design['tokens'] );
 		if ( ! empty( $profile['drawer']['language_switcher'] ) ) {

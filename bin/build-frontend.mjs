@@ -1,12 +1,14 @@
 // Build del frontend: TS → ES module minificado; CSS → minificado. Sin dependencias en runtime.
 import { build } from 'esbuild';
 import { transform } from 'lightningcss';
+import { minify } from 'terser';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 
 mkdirSync( 'assets/dist', { recursive: true } );
 
+const entries = [ 'core', 'track', 'prefetch', 'desktop', 'preview' ];
 await build( {
-	entryPoints: [ 'frontend/src/core.ts', 'frontend/src/track.ts', 'frontend/src/prefetch.ts' ],
+	entryPoints: entries.map( ( name ) => `frontend/src/${ name }.ts` ),
 	outdir: 'assets/dist',
 	bundle: true,
 	format: 'esm',
@@ -15,8 +17,20 @@ await build( {
 	legalComments: 'none',
 	logLevel: 'warning',
 } );
+// Segunda pasada con terser: ~3 % menos que esbuild solo (el JS inicial tiene un tope de 4 KB).
+for ( const name of entries ) {
+	const file = `assets/dist/${ name }.js`;
+	const { code } = await minify( readFileSync( file, 'utf8' ), {
+		module: true,
+		ecma: 2020,
+		compress: { passes: 3, pure_getters: true, unsafe_arrows: true },
+		mangle: true,
+		format: { comments: false },
+	} );
+	writeFileSync( file, code );
+}
 
-for ( const name of [ 'critical', 'drawer', 'two-pane', 'tabs', 'grid' ] ) {
+for ( const name of [ 'critical', 'drawer', 'two-pane', 'tabs', 'grid', 'cascade' ] ) {
 	const { code } = transform( {
 		filename: `${ name }.css`,
 		code: readFileSync( `frontend/css/${ name }.css` ),

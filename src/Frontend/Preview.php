@@ -66,6 +66,17 @@ final class Preview {
 		return $config;
 	}
 
+	/**
+	 * Huella del HTML de una parte del menú (data-imm-h en su primera etiqueta). El script de la vista
+	 * previa la compara para cambiar solo lo que cambió, sin recargar la página.
+	 */
+	public static function fingerprint( string $html ): string {
+		if ( '' === $html ) {
+			return '';
+		}
+		return (string) preg_replace( '/^<([a-z]+)/', '<$1 data-imm-h="' . substr( md5( $html ), 0, 12 ) . '"', $html, 1 );
+	}
+
 	/** La vista previa nunca se guarda en caché ni muestra la barra de administración. */
 	public static function prepare_request(): void {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {

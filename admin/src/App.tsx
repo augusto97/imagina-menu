@@ -10,6 +10,7 @@ import { AnalyticsScreen } from './screens/Analytics';
 import { BottomBarScreen } from './screens/BottomBar';
 import { Builder } from './screens/Builder';
 import { Design } from './screens/Design';
+import { DesktopScreen } from './screens/Desktop';
 import { DrawerScreen } from './screens/Drawer';
 import { Menus } from './screens/Menus';
 import { Panel } from './screens/Panel';
@@ -49,6 +50,7 @@ export function App() {
 				{ route === 'panel-lateral' && <DrawerScreen /> }
 				{ route === 'barra' && <BottomBarScreen /> }
 				{ route === 'buscador' && <SearchScreen /> }
+				{ route === 'escritorio' && <DesktopScreen /> }
 				{ route === 'diseno' && <Design /> }
 				{ route === 'analitica' && <AnalyticsScreen /> }
 				{ route === 'ajustes' && <SettingsScreen /> }

@@ -1,5 +1,6 @@
 /* Panel con el borde abierto redondeado. */
 .imm-side-left {
+	--imm-fly-r: calc(var(--imm-r) + 12px);
 	border-radius: 0 calc(var(--imm-r) + 12px) calc(var(--imm-r) + 12px) 0;
 }
 

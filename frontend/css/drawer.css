@@ -395,9 +395,18 @@ summary.imm-a::marker {
 	font-weight: 650;
 }
 
+/* «Ver todo …»: enlace a la página del padre (que no se puede tocar porque abre el submenú) */
 .imm-all > .imm-a {
+	color: var(--imm-accent-text);
 	font-weight: 650;
 }
+
+.imm-all.imm-end {
+	margin-top: 4px;
+	border-top: 1px solid var(--imm-border);
+	padding-top: 4px;
+}
+
 
 .imm-level > .imm-head {
 	padding: 18px 18px 6px;

@@ -11,12 +11,18 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Toggle {
 
-	/** @param array<string, string>|string $atts */
+	/**
+	 * [imagina_menu_toggle label="Todo" style="solid" only="desktop"]
+	 *
+	 * @param array<string, string>|string $atts
+	 */
 	public static function shortcode( $atts = array() ): string {
 		$atts = shortcode_atts(
 			array(
 				'label' => '',
 				'class' => '',
+				'style' => '', // '' (transparente, toma el color de la cabecera) | solid | outline
+				'only'  => '', // '' | desktop | mobile (según el breakpoint de los ajustes)
 			),
 			is_array( $atts ) ? $atts : array(),
 			'imagina_menu_toggle'
@@ -26,7 +32,14 @@ final class Toggle {
 			return '';
 		}
 		$label = sanitize_text_field( $atts['label'] );
-		$class = trim( 'imm-toggle ' . implode( ' ', array_map( 'sanitize_html_class', explode( ' ', $atts['class'] ) ) ) );
+		$class = 'imm-toggle';
+		if ( in_array( $atts['style'], array( 'solid', 'outline' ), true ) ) {
+			$class .= ' imm-toggle--' . $atts['style'];
+		}
+		if ( in_array( $atts['only'], array( 'desktop', 'mobile' ), true ) ) {
+			$class .= ' imm-only-' . $atts['only'];
+		}
+		$class = trim( $class . ' ' . implode( ' ', array_map( 'sanitize_html_class', explode( ' ', $atts['class'] ) ) ) );
 		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( '' !== $label ? $label : __( 'Abrir menú', 'imagina-menu' ) ) . '" data-imm-open>'
 			. '<svg class="imm-i" aria-hidden="true" focusable="false"><use href="#imm-i-' . esc_attr( $profile['trigger']['icon'] ?? 'menu' ) . '"/></svg>'
 			. ( '' !== $label ? '<span>' . esc_html( $label ) . '</span>' : '' )

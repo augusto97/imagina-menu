@@ -26,8 +26,31 @@ export function SearchScreen() {
 	return (
 		<>
 			<PageHeader title={ __( 'Buscador' ) } description={ __( 'Pantalla completa, con el teclado listo al instante. Se abre desde el panel o desde la barra inferior.' ) } />
-			{ env?.imagina_search && <Notice level="info" className="imm:mb-4">{ __( 'Imagina Search está activo. Por ahora este buscador envía a la búsqueda estándar del sitio; la integración directa llega en una próxima versión.' ) }</Notice> }
 			<div className="imm:flex imm:flex-col imm:gap-5">
+				<Section title={ __( 'Motor de búsqueda' ) } description={ __( 'Con Imagina Search los visitantes ven resultados al instante, con foto y precio, mientras escriben.' ) }>
+					<Row label={ __( 'Usar' ) } hint={ s.provider === 'auto' ? __( 'Imagina Search si está activo; si no, el buscador propio (búsqueda de WordPress o de WooCommerce).' ) : __( 'Siempre el buscador propio, aunque Imagina Search esté activo.' ) }>
+						<Segmented
+							value={ s.provider }
+							onChange={ ( v ) => setProfile( [ 'search', 'provider' ], v ) }
+							options={ [
+								{ value: 'auto', label: __( 'Imagina Search' ) },
+								{ value: 'native', label: __( 'Buscador propio' ) },
+							] }
+						/>
+					</Row>
+					<div className="imm:px-5 imm:py-3">
+						{ env?.imagina_search ? (
+							<Notice level={ s.provider === 'auto' ? 'success' : 'info' }>
+								{ s.provider === 'auto'
+									? __( 'Imagina Search está activo: el buscador del panel y de la barra inferior muestra sus resultados instantáneos y su página de resultados. Su diseño se ajusta en Imagina Search.' )
+									: __( 'Imagina Search está activo, pero este perfil usa el buscador propio.' ) }
+								{ typeof env.imagina_search === 'string' && <span className="imm:ml-1 imm:text-zinc-500">(v{ env.imagina_search })</span> }
+							</Notice>
+						) : (
+							<Notice level="info">{ __( 'Imagina Search no está activo: se usa el buscador propio. Al activarlo, el menú lo usa solo (no hace falta volver a publicar).' ) }</Notice>
+						) }
+					</div>
+				</Section>
 				<Section title={ __( 'Campo de búsqueda' ) }>
 					<Row label={ __( 'Texto de ejemplo' ) }>
 						<Input value={ s.placeholder } onChange={ ( e ) => setProfile( [ 'search', 'placeholder' ], e.target.value ) } className="imm:w-64" />
@@ -44,7 +67,7 @@ export function SearchScreen() {
 							] }
 						/>
 					</Row>
-					<ToggleRow label={ __( 'Búsquedas recientes' ) } hint={ __( 'Se guardan en el navegador del visitante (sin cookies ni servidor).' ) } checked={ s.recent } onChange={ ( v ) => setProfile( [ 'search', 'recent' ], v ) } />
+					<ToggleRow label={ __( 'Búsquedas recientes' ) } hint={ __( 'Se guardan en el navegador del visitante (sin cookies ni servidor). Con Imagina Search, las muestra Imagina Search.' ) } checked={ s.recent } onChange={ ( v ) => setProfile( [ 'search', 'recent' ], v ) } />
 				</Section>
 				<Section title={ __( 'Búsquedas populares' ) } description={ __( 'Atajos que se muestran antes de escribir. Inspiran y llevan a tus productos estrella.' ) }>
 					<div className="imm:flex imm:flex-col imm:gap-3 imm:px-5 imm:py-4">

@@ -1,0 +1,141 @@
+/*
+ * Escritorio en cascada (Falabella, Mercado Libre): la lista principal queda a la izquierda y cada
+ * submenú se abre como una columna ancha a su derecha, con sus subcategorías agrupadas.
+ *
+ * El compilador lo envuelve en @media (min-width: breakpoint + 1) y solo lo incluye si el perfil lo
+ * usa. Necesita JS (.imm-js): sin JS el panel funciona como acordeón, igual que en el celular.
+ * --imm-fly: ancho de la columna (ajuste «desktop.flyout»).
+ */
+.imm-js.imm-casc .imm-d-in {
+	overflow-y: auto;
+}
+
+.imm-js.imm-casc .imm-nav,
+.imm-js.imm-casc .imm-vp {
+	position: static;
+	flex: none;
+	min-height: 0;
+	overflow: visible;
+}
+
+.imm-js.imm-casc .imm-nav-bar {
+	display: none;
+}
+
+.imm-js.imm-casc[data-depth] .imm-d-foot,
+.imm-js.imm-casc[data-depth] button.imm-d-search {
+	display: flex;
+}
+
+/* Especificidad mayor que la del modo deslizante (que mueve el nivel anterior fuera de la vista) */
+.imm-js.imm-casc .imm-vp > .imm-level.imm-root[data-pos] {
+	position: static;
+	overflow: visible;
+	opacity: 1;
+	transform: none;
+	visibility: visible;
+}
+
+/* Categoría con la columna abierta: marcada como activa */
+.imm-js.imm-casc .imm-root > li > .imm-sub[data-on] > summary {
+	background: var(--imm-hover-bg);
+	color: var(--imm-accent-text);
+}
+
+/* Columna de subcategorías: fuera de la caja del panel, pegada a su borde */
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+	align-content: start;
+	align-items: start;
+	gap: 2px 20px;
+	inset: 0 auto 0 100%;
+	width: var(--imm-fly, 640px);
+	max-width: calc(100vw - 100% - 16px);
+	padding: 22px 22px 28px;
+	border-inline-start: 1px solid var(--imm-border);
+	border-start-end-radius: var(--imm-fly-r, 0);
+	border-end-end-radius: var(--imm-fly-r, 0);
+	box-shadow: var(--imm-shadow, 0 18px 48px -12px rgb(0 0 0 / .28));
+	opacity: 0;
+	transform: none;
+	transition: opacity .16s, visibility .16s;
+}
+
+.imm-js.imm-casc.imm-side-right .imm-vp > .imm-level:not(.imm-root) {
+	inset: 0 100% 0 auto;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level[data-pos="cur"]:not(.imm-root) {
+	opacity: 1;
+	visibility: visible;
+	/* Visible al instante (para poder enfocarla con el teclado); al salir, oculta al terminar. */
+	transition: opacity .16s, visibility 0s;
+}
+
+/* Título de la columna (el nombre de la categoría) */
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root)::before {
+	grid-column: 1 / -1;
+	margin: 0 0 10px;
+	padding: 0 12px;
+	content: attr(data-title);
+	font-size: 1.25em;
+	font-weight: 750;
+	letter-spacing: -.02em;
+	line-height: 1.2;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) > .imm-all,
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) > .imm-head,
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) > .imm-div {
+	grid-column: 1 / -1;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-a {
+	min-height: 36px;
+	padding: 6px 12px;
+	border-radius: var(--imm-r);
+}
+
+/* Subcategorías con hijas: título del grupo y sus enlaces debajo (como un mega menú). El título
+   lleva a la página del grupo, así que su «Ver todo» sobra. */
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub > summary {
+	font-weight: 700;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub .imm-all {
+	display: none;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub > summary .imm-chev {
+	display: none;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub > .imm-level {
+	padding: 0 0 8px;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub::details-content {
+	transition: none;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub .imm-sub .imm-a,
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub > .imm-level > li > .imm-a {
+	min-height: 30px;
+	color: var(--imm-muted);
+	font-size: .9em;
+	font-weight: 450;
+}
+
+.imm-js.imm-casc .imm-vp > .imm-level:not(.imm-root) .imm-sub > .imm-level > li > .imm-a:hover {
+	color: var(--imm-fg);
+}
+
+/* El botón de cerrar de afuera se corre para no tapar la columna */
+.imm-js.imm-casc[data-depth]:not([data-depth="0"]) .imm-close--out {
+	translate: var(--imm-fly, 640px);
+}
+
+.imm-js.imm-casc.imm-side-right[data-depth]:not([data-depth="0"]) .imm-close--out {
+	translate: calc(-1 * var(--imm-fly, 640px));
+}

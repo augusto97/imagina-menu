@@ -95,7 +95,7 @@ export function Panel() {
 						<dl className="imm:flex imm:flex-col imm:gap-2 imm:text-[13px]">
 							<Line label="WooCommerce">{ env?.woo ? <Badge tone="green">{ __( 'Detectado' ) }</Badge> : <Badge>{ __( 'No' ) }</Badge> }</Line>
 							<Line label="Imagina Turbo">{ env?.imagina_turbo ? <Badge tone="green">{ __( 'Activo' ) }</Badge> : <Badge>{ __( 'No' ) }</Badge> }</Line>
-							<Line label="Imagina Search">{ env?.imagina_search ? <Badge tone="green">{ __( 'Activo' ) }</Badge> : <Badge>{ __( 'No' ) }</Badge> }</Line>
+							<Line label="Imagina Search">{ env?.imagina_search ? <Badge tone="green">{ __( 'Activo' ) }{ typeof env.imagina_search === 'string' ? ` · v${ env.imagina_search }` : '' }</Badge> : <Badge>{ __( 'No' ) }</Badge> }</Line>
 							<Line label={ __( 'Tema' ) }>{ env?.theme.name }</Line>
 							{ compile.purged && compile.purged.length > 0 && <Line label={ __( 'Caché purgada al publicar' ) }>{ compile.purged.join( ', ' ) }</Line> }
 						</dl>

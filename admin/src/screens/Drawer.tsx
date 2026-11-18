@@ -1,7 +1,7 @@
-import { ArrowDown, ArrowUp, Clipboard, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
-import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { CopyCode, PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Input, Select } from '@/components/ui/input';
@@ -162,8 +162,18 @@ export function DrawerScreen() {
 					<Row label={ __( 'Texto de «volver»' ) } hint={ __( 'En el primer nivel de submenú.' ) }>
 						<Input value={ d.back_label } onChange={ ( e ) => set( [ 'drawer', 'back_label' ], e.target.value ) } className="imm:w-56" />
 					</Row>
-					<Row label={ __( 'Texto de «Ver todo»' ) } hint={ __( 'Se completa con el nombre: «Ver todo Celulares».' ) }>
+					<Row label={ __( 'Texto de «Ver todo»' ) } hint={ __( 'Se completa con el nombre de la categoría: «Ver todo Celulares». Con %s eliges dónde va: «Todo en %s».' ) }>
 						<Input value={ d.view_all_label } onChange={ ( e ) => set( [ 'drawer', 'view_all_label' ], e.target.value ) } className="imm:w-56" />
+					</Row>
+					<Row label={ __( 'Posición de «Ver todo»' ) } hint={ __( 'La categoría que abre un submenú no se puede tocar como enlace: «Ver todo» lleva a su página. Se puede quitar por ítem en el constructor.' ) }>
+						<Segmented
+							value={ d.view_all_position }
+							onChange={ ( v ) => set( [ 'drawer', 'view_all_position' ], v ) }
+							options={ [
+								{ value: 'bottom', label: __( 'Al final' ) },
+								{ value: 'top', label: __( 'Al inicio' ) },
+							] }
+						/>
 					</Row>
 					<ToggleRow label={ __( 'Título grande del nivel' ) } checked={ d.show_level_title } onChange={ ( v ) => set( [ 'drawer', 'show_level_title' ], v ) } />
 					<ToggleRow label={ __( 'Abrir en la página actual' ) } hint={ __( 'Al abrir, el panel muestra el submenú donde está la página visitada.' ) } checked={ d.open_active } onChange={ ( v ) => set( [ 'drawer', 'open_active' ], v ) } />
@@ -204,7 +214,7 @@ function LabeledInput( { label, value, onChange, placeholder, className }: { lab
 	);
 }
 
-function Suggestions( { values, theme, onPick }: { values: string[]; theme: string; onPick: ( v: string ) => void } ) {
+export function Suggestions( { values, theme, onPick }: { values: string[]; theme: string; onPick: ( v: string ) => void } ) {
 	if ( ! values.length ) {
 		return null;
 	}
@@ -222,16 +232,6 @@ function Suggestions( { values, theme, onPick }: { values: string[]; theme: stri
 	);
 }
 
-function CopyCode( { code }: { code: string } ) {
-	return (
-		<div className="imm:flex imm:items-center imm:justify-between imm:gap-2 imm:rounded-md imm:bg-zinc-900 imm:px-3 imm:py-2 imm:font-mono imm:text-xs imm:text-zinc-100">
-			<code>{ code }</code>
-			<button type="button" onClick={ () => void navigator.clipboard?.writeText( code ) } aria-label={ __( 'Copiar' ) } className="imm:text-zinc-400 imm:hover:text-white">
-				<Clipboard className="imm:size-3.5" aria-hidden />
-			</button>
-		</div>
-	);
-}
 
 function FooterLinks( { profile }: { profile: Profile } ) {
 	const links = profile.drawer.footer_links;

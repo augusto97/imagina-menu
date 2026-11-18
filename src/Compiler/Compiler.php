@@ -227,6 +227,7 @@ final class Compiler {
 					'multilingual' => in_array( $provider, array( 'wpml', 'polylang' ), true ),
 					'cfg'          => $cfg,
 					'ui'           => $tr->ui( Renderer::ui_strings() ),
+					'breakpoint'   => (int) $settings['breakpoint'],
 				);
 				$renderer      = new Renderer( $p, $site );
 				$parts         = $renderer->render( $items );
@@ -279,6 +280,9 @@ final class Compiler {
 				'selector' => $profile['trigger']['selector'],
 				'icon'     => $profile['trigger']['icon'],
 			),
+			// El JS se carga al inicio (no con el primer gesto) si hay que capturar botones del tema.
+			'eager'        => 'theme_selector' === $profile['trigger']['mode'] || ( $profile['desktop']['enabled'] && '' !== $profile['desktop']['selector'] ),
+			'search'       => $profile['search']['provider'],
 			'color_mode'   => $profile['design']['color_mode'],
 		);
 	}

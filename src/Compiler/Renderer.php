@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Compiler;
 
+use ImaginaMenu\Integrations\SmartSearch;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -117,6 +119,12 @@ final class Renderer {
 				// Red de seguridad: si el botón del tema no está en la página, el JS muestra este.
 				$parts['fab'] = $this->fab( true );
 			}
+			// Escritorio con botón flotante: si en el celular lo abre la barra (que en escritorio no se
+			// muestra) o un botón propio del tema, el flotante sale solo en escritorio.
+			$desk = $this->profile['desktop'];
+			if ( '' === $parts['fab'] && $desk['enabled'] && $desk['floating'] && ! ( $desk['bottom_bar'] && $this->bar_opens_drawer() ) ) {
+				$parts['fab'] = $this->fab( false, ' imm-only-desktop' );
+			}
 			$this->variant         = 'guest';
 			$parts['drawer_guest'] = $this->drawer( $items );
 			$this->variant         = 'user';
@@ -162,10 +170,10 @@ final class Renderer {
 
 	// ── Disparador flotante ─────────────────────────────────────────────────────────────────────
 
-	private function fab( bool $fallback = false ): string {
+	private function fab( bool $fallback = false, string $extra = '' ): string {
 		$t     = $this->profile['trigger'];
 		$label = '' !== $t['label'] ? $t['label'] : $this->s( 'Menú' );
-		$class = 'imm-fab imm-fab--' . $t['position'] . ( '' !== $t['label'] ? ' imm-fab--label' : '' ) . ( $t['hide_on_scroll'] ? ' imm-hide-scroll' : '' );
+		$class = 'imm-fab imm-fab--' . $t['position'] . ( '' !== $t['label'] ? ' imm-fab--label' : '' ) . ( $t['hide_on_scroll'] ? ' imm-hide-scroll' : '' ) . $extra;
 		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open' . ( $fallback ? ' data-imm-fallback hidden' : '' ) . '>'
 			. $this->icons->use( $t['icon'] )
 			. ( '' !== $t['label'] ? '<span>' . esc_html( $label ) . '</span>' : '' )
@@ -190,8 +198,27 @@ final class Renderer {
 			'data-swipe'  => $d['swipe_close'] ? '1' : '0',
 			'data-recall' => $d['remember_level'] ? '1' : '0',
 		);
+		// Elementos del tema que abren el panel: el botón móvil del tema y, en escritorio, el que se indique.
+		$desk      = $this->profile['desktop'];
+		$selectors = array();
 		if ( 'theme_selector' === $this->profile['trigger']['mode'] && '' !== $this->profile['trigger']['selector'] ) {
-			$data['data-trigger'] = $this->profile['trigger']['selector'];
+			$selectors[] = $this->profile['trigger']['selector'];
+		}
+		if ( $desk['enabled'] && '' !== $desk['selector'] ) {
+			$selectors[] = $desk['selector'];
+		}
+		if ( $selectors ) {
+			$data['data-trigger'] = implode( ', ', $selectors );
+		}
+		// Escritorio en cascada (Falabella, Mercado Libre): los submenús se abren en columnas a la derecha.
+		$cascade = $desk['enabled'] && 'cascade' === $desk['layout'] && in_array( $mode, array( 'slide', 'grid' ), true ) && 'bottom' !== $d['side'];
+		if ( $cascade ) {
+			$class .= ' imm-casc';
+		}
+		if ( $cascade || ( $desk['enabled'] && $desk['hover'] && in_array( $mode, array( 'two_pane', 'tabs' ), true ) ) ) {
+			// El JS de escritorio (desktop.js, bajo demanda) solo se descarga en pantallas de este ancho o más.
+			$data['data-desk']  = '(min-width:' . ( (int) ( $this->site['breakpoint'] ?? 1024 ) + 1 ) . 'px)';
+			$data['data-hover'] = $desk['hover'] ? '1' : '0';
 		}
 
 		$style = '--imm-w:' . (int) $d['width'] . 'vw;--imm-mw:' . (int) $d['max_width'] . 'px';
@@ -272,8 +299,7 @@ final class Renderer {
 		return '<a class="imm-account" href="' . esc_url( $url ) . '"' . $data . '>'
 			. '<span class="imm-avatar">' . $this->icons->use( 'user-round' ) . '</span>'
 			. '<span class="imm-account-t"><small>' . str_replace( esc_html( self::NAME_TOKEN ), self::NAME_TOKEN, esc_html( $hello ) ) . '</small><strong>' . esc_html( $cta ) . '</strong></span>'
-			. $this->icons->use( 'chevron-right', 'imm-i imm-chev' )
-			. '</a>';
+			. '</a>'; // Sin flecha: es un enlace, no abre un submenú (la flecha confundía).
 	}
 
 	private function drawer_foot(): string {
@@ -344,18 +370,21 @@ final class Renderer {
 			return '<li class="' . esc_attr( $classes ) . '"><a class="imm-a" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>' . $inner . '</a></li>';
 		}
 
-		$sub = '';
-		if ( $item['view_all'] && '' !== $item['url'] ) {
-			$label = $this->profile['drawer']['view_all_label'] . ' ' . $item['label'];
-			$sub  .= '<li class="imm-it imm-all"><a class="imm-a" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '><span class="imm-t">' . esc_html( $label ) . '</span></a></li>';
+		// El padre de un submenú no se puede tocar (abre el submenú): «Ver todo …» lleva a su página.
+		$all = '';
+		if ( $item['view_all'] && self::is_page_url( $item['url'] ) ) {
+			$end  = 'bottom' === $this->profile['drawer']['view_all_position'];
+			$all  = '<li class="imm-it imm-all' . ( $end ? ' imm-end' : '' ) . '"><a class="imm-a" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>'
+				. '<span class="imm-t">' . esc_html( $this->view_all_label( $item ) ) . '</span></a></li>'; // Sin flecha: es un enlace, no un submenú.
 		}
 		$rest = $this->items( $children, $depth + 1 );
 		$tpl  = '';
 		if ( $depth >= 1 && $this->hybrid() ) {
-			// Sin JS queda «Ver todo»; con JS el resto se clona al abrir el submenú.
+			// Sin JS queda «Ver todo»; con JS el resto se clona al abrir el submenú (antes de «Ver todo» si va al final).
 			$tpl = '<template class="imm-tpl">' . $rest . '</template>';
+			$sub = $all;
 		} else {
-			$sub .= $rest;
+			$sub = '' !== $all && str_contains( $all, ' imm-end' ) ? $rest . $all : $all . $rest;
 		}
 
 		return '<li class="' . esc_attr( $classes . ' imm-has' ) . '"><details class="imm-sub" id="imm-s-' . esc_attr( $item['id'] ) . '">'
@@ -433,9 +462,10 @@ final class Renderer {
 	 */
 	private function pane( array $item, array $children, bool $defer = false ): string {
 		$html = '';
-		if ( '' !== $item['url'] ) {
-			$html .= '<a class="imm-tp-all" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>'
-				. esc_html( $this->profile['drawer']['view_all_label'] . ' ' . $item['label'] ) . $this->icons->use( 'chevron-right' ) . '</a>';
+		$end  = 'bottom' === $this->profile['drawer']['view_all_position'];
+		if ( $item['view_all'] && self::is_page_url( $item['url'] ) ) {
+			$html .= '<a class="imm-tp-all' . ( $end ? ' imm-end' : '' ) . '" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>'
+				. esc_html( $this->view_all_label( $item ) ) . $this->icons->use( 'chevron-right' ) . '</a>';
 		}
 		$loose    = array();
 		$sections = '';
@@ -451,7 +481,8 @@ final class Renderer {
 			$sections .= '<section class="imm-tp-sec"><p class="imm-tp-h">' . $title . '</p>' . $this->tiles( $grand ) . '</section>';
 		}
 		$body = ( $loose ? '<section class="imm-tp-sec">' . $this->tiles( $loose ) . '</section>' : '' ) . $sections;
-		return $html . ( $defer ? '<template class="imm-tpl">' . $body . '</template>' : $body );
+		$body = $defer ? '<template class="imm-tpl">' . $body . '</template>' : $body;
+		return $end ? $body . $html : $html . $body;
 	}
 
 	/** @param list<array<string, mixed>> $items */
@@ -469,6 +500,21 @@ final class Renderer {
 			$html .= '<li><a class="imm-tile" href="' . esc_url( $item['url'] ) . '"' . $this->link_attrs( $item ) . '>' . $media . $badge . '<span class="imm-tile-l">' . esc_html( $item['label'] ) . '</span></a></li>';
 		}
 		return $html . '</ul>';
+	}
+
+	/**
+	 * «Ver todo Celulares» (o con %s en el texto: «Todo en %s»).
+	 *
+	 * @param array<string, mixed> $item
+	 */
+	private function view_all_label( array $item ): string {
+		$label = (string) $this->profile['drawer']['view_all_label'];
+		return str_contains( $label, '%s' ) ? str_replace( '%s', (string) $item['label'], $label ) : trim( $label . ' ' . $item['label'] );
+	}
+
+	/** Una URL que lleva a una página (no vacía ni un ancla «#»). */
+	private static function is_page_url( string $url ): bool {
+		return '' !== $url && '#' !== $url[0];
 	}
 
 	/** Flecha de los ítems con submenú según el estilo (ninguna: se oculta con CSS). */
@@ -520,10 +566,11 @@ final class Renderer {
 		$hidden    = '' !== $post_type ? '<input type="hidden" name="post_type" value="' . esc_attr( $post_type ) . '">' : '';
 
 		$html  = '<dialog id="imm-search" class="imm-search" popover aria-label="' . esc_attr( $this->s( 'Buscar' ) ) . '"' . ( $s['recent'] ? ' data-recent="1"' : '' ) . $this->cfg_attr() . '>';
-		$html .= '<form class="imm-s-form" role="search" method="get" action="' . esc_url( $this->site['home_url'] ) . '">';
+		// Marcadores: en cada visita se cambian por el widget de Imagina Search si está activo (Integrations\SmartSearch).
+		$html .= SmartSearch::FORM_OPEN . '<form class="imm-s-form" role="search" method="get" action="' . esc_url( $this->site['home_url'] ) . '">' . SmartSearch::FORM_OPEN_END;
 		$html .= '<button type="button" class="imm-s-back" popovertarget="imm-search" popovertargetaction="hide" aria-label="' . esc_attr( $this->s( 'Cerrar búsqueda' ) ) . '" data-imm-close>' . $this->icons->use( 'arrow-left' ) . '</button>';
-		$html .= '<input class="imm-s-input" type="search" name="s" placeholder="' . esc_attr( $s['placeholder'] ) . '" aria-label="' . esc_attr( $s['placeholder'] ) . '" autocomplete="off" enterkeyhint="search" autofocus>' . $hidden;
-		$html .= '<button type="submit" class="imm-s-go" aria-label="' . esc_attr( $this->s( 'Buscar' ) ) . '">' . $this->icons->use( 'search' ) . '</button>';
+		$html .= SmartSearch::FIELD . '<input class="imm-s-input" type="search" name="s" placeholder="' . esc_attr( $s['placeholder'] ) . '" aria-label="' . esc_attr( $s['placeholder'] ) . '" autocomplete="off" enterkeyhint="search" autofocus>' . $hidden;
+		$html .= '<button type="submit" class="imm-s-go" aria-label="' . esc_attr( $this->s( 'Buscar' ) ) . '">' . $this->icons->use( 'search' ) . '</button>' . SmartSearch::FIELD_END;
 		$html .= '</form><div class="imm-s-body">';
 		if ( $s['recent'] ) {
 			$html .= '<section class="imm-s-sec imm-s-recent" hidden><p class="imm-s-h">' . esc_html( $this->s( 'Búsquedas recientes' ) ) . '</p><ul class="imm-chips" role="list"></ul></section>';

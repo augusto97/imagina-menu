@@ -155,6 +155,8 @@ export interface Profile {
 		search: boolean;
 		back_label: string;
 		view_all_label: string;
+		/** «Ver todo …» al final (recomendado) o al inicio de cada submenú. */
+		view_all_position: 'bottom' | 'top';
 		show_level_title: boolean;
 		open_active: boolean;
 		remember_level: boolean;
@@ -179,6 +181,18 @@ export interface Profile {
 		post_type: 'auto' | 'any' | 'product' | 'post';
 		popular: string[];
 		recent: boolean;
+		/** auto: Imagina Search si está activo; native: el buscador propio. */
+		provider: 'auto' | 'native';
+	};
+	desktop: {
+		enabled: boolean;
+		floating: boolean;
+		selector: string;
+		width: number;
+		layout: 'panel' | 'cascade';
+		flyout: number;
+		hover: boolean;
+		bottom_bar: boolean;
 	};
 	design: {
 		preset: string;
@@ -218,7 +232,8 @@ export interface Env {
 	theme: { name: string; template: string; selectors: string[] };
 	optimizers: { name: string; advice: string }[];
 	imagina_turbo: boolean;
-	imagina_search: boolean;
+	/** Versión de Imagina Search (Woo Smart Search) si está activo; '' si no. */
+	imagina_search: string | boolean;
 	writable: boolean;
 	has_logo: boolean;
 	license: { protected: boolean; licensed: boolean | null; client_active: boolean; license_page: string; masked_key: string };

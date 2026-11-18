@@ -8,6 +8,8 @@
 	width: min(calc(var(--imm-w, 86vw) - var(--imm-m)), var(--imm-mw, 420px));
 	height: auto;
 	border-radius: calc(var(--imm-r) + 14px);
+	/* Columna de subcategorías en escritorio (cascada): mismas esquinas por fuera. */
+	--imm-fly-r: calc(var(--imm-r) + 14px);
 }
 
 .imm-side-right {

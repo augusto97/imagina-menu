@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-export type Route = 'panel' | 'menus' | 'constructor' | 'perfiles' | 'panel-lateral' | 'barra' | 'buscador' | 'diseno' | 'analitica' | 'ajustes';
+export type Route = 'panel' | 'menus' | 'constructor' | 'perfiles' | 'panel-lateral' | 'barra' | 'buscador' | 'escritorio' | 'diseno' | 'analitica' | 'ajustes';
 
-const ROUTES: Route[] = [ 'panel', 'menus', 'constructor', 'perfiles', 'panel-lateral', 'barra', 'buscador', 'diseno', 'analitica', 'ajustes' ];
+const ROUTES: Route[] = [ 'panel', 'menus', 'constructor', 'perfiles', 'panel-lateral', 'barra', 'buscador', 'escritorio', 'diseno', 'analitica', 'ajustes' ];
 
 function fromHash(): { route: Route; param: string } {
 	const [ value = '', param = '' ] = window.location.hash.replace( /^#\/?/, '' ).split( '/' );
