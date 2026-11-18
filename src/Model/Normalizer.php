@@ -205,6 +205,8 @@ final class Normalizer {
 			$item['image']['url']  = self::url( (string) $item['image']['url'] );
 			$item['object']['type'] = sanitize_key( (string) $item['object']['type'] );
 			$item['source']['taxonomy'] = sanitize_key( (string) $item['source']['taxonomy'] );
+			$exclude                    = is_array( $item['source']['exclude'] ) ? array_slice( $item['source']['exclude'], 0, 200 ) : array();
+			$item['source']['exclude']  = array_values( array_unique( array_filter( array_map( 'intval', $exclude ), static fn( $id ) => $id > 0 ) ) );
 			$item['schedule']    = self::window( $item['schedule'] );
 
 			$children         = $raw['children'] ?? array();

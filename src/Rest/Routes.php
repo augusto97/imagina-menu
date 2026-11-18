@@ -601,13 +601,16 @@ final class Routes {
 				),
 			)
 		);
-		$items = ( new SourceResolver() )->resolve( $menu['items'] );
+		// Con las ocultas marcadas: el admin las muestra tachadas para poder volver a mostrarlas.
+		$items = ( new SourceResolver() )->with_excluded()->resolve( $menu['items'] );
 		$slim  = static function ( array $list ) use ( &$slim ): array {
 			return array_map(
 				static fn( $i ) => array(
 					'label'    => $i['label'],
 					'url'      => $i['url'],
 					'image'    => $i['image']['url'],
+					'term_id'  => (int) ( $i['term_id'] ?? 0 ),
+					'hidden'   => ! empty( $i['hidden'] ),
 					'children' => $slim( $i['children'] ),
 				),
 				$list

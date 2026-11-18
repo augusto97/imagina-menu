@@ -232,6 +232,7 @@ final class Defaults {
 				'limit'       => 30,
 				'orderby'     => 'menu_order', // menu_order | name | count
 				'with_images' => true,
+				'exclude'     => array(), // ids de términos que no se muestran (con sus hijos)
 			),
 			'children'    => array(),
 		);

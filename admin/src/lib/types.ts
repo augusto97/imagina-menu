@@ -61,6 +61,8 @@ export interface ItemSource {
 	limit: number;
 	orderby: 'menu_order' | 'name' | 'count';
 	with_images: boolean;
+	/** Términos que no se muestran (con sus hijos). */
+	exclude: number[];
 }
 
 export interface MenuItem {
@@ -331,5 +333,9 @@ export interface SourcePreviewItem {
 	label: string;
 	url: string;
 	image: string;
+	/** Id del término (categorías y taxonomías; 0 en menús de WordPress). */
+	term_id: number;
+	/** Oculto a mano en esta fuente (se muestra tachado en la vista previa). */
+	hidden: boolean;
 	children: SourcePreviewItem[];
 }

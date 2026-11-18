@@ -1,4 +1,4 @@
-import { Loader2, Wand2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { __ } from '@/lib/i18n';
 import { makeItem, useStore } from '@/lib/store';
 import type { ItemSource, MenuItem, SourcePreviewItem } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { Field } from './ItemEditor';
 
 /** Configuración de una fuente dinámica y su vista previa en vivo. */
@@ -29,9 +30,14 @@ export function SourceEditor( { item, onChange, onConvert }: { item: MenuItem; o
 	}, [ source ] );
 
 	const convert = () => {
-		const toItems = ( list: SourcePreviewItem[] ): MenuItem[] => list.map( ( p ) => makeItem( { label: p.label, url: p.url, image: { id: 0, url: p.image }, children: toItems( p.children ) } ) );
+		// Las ocultas no se convierten.
+		const toItems = ( list: SourcePreviewItem[] ): MenuItem[] => list.filter( ( p ) => ! p.hidden ).map( ( p ) => makeItem( { label: p.label, url: p.url, image: { id: 0, url: p.image }, children: toItems( p.children ) } ) );
 		onConvert( toItems( preview ?? [] ) );
 	};
+
+	const exclude = source.exclude ?? [];
+	const terms = source.kind !== 'wp_menu';
+	const toggle = ( id: number ) => set( 'exclude', exclude.includes( id ) ? exclude.filter( ( x ) => x !== id ) : [ ...exclude, id ] );
 
 	return (
 		<div className="imm:flex imm:flex-col imm:gap-4">
@@ -102,12 +108,16 @@ export function SourceEditor( { item, onChange, onConvert }: { item: MenuItem; o
 			<div className="imm:rounded-lg imm:border imm:border-zinc-200 imm:bg-zinc-50">
 				<div className="imm:flex imm:items-center imm:justify-between imm:border-b imm:border-zinc-200 imm:px-3 imm:py-2 imm:text-xs imm:font-medium imm:text-zinc-600">
 					{ __( 'Así se verá' ) }
-					{ loading && <Loader2 className="imm:size-3.5 imm:animate-spin" aria-hidden /> }
+					<span className="imm:flex imm:items-center imm:gap-2">
+						{ terms && exclude.length > 0 && <span className="imm:font-normal imm:text-zinc-500">{ exclude.length === 1 ? __( '1 oculta' ) : `${ exclude.length } ${ __( 'ocultas' ) }` }</span> }
+						{ loading && <Loader2 className="imm:size-3.5 imm:animate-spin" aria-hidden /> }
+					</span>
 				</div>
-				<div className="imm:max-h-64 imm:overflow-y-auto imm:p-2">
-					{ preview && preview.length ? <PreviewList items={ preview } depth={ 0 } /> : ! loading && <p className="imm:p-2 imm:text-xs imm:text-zinc-500">{ __( 'La fuente no devuelve ítems.' ) }</p> }
+				<div className="imm:max-h-72 imm:overflow-y-auto imm:p-2">
+					{ preview && preview.length ? <PreviewList items={ preview } depth={ 0 } onToggle={ terms ? toggle : undefined } /> : ! loading && <p className="imm:p-2 imm:text-xs imm:text-zinc-500">{ __( 'La fuente no devuelve ítems.' ) }</p> }
 				</div>
 			</div>
+			{ terms && <p className="imm:-mt-2 imm:text-xs imm:text-zinc-500">{ __( 'Con el ojo ocultas una categoría (y sus subcategorías) del menú; las demás se siguen agregando solas. Útil para una categoría «Ofertas» que solo usas en una página.' ) }</p> }
 			<Button variant="outline" size="sm" disabled={ ! preview?.length } onClick={ convert }>
 				<Wand2 aria-hidden />
 				{ __( 'Convertir en ítems editables' ) }
@@ -117,19 +127,35 @@ export function SourceEditor( { item, onChange, onConvert }: { item: MenuItem; o
 	);
 }
 
-function PreviewList( { items, depth }: { items: SourcePreviewItem[]; depth: number } ) {
+function PreviewList( { items, depth, onToggle, parentHidden = false }: { items: SourcePreviewItem[]; depth: number; onToggle?: ( id: number ) => void; parentHidden?: boolean } ) {
 	return (
 		<ul className="imm:flex imm:flex-col">
-			{ items.map( ( p, i ) => (
-				<li key={ p.label + i }>
-					<div className="imm:flex imm:items-center imm:gap-2 imm:py-1 imm:text-[13px] imm:text-zinc-700" style={ { paddingLeft: depth * 14 } }>
-						{ p.image ? <img src={ p.image } alt="" className="imm:size-5 imm:rounded imm:object-cover" /> : <span className="imm:size-1 imm:rounded-full imm:bg-zinc-400" /> }
-						<span className="imm:truncate">{ p.label }</span>
-						{ p.children.length > 0 && <span className="imm:text-[11px] imm:text-zinc-400">{ p.children.length }</span> }
-					</div>
-					{ p.children.length > 0 && <PreviewList items={ p.children } depth={ depth + 1 } /> }
-				</li>
-			) ) }
+			{ items.map( ( p, i ) => {
+				const off = p.hidden || parentHidden;
+				return (
+					<li key={ p.label + i }>
+						<div className={ cn( 'imm:group imm:flex imm:items-center imm:gap-2 imm:rounded imm:py-1 imm:pr-1 imm:text-[13px] imm:hover:bg-white', off ? 'imm:text-zinc-400' : 'imm:text-zinc-700' ) } style={ { paddingLeft: depth * 14 } }>
+							{ p.image ? <img src={ p.image } alt="" className={ cn( 'imm:size-5 imm:rounded imm:object-cover', off && 'imm:opacity-40' ) } /> : <span className="imm:size-1 imm:rounded-full imm:bg-zinc-400" /> }
+							<span className={ cn( 'imm:min-w-0 imm:flex-1 imm:truncate', off && 'imm:line-through' ) }>{ p.label }</span>
+							{ p.hidden && <span className="imm:rounded imm:bg-zinc-200 imm:px-1.5 imm:text-[10px] imm:font-medium imm:text-zinc-600 imm:no-underline">{ __( 'Oculta' ) }</span> }
+							{ p.children.length > 0 && <span className="imm:text-[11px] imm:text-zinc-400">{ p.children.length }</span> }
+							{ onToggle && p.term_id > 0 && ! parentHidden && (
+								<button
+									type="button"
+									onClick={ () => onToggle( p.term_id ) }
+									title={ p.hidden ? __( 'Mostrar en el menú' ) : __( 'Ocultar del menú' ) }
+									aria-label={ ( p.hidden ? __( 'Mostrar en el menú' ) : __( 'Ocultar del menú' ) ) + ': ' + p.label }
+									aria-pressed={ p.hidden }
+									className={ cn( 'imm:flex imm:size-6 imm:items-center imm:justify-center imm:rounded imm:text-zinc-500 imm:hover:bg-zinc-200 imm:hover:text-zinc-900 imm:focus-visible:opacity-100', p.hidden ? 'imm:opacity-100' : 'imm:opacity-0 imm:group-hover:opacity-100' ) }
+								>
+									{ p.hidden ? <EyeOff className="imm:size-3.5" aria-hidden /> : <Eye className="imm:size-3.5" aria-hidden /> }
+								</button>
+							) }
+						</div>
+						{ p.children.length > 0 && <PreviewList items={ p.children } depth={ depth + 1 } onToggle={ onToggle } parentHidden={ off } /> }
+					</li>
+				);
+			} ) }
 		</ul>
 	);
 }

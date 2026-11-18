@@ -209,6 +209,20 @@ final class CampaignsAndAppBarTest extends TestCase {
 		$this->assertStringNotContainsString( '.imm-bbar{--imm-bb-bbg:', CssBuilder::build( $profile, $settings )['critical'] );
 	}
 
+	public function test_source_exclusions_are_clean_ids(): void {
+		$menu = Normalizer::menu(
+			array(
+				'items' => array(
+					array(
+						'type'   => 'source',
+						'source' => array( 'kind' => 'woo_categories', 'exclude' => array( '115', 115, -3, 'x', 0, 42 ) ),
+					),
+				),
+			)
+		);
+		$this->assertSame( array( 115, 42 ), $menu['items'][0]['source']['exclude'] );
+	}
+
 	public function test_wishlist_item_and_badge(): void {
 		$bar  = array(
 			'enabled' => true,

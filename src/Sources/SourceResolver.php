@@ -206,7 +206,8 @@ final class SourceResolver {
 		if ( ! is_array( $terms ) ) {
 			return array();
 		}
-		$out = array();
+		$out     = array();
+		$exclude = $this->excluded( $taxonomy, $source );
 		foreach ( $terms as $term ) {
 			if ( ! $term instanceof \WP_Term ) {
 				continue;
@@ -214,9 +215,18 @@ final class SourceResolver {
 			if ( 'product_cat' === $taxonomy && 'uncategorized' === $term->slug && 0 === $parent ) {
 				continue; // "Sin categorizar" no aporta en un menú.
 			}
+			// Ocultas a mano (p. ej. una categoría «Ofertas» que solo se usa en una página): con sus hijas.
+			$hidden = isset( $exclude[ (int) $term->term_id ] );
+			if ( $hidden && ! $this->show_excluded ) {
+				continue;
+			}
 			++$this->term_count;
 			$link = get_term_link( $term );
 			$item = self::base_item( 't_' . $term->term_id, $term->name, is_string( $link ) ? $link : '' );
+			if ( $this->show_excluded ) {
+				$item['term_id'] = (int) $term->term_id; // Solo para la vista previa del admin.
+				$item['hidden']  = $hidden;
+			}
 			if ( $source['with_images'] ) {
 				$thumb = (int) get_term_meta( $term->term_id, 'thumbnail_id', true );
 				if ( $thumb > 0 ) {
@@ -230,6 +240,34 @@ final class SourceResolver {
 				$item['children'] = $this->terms( $taxonomy, $source, (int) $term->term_id, $level + 1 );
 			}
 			$out[] = $item;
+		}
+		return $out;
+	}
+
+	/**
+	 * Vista previa del admin: incluye las ocultas (marcadas) para poder volver a mostrarlas.
+	 */
+	private bool $show_excluded = false;
+
+	public function with_excluded( bool $show = true ): self {
+		$this->show_excluded = $show;
+		return $this;
+	}
+
+	/**
+	 * Términos ocultos de una fuente, en el idioma que se compila (WPML/Polylang: la traducción).
+	 *
+	 * @param array<string, mixed> $source
+	 * @return array<int, true>
+	 */
+	private function excluded( string $taxonomy, array $source ): array {
+		$out = array();
+		foreach ( (array) ( $source['exclude'] ?? array() ) as $id ) {
+			$out[ (int) $id ] = true;
+			$translated       = \ImaginaMenu\Integrations\Languages::object_id( (int) $id, 'term', $taxonomy, $this->lang );
+			if ( $translated > 0 ) {
+				$out[ $translated ] = true;
+			}
 		}
 		return $out;
 	}

@@ -113,6 +113,10 @@ Sin JS funciona con radios + CSS (`:checked + .imm-tp-pane`); el JS marca la pes
 | Clases CSS | extra, para personalizar |
 | Atributos de seguimiento | etiqueta de evento para GA4 (ver M10) |
 
+### Fuentes dinámicas: ocultar categorías (v0.5.5)
+
+En la fuente «Categorías de WooCommerce» o «Taxonomía», la vista «Así se verá» del Constructor tiene un ojo en cada categoría: ocultarla la quita del menú (con sus subcategorías) y las demás se siguen agregando solas. Caso típico: una categoría «Ofertas» que solo se usa en una página. Se guarda como `source.exclude` (ids de término; con WPML/Polylang se excluye también su traducción). Las ocultas se ven tachadas en la vista previa para poder volver a mostrarlas, y no se copian al «Convertir en ítems editables».
+
 ## M5. Bloques del panel — fases 1–4
 
 Piezas que se colocan en la cabecera, entre ítems o en el pie del panel.
