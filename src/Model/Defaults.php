@@ -113,6 +113,11 @@ final class Defaults {
 				'hide_on_scroll' => true,
 				'hide_on'        => array( 'checkout' ),
 				'blur'           => false,
+				// Contadores (carrito, favoritos, texto fijo) con colores propios; apagado: los de las
+				// insignias (Diseño → Acento e insignias).
+				'badge_custom'   => false,
+				'badge_bg'       => '#e11d48',
+				'badge_fg'       => '#ffffff',
 			),
 			'search'              => array(
 				'placeholder' => 'Buscar…',

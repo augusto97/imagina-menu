@@ -42,6 +42,10 @@ final class CssBuilder {
 			$critical .= '@media (prefers-color-scheme:dark){' . self::vars( $design['dark_tokens'] ) . '}';
 		}
 		$critical .= self::asset( 'critical.css' );
+		if ( ! empty( $profile['bottom_bar']['badge_custom'] ) ) {
+			// Colores propios de los contadores de la barra inferior (hexadecimales validados).
+			$critical .= '.imm-bbar{--imm-bb-bbg:' . $profile['bottom_bar']['badge_bg'] . ';--imm-bb-bfg:' . $profile['bottom_bar']['badge_fg'] . '}';
+		}
 
 		$desk = $profile['desktop'];
 		$on   = (bool) $desk['enabled'];

@@ -145,7 +145,7 @@ La «app» dentro de la web.
 | Estilo | iconos + etiquetas, solo iconos, etiqueta solo en el activo | iconos + etiquetas |
 | Indicador del activo | color, píldora detrás del icono (Material 3), línea superior, punto | píldora |
 | Botón central destacado | círculo elevado con color de acento (estilo «vender» / «buscar») | apagado |
-| Insignias | contador del carrito (cookie `imm_cc`), **favoritos** (v0.5, cookie `imm_wl` que se actualiza al añadir o quitar en YITH o TI Wishlist; el JS escucha sus eventos `added_to_wishlist`, `removed_from_wishlist`, `tinvwl_wishlist_ajax_response`), número libre, punto | carrito |
+| Insignias | colores propios opcionales para los contadores de la barra (v0.5.2; apagado: los de las insignias del panel); contador del carrito (cookie `imm_cc`), **favoritos** (v0.5, cookie `imm_wl` que se actualiza al añadir o quitar en YITH o TI Wishlist; el JS escucha sus eventos `added_to_wishlist`, `removed_from_wishlist`, `tinvwl_wishlist_ajax_response`), número libre, punto | carrito |
 | Comportamiento | fijo, ocultar al bajar y mostrar al subir, ocultar en páginas concretas (checkout) | ocultar al bajar |
 | Forma | barra completa, flotante con bordes redondeados y margen («isla») | barra completa |
 | Fondo | color, transparencia con desenfoque, borde superior, sombra | sólido |

@@ -127,6 +127,8 @@ final class Normalizer {
 		$out['desktop']['selector'] = self::selector( (string) $out['desktop']['selector'] );
 
 		$out['app_bar']['logo_image']['url'] = self::url( (string) $out['app_bar']['logo_image']['url'] );
+		$out['bottom_bar']['badge_bg']       = self::color( (string) $out['bottom_bar']['badge_bg'] ) ?? '#e11d48';
+		$out['bottom_bar']['badge_fg']       = self::color( (string) $out['bottom_bar']['badge_fg'] ) ?? '#ffffff';
 		$out['app_bar']['hide_header']       = self::selector( (string) $out['app_bar']['hide_header'] );
 
 		// Colores de la barra superior: solo hexadecimales (van al CSS crítico); el degradado es opcional.

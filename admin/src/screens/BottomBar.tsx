@@ -3,6 +3,7 @@ import { arrayMove, horizontalListSortingStrategy, SortableContext, sortableKeyb
 import { CSS } from '@dnd-kit/utilities';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { ColorField } from '@/components/ColorField';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
 import { PageHeader, Row, Section, Segmented, ToggleRow } from '@/components/common';
@@ -14,6 +15,7 @@ import { __ } from '@/lib/i18n';
 import { makeBottomItem, setProfile, useActiveProfile, useStore } from '@/lib/store';
 import type { BottomAction, BottomItem, Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ContrastRow } from './Design';
 
 const ACTIONS: { value: BottomAction; label: string; hint: string; icon: string }[] = [
 	{ value: 'link', label: __( 'Enlace' ), hint: __( 'Va a una página.' ), icon: 'house' },
@@ -195,6 +197,31 @@ export function BottomBarScreen() {
 						</div>
 					</Row>
 				</Section>
+
+				<Section title={ __( 'Contador' ) } description={ __( 'El número del carrito y de favoritos (y las insignias de texto fijo) en esta barra.' ) }>
+					<ToggleRow
+						label={ __( 'Colores propios' ) }
+						hint={ b.badge_custom ? __( 'Los mismos en modo claro y oscuro.' ) : __( 'Apagado: los colores de las insignias (Diseño → Acento e insignias), los mismos del panel.' ) }
+						checked={ b.badge_custom }
+						onChange={ ( v ) => {
+							if ( v ) {
+								// Parte de los colores actuales: nada cambia hasta que se edite.
+								setProfile( [ 'bottom_bar', 'badge_bg' ], String( profile.design.tokens.badge_bg ?? b.badge_bg ) );
+								setProfile( [ 'bottom_bar', 'badge_fg' ], String( profile.design.tokens.badge_fg ?? b.badge_fg ) );
+							}
+							setProfile( [ 'bottom_bar', 'badge_custom' ], v );
+						} }
+					/>
+					{ b.badge_custom && (
+						<div className="imm:flex imm:flex-col imm:gap-3 imm:px-5 imm:py-4">
+							<div className="imm:grid imm:gap-3 imm:sm:grid-cols-2">
+								<ColorField label={ __( 'Fondo' ) } value={ b.badge_bg } onChange={ ( v ) => setProfile( [ 'bottom_bar', 'badge_bg' ], v ) } />
+								<ColorField label={ __( 'Número' ) } value={ b.badge_fg } onChange={ ( v ) => setProfile( [ 'bottom_bar', 'badge_fg' ], v ) } />
+							</div>
+							<ContrastRow label={ __( 'Número sobre el fondo (WCAG AA pide 4,5:1)' ) } fg={ b.badge_fg } bg={ b.badge_bg } />
+						</div>
+					) }
+				</Section>
 			</div>
 		</>
 	);
@@ -249,7 +276,7 @@ function MockItem( { item, index, active, selected, onSelect, profile }: { item:
 					>
 						<IconView name={ item.icon } className="imm:size-5" />
 						{ item.badge !== 'none' && (
-							<span className="imm:absolute imm:-top-1 imm:right-0 imm:min-w-4 imm:rounded-full imm:px-1 imm:text-center imm:text-[10px] imm:leading-4 imm:font-bold" style={ { background: String( t.badge_bg ), color: String( t.badge_fg ) } }>
+							<span className="imm:absolute imm:-top-1 imm:right-0 imm:min-w-4 imm:rounded-full imm:px-1 imm:text-center imm:text-[10px] imm:leading-4 imm:font-bold" style={ { background: b.badge_custom ? b.badge_bg : String( t.badge_bg ), color: b.badge_custom ? b.badge_fg : String( t.badge_fg ) } }>
 								{ item.badge === 'cart' || item.badge === 'wishlist' ? '2' : item.badge_text || '•' }
 							</span>
 						) }

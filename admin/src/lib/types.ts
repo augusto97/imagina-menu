@@ -191,6 +191,10 @@ export interface Profile {
 		hide_on_scroll: boolean;
 		hide_on: string[];
 		blur: boolean;
+		/** Contadores con colores propios (apagado: los de las insignias en Diseño). */
+		badge_custom: boolean;
+		badge_bg: string;
+		badge_fg: string;
 	};
 	search: {
 		placeholder: string;

@@ -199,6 +199,16 @@ final class CampaignsAndAppBarTest extends TestCase {
 		$this->assertLessThan( (int) strpos( $css, '@media (min-width:1025px){.imm-appbar{display:none' ), (int) $rule );
 	}
 
+	public function test_bottom_bar_badge_custom_colors(): void {
+		$settings = Normalizer::settings( array() );
+		$profile  = Normalizer::profile( array( 'bottom_bar' => array( 'badge_custom' => true, 'badge_bg' => '#2563EB', 'badge_fg' => 'blanco' ) ) );
+		$this->assertSame( '#2563eb', $profile['bottom_bar']['badge_bg'] );
+		$this->assertSame( '#ffffff', $profile['bottom_bar']['badge_fg'], 'Un color no hexadecimal vuelve al de por defecto' );
+		$this->assertStringContainsString( '.imm-bbar{--imm-bb-bbg:#2563eb;--imm-bb-bfg:#ffffff}', CssBuilder::build( $profile, $settings )['critical'] );
+		$profile['bottom_bar']['badge_custom'] = false;
+		$this->assertStringNotContainsString( '.imm-bbar{--imm-bb-bbg:', CssBuilder::build( $profile, $settings )['critical'] );
+	}
+
 	public function test_wishlist_item_and_badge(): void {
 		$bar  = array(
 			'enabled' => true,

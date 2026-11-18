@@ -320,6 +320,12 @@ button.imm-bb-it {
 	border: 2px solid var(--imm-bbar-bg);
 }
 
+/* Contadores de la barra inferior con colores propios (--imm-bb-b*, ajuste del perfil) */
+.imm-bbar .imm-bb-badge {
+	background: var(--imm-bb-bbg, var(--imm-badge-bg));
+	color: var(--imm-bb-bfg, var(--imm-badge-fg));
+}
+
 .imm-bb-main .imm-bb-badge {
 	top: -4px;
 	left: calc(50% + 10px);
