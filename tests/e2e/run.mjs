@@ -134,7 +134,9 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 	const opener = ( await page.$( '.imm-fab' ) ) ? '.imm-fab' : '.imm-bbar [data-imm-open]';
 	if ( await page.$( opener ) ) {
 		await page.click( opener );
-		await page.waitForTimeout( 400 );
+		// Espera a que termine la entrada escalonada (si el estilo la usa): con JS desactivado,
+		// Playwright no logra comprobar la estabilidad de un elemento que se está animando.
+		await page.waitForTimeout( 1200 );
 		check( await isOpen( page, 'imm-drawer' ), 'Sin JS: el panel abre (Popover API)' );
 		if ( await page.$( '#imm-drawer .imm-tp' ) ) {
 			await page.locator( '#imm-drawer label.imm-tp-tab' ).nth( 1 ).click();
