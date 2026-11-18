@@ -7,6 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 use ImaginaMenu\Compiler\Compiler;
 use ImaginaMenu\Core\Plugin;
+use ImaginaMenu\Core\Transfer;
 use ImaginaMenu\Frontend\Preview;
 use ImaginaMenu\Integrations\Environment;
 use ImaginaMenu\Licensing\ImaginaUpdater;
@@ -494,15 +495,7 @@ final class Routes {
 	// ── Publicar, descartar, vista previa ───────────────────────────────────────────────────────
 
 	public static function publish(): WP_REST_Response {
-		$menus    = new MenuRepository();
-		$profiles = new ProfileRepository();
-		foreach ( $menus->all() as $menu ) {
-			$menus->publish( (int) $menu['id'] );
-		}
-		foreach ( $profiles->all() as $profile ) {
-			$profiles->publish( (int) $profile['id'] );
-		}
-		$state = Plugin::compiler()->publish();
+		$state = Transfer::publish();
 		return new WP_REST_Response( array( 'compile' => $state ), $state['ok'] ? 200 : 500 );
 	}
 
@@ -620,15 +613,7 @@ final class Routes {
 	// ── Exportar / importar ─────────────────────────────────────────────────────────────────────
 
 	public static function export(): WP_REST_Response {
-		return new WP_REST_Response(
-			array(
-				'plugin'   => 'imagina-menu',
-				'version'  => IMM_VERSION,
-				'settings' => ( new SettingsRepository() )->get(),
-				'menus'    => ( new MenuRepository() )->all( true ),
-				'profiles' => ( new ProfileRepository() )->all( true ),
-			)
-		);
+		return new WP_REST_Response( Transfer::export() );
 	}
 
 	/**
@@ -636,39 +621,15 @@ final class Routes {
 	 * menú de los perfiles se reasignan a los menús importados.
 	 */
 	public static function import( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$data = $request->get_json_params();
-		if ( 'imagina-menu' !== ( $data['plugin'] ?? '' ) ) {
-			return new WP_Error( 'imm_bad_import', __( 'El archivo no es una exportación de Imagina Menu.', 'imagina-menu' ), array( 'status' => 400 ) );
-		}
-		if ( count( (array) ( $data['menus'] ?? array() ) ) > 30 || count( (array) ( $data['profiles'] ?? array() ) ) > 30 ) {
-			return new WP_Error( 'imm_import_too_big', __( 'La importación tiene demasiados menús o perfiles (máximo 30 de cada uno).', 'imagina-menu' ), array( 'status' => 400 ) );
-		}
-		$menus = new MenuRepository();
-		$map   = array();
-		foreach ( (array) ( $data['menus'] ?? array() ) as $menu ) {
-			if ( is_array( $menu ) ) {
-				$map[ (int) ( $menu['id'] ?? 0 ) ] = $menus->create( $menu );
-			}
-		}
-		$profiles = new ProfileRepository();
-		$count    = 0;
-		foreach ( (array) ( $data['profiles'] ?? array() ) as $profile ) {
-			if ( ! is_array( $profile ) ) {
-				continue;
-			}
-			$profile['drawer'] = is_array( $profile['drawer'] ?? null ) ? $profile['drawer'] : array();
-			$old               = (int) ( $profile['drawer']['menu_id'] ?? 0 );
-			if ( isset( $map[ $old ] ) ) {
-				$profile['drawer']['menu_id'] = $map[ $old ];
-			}
-			$profile['is_default'] = false;
-			$profile['enabled']    = false; // Se activa a mano: evita que un perfil importado tape al actual.
-			$profile               = self::guard_css( $profile, null );
-			$profiles->create( $profile + array( 'menu_order' => 100 + $count ) );
-			++$count;
-		}
-		if ( ! empty( $data['import_settings'] ) && is_array( $data['settings'] ?? null ) && current_user_can( 'manage_options' ) ) {
-			( new SettingsRepository() )->save( $data['settings'] );
+		$data   = (array) $request->get_json_params();
+		$result = Transfer::import(
+			$data,
+			! empty( $data['import_settings'] ) && current_user_can( 'manage_options' ),
+			false,
+			static fn( array $profile ): array => self::guard_css( $profile, null )
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 		return self::state();
 	}

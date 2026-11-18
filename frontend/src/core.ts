@@ -19,7 +19,6 @@ const qs = <T extends Element>( sel: string, ctx: ParentNode = doc ) => ctx.quer
 const qsa = <T extends Element>( sel: string, ctx: ParentNode = doc ) => Array.from( ctx.querySelectorAll<T>( sel ) );
 /** Botones propios: nunca se capturan como si fueran el botón del tema. */
 const OWN = '.imm-fab,.imm-bbar,.imm-search';
-const RECENT_KEY = 'imm-recent';
 const LEVEL_KEY = 'imm-level';
 
 // Solo los nodos propios (dialog + clase): un elemento del contenido con el mismo id no los suplanta.
@@ -153,7 +152,7 @@ function track( e: 'open' | 'click' | 'search' | 'bbar', id = '', label = '' ): 
 
 /** Módulos bajo demanda, junto a core.js y con su misma versión (?ver=). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const lazy = ( name: 'track' | 'prefetch' | 'desktop' ): Promise<any> => {
+const lazy = ( name: 'track' | 'prefetch' | 'desktop' | 'gestures' | 'recent' | 'hours' ): Promise<any> => {
 	const url = new URL( name + '.js', import.meta.url );
 	url.search = new URL( import.meta.url ).search;
 	return import( /* @vite-ignore */ url.href );
@@ -321,29 +320,8 @@ function initDrawer( d: HTMLDialogElement ): void {
 		}
 	} );
 
-	// Gestos: deslizar hacia el borde cierra; hacia el otro lado vuelve un nivel.
-	if ( d.dataset.swipe === '1' ) {
-		let x0 = 0;
-		let y0 = 0;
-		const rtl = getComputedStyle( d ).direction === 'rtl';
-		d.addEventListener( 'touchstart', ( e ) => {
-			x0 = e.touches[ 0 ].clientX;
-			y0 = e.touches[ 0 ].clientY;
-		}, { passive: true } );
-		d.addEventListener( 'touchend', ( e ) => {
-			const dx = ( e.changedTouches[ 0 ].clientX - x0 ) * ( rtl ? -1 : 1 );
-			const dy = e.changedTouches[ 0 ].clientY - y0;
-			if ( Math.abs( dx ) < 60 || Math.abs( dy ) > Math.abs( dx ) * 0.7 ) return;
-			const right = d.classList.contains( 'imm-side-right' );
-			if ( d.classList.contains( 'imm-side-bottom' ) ) {
-				if ( dx > 0 && stack.length > 1 ) back();
-				return;
-			}
-			if ( ( dx < 0 && ! right ) || ( dx > 0 && right && stack.length < 2 ) ) hide( d );
-			else if ( dx > 0 && stack.length > 1 ) back();
-		}, { passive: true } );
-	}
-
+	// Con la primera apertura, bajo demanda: gestos (deslizar para cerrar o volver) y el horario de WhatsApp.
+	let first = true;
 	d.addEventListener( 'close', onClose );
 	d.addEventListener( 'toggle', ( e ) => {
 		if ( e.target === d && ( e as ToggleEvent ).newState === 'closed' ) onClose();
@@ -367,6 +345,11 @@ function initDrawer( d: HTMLDialogElement ): void {
 
 	open = ( from?: HTMLElement | null ) => {
 		opener = from || ( doc.activeElement as HTMLElement );
+		if ( first ) {
+			first = false;
+			if ( d.dataset.swipe === '1' ) lazy( 'gestures' ).then( ( m ) => m.start( d, { back, depth: () => stack.length - 1, hide: () => hide( d ) } ) ).catch( () => {} );
+			if ( qs( '[data-imm-hours]', d ) ) lazy( 'hours' ).then( ( m ) => m.start( d ) ).catch( () => {} );
+		}
 		reset();
 		loadImages( rootLevel );
 		show( d );
@@ -480,50 +463,13 @@ function initSearch( s: HTMLDialogElement ): void {
 	lightDismiss( s );
 	// Con Imagina Search el campo es el de su widget (Integrations\SmartSearch).
 	const input = qs<HTMLInputElement>( '.imm-s-input,.wss-search-input', s );
-	const recent = qs<HTMLElement>( '.imm-s-recent', s );
-	const list = recent ? qs<HTMLElement>( 'ul', recent ) : null;
 	const form = qs<HTMLFormElement>( 'form', s );
-
-	/** Búsquedas recientes, validadas: localStorage lo puede tocar cualquier script del dominio. */
-	const read = (): string[] => {
-		try {
-			const v: unknown = JSON.parse( localStorage.getItem( RECENT_KEY ) || '[]' );
-			return Array.isArray( v ) ? v.filter( ( t ): t is string => typeof t === 'string' && t.length > 0 && t.length <= 100 ).slice( 0, 8 ) : [];
-		} catch {
-			return [];
-		}
-	};
-
-	const paint = () => {
-		if ( ! recent || ! list || ! form ) return;
-		const items = read();
-		recent.hidden = ! items.length;
-		list.textContent = '';
-		for ( const term of items ) {
-			const url = new URL( form.action );
-			for ( const [ k, v ] of new FormData( form ) ) url.searchParams.set( k, k === 's' ? term : String( v ) );
-			const li = doc.createElement( 'li' );
-			const a = doc.createElement( 'a' );
-			a.href = url.href;
-			a.textContent = term;
-			li.append( a );
-			list.append( li );
-		}
-	};
-
-	form?.addEventListener( 'submit', () => {
-		track( 'search' );
-		const term = input?.value.trim().slice( 0, 100 );
-		if ( ! term || ! recent ) return;
-		const items = [ term, ...read().filter( ( t ) => t.toLowerCase() !== term.toLowerCase() ) ].slice( 0, 8 );
-		try {
-			localStorage.setItem( RECENT_KEY, JSON.stringify( items ) );
-		} catch {}
-	} );
+	form?.addEventListener( 'submit', () => track( 'search' ) );
 
 	openSearch = ( from?: HTMLElement | null ) => {
 		searchOpener = from || null;
-		paint();
+		// Búsquedas recientes: módulo bajo demanda (recent.js).
+		if ( s.dataset.recent ) lazy( 'recent' ).then( ( m ) => m.open( s ) ).catch( () => {} );
 		show( s );
 		input?.focus();
 	};
@@ -557,16 +503,17 @@ function cookie( name: string ): string {
 	}
 }
 
+/** Contadores del carrito (imm_cc) y de favoritos (imm_wl): cookies propias, sin peticiones. */
 function updateCart(): void {
-	const n = parseInt( cookie( 'imm_cc' ), 10 ) || 0;
-	for ( const el of qsa<HTMLElement>( '[data-imm-count="cart"]' ) ) {
+	for ( const el of qsa<HTMLElement>( '[data-imm-count]' ) ) {
+		const n = parseInt( cookie( el.dataset.immCount === 'wishlist' ? 'imm_wl' : 'imm_cc' ), 10 ) || 0;
 		el.textContent = n > 99 ? '99+' : String( n );
 		el.hidden = n < 1;
 	}
 }
 
 function initHideOnScroll(): void {
-	const els = qsa<HTMLElement>( '.imm-bbar[data-hide-scroll],.imm-fab.imm-hide-scroll' );
+	const els = qsa<HTMLElement>( '.imm-bbar[data-hide-scroll],.imm-fab.imm-hide-scroll,.imm-appbar[data-hide-scroll]' );
 	if ( ! els.length ) return;
 	let last = scrollY;
 	let ticking = false;
@@ -668,7 +615,8 @@ const bindJq = () => {
 	const jq = ( window as unknown as { jQuery?: ( el: unknown ) => { on: ( ev: string, fn: () => void ) => void } } ).jQuery;
 	if ( jqBound || typeof jq !== 'function' ) return;
 	jqBound = true;
-	jq( doc.body ).on( 'added_to_cart removed_from_cart updated_cart_totals wc_fragments_refreshed', () => setTimeout( updateCart, 50 ) );
+	// Carrito de WooCommerce y favoritos de YITH / TI Wishlist.
+	jq( doc.body ).on( 'added_to_cart removed_from_cart updated_cart_totals wc_fragments_refreshed added_to_wishlist removed_from_wishlist tinvwl_wishlist_ajax_response', () => setTimeout( updateCart, 50 ) );
 };
 bindJq();
 addEventListener( 'load', bindJq, { once: true } );

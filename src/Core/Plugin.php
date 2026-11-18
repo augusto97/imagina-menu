@@ -29,6 +29,10 @@ final class Plugin {
 		Invalidator::boot();
 		\ImaginaMenu\Repository\JsonPostRepository::boot();
 		\ImaginaMenu\Analytics\Stats::boot();
+		Schedule::boot();
+		\ImaginaMenu\Integrations\Wishlist::boot();
+		\ImaginaMenu\Cli\Command::register();
+		\ImaginaMenu\Integrations\Elementor\Loader::boot();
 
 		add_action( 'init', array( self::class, 'init' ) );
 		add_action( 'rest_api_init', array( Routes::class, 'register' ) );

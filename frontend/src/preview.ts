@@ -17,7 +17,7 @@ type Mode = 'none' | 'drawer' | 'search';
 const doc = document;
 const DRAWER = 'dialog#imm-drawer.imm-drawer';
 const SEARCH = 'dialog#imm-search.imm-search';
-const PARTS = [ 'svg.imm-sprite', 'button.imm-fab', DRAWER, SEARCH, 'nav.imm-bbar' ];
+const PARTS = [ 'div.imm-appbar', 'svg.imm-sprite', 'button.imm-fab', DRAWER, SEARCH, 'nav.imm-bbar' ];
 const TOKEN = /^\d+\.\d+\.[a-f0-9]{32}$/;
 
 const qs = <T extends Element>( sel: string, ctx: ParentNode = doc ) => ctx.querySelector<T>( sel );

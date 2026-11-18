@@ -66,6 +66,15 @@ final class CssBuilder {
 			$critical .= $mobile ? '@media (max-width:' . $bp . 'px){' . $rule . '}' : $rule;
 		}
 
+		// Barra superior móvil: su CSS va en el crítico (se ve en el primer pintado) y su alto queda
+		// reservado en el <body>. Solo en celulares (hasta el breakpoint).
+		$ab = $profile['app_bar'];
+		if ( $ab['enabled'] ) {
+			$height    = 52 + ( $ab['search'] ? 50 : 0 );
+			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
+				. '@media (min-width:' . ( $bp + 1 ) . 'px){.imm-appbar{display:none!important}}';
+		}
+
 		// Reserva el alto de la barra (sin saltos) y sube el botón flotante por encima de ella.
 		$gap        = 'floating' === $profile['bottom_bar']['shape'] ? 10 : 0;
 		$space      = ':root{--imm-fab-y:calc(var(--imm-bb-h) + ' . ( $gap + 16 ) . 'px)}body{padding-bottom:calc(var(--imm-bb-h) + ' . $gap . 'px + env(safe-area-inset-bottom,0px))}';

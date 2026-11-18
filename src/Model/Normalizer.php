@@ -45,7 +45,9 @@ final class Normalizer {
 		'search.post_type'        => array( 'auto', 'any', 'product', 'post' ),
 		'search.provider'         => array( 'auto', 'native' ),
 		'drawer.view_all_position' => array( 'bottom', 'top' ),
+		'drawer.banners_position' => array( 'top', 'bottom' ),
 		'desktop.layout'          => array( 'panel', 'cascade' ),
+		'app_bar.hide_on_scroll'  => array( 'none', 'top', 'all' ),
 		'design.color_mode'       => array( 'light', 'dark', 'auto' ),
 		'item.type'               => array( 'link', 'heading', 'divider', 'source' ),
 		'item.target'             => array( '_self', '_blank' ),
@@ -54,8 +56,8 @@ final class Normalizer {
 		'item.object.kind'        => array( '', 'post', 'term' ),
 		'item.source.kind'        => array( 'wp_menu', 'woo_categories', 'taxonomy' ),
 		'item.source.orderby'     => array( 'menu_order', 'name', 'count' ),
-		'bottom_item.action'      => array( 'link', 'drawer', 'search', 'cart', 'account', 'whatsapp', 'phone', 'top' ),
-		'bottom_item.badge'       => array( 'none', 'cart', 'custom' ),
+		'bottom_item.action'      => array( 'link', 'drawer', 'search', 'cart', 'account', 'wishlist', 'whatsapp', 'phone', 'top' ),
+		'bottom_item.badge'       => array( 'none', 'cart', 'wishlist', 'custom' ),
 	);
 
 	/** Rangos numéricos [min, max] por ruta. */
@@ -84,7 +86,7 @@ final class Normalizer {
 	public const MAX_CUSTOM_CSS  = 20000;
 
 	/** Condiciones de los perfiles y qué campos usa cada una. */
-	public const RULE_TYPES = array( 'front_page', 'blog', 'page', 'post_type', 'term', 'woo', 'url', 'logged_in', 'logged_out', 'role', 'language' );
+	public const RULE_TYPES = array( 'front_page', 'blog', 'page', 'post_type', 'term', 'woo', 'url', 'logged_in', 'logged_out', 'role', 'language', 'date' );
 
 	public const WOO_PAGES = array( 'any', 'shop', 'product', 'cart', 'checkout', 'account' );
 
@@ -128,6 +130,8 @@ final class Normalizer {
 		$drawer['footer_links'] = self::links( $input['drawer']['footer_links'] ?? array(), 12 );
 		$drawer['menu_by_lang'] = self::lang_map( $input['drawer']['menu_by_lang'] ?? array() );
 		$drawer['social']       = self::social( $input['drawer']['social'] ?? array() );
+		$drawer['banners']      = self::banners( $input['drawer']['banners'] ?? array() );
+		$drawer['whatsapp']['hours'] = self::hours( $input['drawer']['whatsapp']['hours'] ?? array() );
 		unset( $drawer );
 
 		$out['rules']['conditions'] = self::conditions( $input['rules']['conditions'] ?? array() );
@@ -186,6 +190,7 @@ final class Normalizer {
 			$item['image']['url']  = self::url( (string) $item['image']['url'] );
 			$item['object']['type'] = sanitize_key( (string) $item['object']['type'] );
 			$item['source']['taxonomy'] = sanitize_key( (string) $item['source']['taxonomy'] );
+			$item['schedule']    = self::window( $item['schedule'] );
 
 			$children         = $raw['children'] ?? array();
 			$item['children'] = ( $depth + 1 < self::MAX_DEPTH && is_array( $children ) && in_array( $item['type'], array( 'link', 'heading' ), true ) )
@@ -470,6 +475,14 @@ final class Normalizer {
 			if ( 'woo' === $type && ! in_array( $value, self::WOO_PAGES, true ) ) {
 				$value = 'any';
 			}
+			if ( 'date' === $type ) {
+				// «desde|hasta» (cualquiera de los dos puede faltar).
+				$parts = explode( '|', (string) ( $c['value'] ?? '' ) . '|' );
+				$value = \ImaginaMenu\Core\Schedule::clean( $parts[0] ) . '|' . \ImaginaMenu\Core\Schedule::clean( $parts[1] );
+				if ( '|' === $value ) {
+					continue;
+				}
+			}
 			$ids = array_values( array_unique( array_filter( array_map( 'intval', is_array( $c['ids'] ?? null ) ? array_slice( $c['ids'], 0, 200 ) : array() ) ) ) );
 			$out[] = array(
 				'type'  => $type,
@@ -479,6 +492,67 @@ final class Normalizer {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Ventana de fechas de una campaña.
+	 *
+	 * @param mixed $window
+	 * @return array{from: string, to: string}
+	 */
+	public static function window( $window ): array {
+		$window = is_array( $window ) ? $window : array();
+		return array(
+			'from' => \ImaginaMenu\Core\Schedule::clean( $window['from'] ?? '' ),
+			'to'   => \ImaginaMenu\Core\Schedule::clean( $window['to'] ?? '' ),
+		);
+	}
+
+	/**
+	 * @param mixed $banners
+	 * @return list<array{image: array{id: int, url: string}, url: string, alt: string, from: string, to: string}>
+	 */
+	private static function banners( $banners ): array {
+		$out = array();
+		foreach ( is_array( $banners ) ? array_slice( $banners, 0, 6 ) : array() as $b ) {
+			if ( ! is_array( $b ) ) {
+				continue;
+			}
+			$image = self::url( (string) ( $b['image']['url'] ?? '' ) );
+			if ( '' === $image ) {
+				continue;
+			}
+			$out[] = array(
+				'image' => array(
+					'id'  => max( 0, (int) ( $b['image']['id'] ?? 0 ) ),
+					'url' => $image,
+				),
+				'url'   => self::url( (string) ( $b['url'] ?? '' ) ),
+				'alt'   => self::text( $b['alt'] ?? '', 120 ),
+			) + self::window( $b );
+		}
+		return $out;
+	}
+
+	/**
+	 * Horario de atención de WhatsApp.
+	 *
+	 * @param mixed $hours
+	 * @return array{enabled: bool, days: list<int>, from: string, to: string, off_label: string}
+	 */
+	private static function hours( $hours ): array {
+		$hours = is_array( $hours ) ? $hours : array();
+		$time  = static fn( $v, string $d ) => 1 === preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', (string) $v ) ? (string) $v : $d;
+		$days  = is_array( $hours['days'] ?? null ) ? $hours['days'] : array( 1, 2, 3, 4, 5 );
+		$days  = array_values( array_unique( array_filter( array_map( 'intval', $days ), static fn( $d ) => $d >= 0 && $d <= 6 ) ) );
+		sort( $days );
+		return array(
+			'enabled'   => (bool) filter_var( $hours['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN ),
+			'days'      => $days,
+			'from'      => $time( $hours['from'] ?? '', '08:00' ),
+			'to'        => $time( $hours['to'] ?? '', '18:00' ),
+			'off_label' => self::text( $hours['off_label'] ?? '', 60 ) ?: 'Déjanos tu mensaje',
+		);
 	}
 
 	/**

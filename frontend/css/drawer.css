@@ -558,8 +558,57 @@ button.imm-back {
 }
 
 .imm-drawer[data-depth]:not([data-depth="0"]) .imm-d-foot,
-.imm-drawer[data-depth]:not([data-depth="0"]) .imm-d-search {
+.imm-drawer[data-depth]:not([data-depth="0"]) .imm-d-search,
+.imm-drawer[data-depth]:not([data-depth="0"]) .imm-banners {
 	display: none;
+}
+
+/* Banners de promoción: carrusel con scroll-snap (sin JS); con varios se asoma el siguiente */
+.imm-banners {
+	flex: none;
+	padding: 8px 16px 4px;
+}
+
+.imm-bn-track {
+	display: flex;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	list-style: none;
+	scroll-snap-type: x mandatory;
+	scrollbar-width: none;
+}
+
+.imm-bn-track > li {
+	flex: 0 0 100%;
+	margin: 0;
+	scroll-snap-align: start;
+}
+
+.imm-bn-many .imm-bn-track > li {
+	flex-basis: 86%;
+}
+
+.imm-bn {
+	display: block;
+	overflow: hidden;
+	aspect-ratio: 2 / 1;
+	border-radius: var(--imm-r);
+	background: var(--imm-hover-bg);
+}
+
+.imm-bn img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* WhatsApp fuera del horario de atención (lo decide el navegador) */
+.imm-wa.imm-off {
+	filter: saturate(.6);
 }
 
 /* Pie del panel */

@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 
 mkdirSync( 'assets/dist', { recursive: true } );
 
-const entries = [ 'core', 'track', 'prefetch', 'desktop', 'preview' ];
+const entries = [ 'core', 'track', 'prefetch', 'desktop', 'preview', 'gestures', 'recent', 'hours' ];
 await build( {
 	entryPoints: entries.map( ( name ) => `frontend/src/${ name }.ts` ),
 	outdir: 'assets/dist',
@@ -30,7 +30,7 @@ for ( const name of entries ) {
 	writeFileSync( file, code );
 }
 
-for ( const name of [ 'critical', 'drawer', 'two-pane', 'tabs', 'grid', 'cascade' ] ) {
+for ( const name of [ 'critical', 'drawer', 'two-pane', 'tabs', 'grid', 'cascade', 'appbar' ] ) {
 	const { code } = transform( {
 		filename: `${ name }.css`,
 		code: readFileSync( `frontend/css/${ name }.css` ),

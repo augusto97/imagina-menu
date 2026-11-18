@@ -132,3 +132,23 @@ export function CopyCode( { code }: { code: string } ) {
 		</div>
 	);
 }
+
+/**
+ * Desde / hasta de una campaña (hora del sitio). Cualquiera de los dos puede quedar vacío:
+ * sin «desde» empieza ya; sin «hasta» no termina.
+ */
+export function DateRange( { from, to, onChange }: { from: string; to: string; onChange: ( w: { from: string; to: string } ) => void } ) {
+	const field = 'imm:h-8 imm:rounded-md imm:border imm:border-zinc-200 imm:bg-white imm:px-2 imm:text-[13px] imm:focus:border-zinc-400 imm:focus:outline-none';
+	return (
+		<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-2 imm:text-[13px] imm:text-zinc-600">
+			<label className="imm:flex imm:items-center imm:gap-1.5">
+				{ __( 'Desde' ) }
+				<input type="datetime-local" value={ from } onChange={ ( e ) => onChange( { from: e.target.value, to } ) } className={ field } />
+			</label>
+			<label className="imm:flex imm:items-center imm:gap-1.5">
+				{ __( 'hasta' ) }
+				<input type="datetime-local" value={ to } min={ from || undefined } onChange={ ( e ) => onChange( { from, to: e.target.value } ) } className={ field } />
+			</label>
+		</div>
+	);
+}

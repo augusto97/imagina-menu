@@ -1,4 +1,4 @@
-import { BarChart3, Layers, LayoutDashboard, ListTree, Menu as MenuIcon, Monitor, Palette, PanelLeft, PanelBottom, Search, Settings2 } from 'lucide-react';
+import { BarChart3, Layers, LayoutDashboard, ListTree, Menu as MenuIcon, Monitor, Palette, PanelBottom, PanelLeft, PanelTop, Search, Settings2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Preview } from './Preview';
 import { TopBar } from './TopBar';
@@ -13,6 +13,7 @@ const items: { route: Route; label: string; icon: typeof MenuIcon; group?: strin
 	{ route: 'constructor', label: __( 'Constructor' ), icon: ListTree },
 	{ route: 'perfiles', label: __( 'Perfiles' ), icon: Layers, group: __( 'Perfil' ) },
 	{ route: 'panel-lateral', label: __( 'Panel lateral' ), icon: PanelLeft },
+	{ route: 'barra-superior', label: __( 'Barra superior' ), icon: PanelTop },
 	{ route: 'barra', label: __( 'Barra inferior' ), icon: PanelBottom },
 	{ route: 'buscador', label: __( 'Buscador' ), icon: Search },
 	{ route: 'escritorio', label: __( 'Escritorio' ), icon: Monitor },
@@ -21,7 +22,7 @@ const items: { route: Route; label: string; icon: typeof MenuIcon; group?: strin
 	{ route: 'ajustes', label: __( 'Ajustes' ), icon: Settings2 },
 ];
 
-const WITH_PREVIEW: Route[] = [ 'panel', 'constructor', 'panel-lateral', 'barra', 'buscador', 'escritorio', 'diseno' ];
+const WITH_PREVIEW: Route[] = [ 'panel', 'constructor', 'panel-lateral', 'barra', 'barra-superior', 'buscador', 'escritorio', 'diseno' ];
 
 export function Layout( { children }: { children: ReactNode } ) {
 	const { route, go } = useRouter();

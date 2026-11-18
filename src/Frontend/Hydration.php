@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * - imm_cc: número de productos en el carrito (solo si hay carrito; si no, no existe la cookie).
  * - imm_un: primer nombre del usuario conectado (opcional, apagado por defecto).
+ * - imm_wl: número de favoritos (YITH o TI Wishlist, ver Integrations\Wishlist).
  *
  * El JS las lee sin hacer peticiones al servidor.
  */
@@ -45,6 +46,21 @@ final class Hydration {
 			self::set( self::CART_COOKIE, (string) min( $count, 999 ), time() + 2 * DAY_IN_SECONDS );
 		} elseif ( isset( $_COOKIE[ self::CART_COOKIE ] ) ) {
 			self::set( self::CART_COOKIE, '', time() - YEAR_IN_SECONDS );
+		}
+	}
+
+	/**
+	 * Contador genérico (favoritos): la cookie con el total o se borra si es 0. Respeta el ajuste
+	 * «cookies de hidratación» del carrito.
+	 */
+	public static function counter_cookie( string $name, int $count ): void {
+		if ( headers_sent() || ! self::enabled( 'cart_cookie' ) ) {
+			return;
+		}
+		if ( $count > 0 ) {
+			self::set( $name, (string) min( $count, 999 ), time() + 30 * DAY_IN_SECONDS );
+		} elseif ( isset( $_COOKIE[ $name ] ) ) {
+			self::set( $name, '', time() - YEAR_IN_SECONDS );
 		}
 	}
 

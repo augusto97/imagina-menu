@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace ImaginaMenu\Compiler;
 
+use ImaginaMenu\Core\Schedule;
 use ImaginaMenu\Integrations\SmartSearch;
 
 defined( 'ABSPATH' ) || exit;
@@ -24,6 +25,10 @@ final class Renderer {
 
 	/** Marcador del selector de idioma (se reemplaza en tiempo de ejecución). */
 	public const LANGS_TOKEN = '<!--imm:langs-->';
+
+	/** Marcadores del mensaje de WhatsApp (ya codificados en la URL): página o producto actual. */
+	public const PAGE_TITLE_TOKEN = '%7Btitulo%7D';
+	public const PAGE_URL_TOKEN   = '%7Burl%7D';
 
 	private Icons $icons;
 
@@ -74,6 +79,9 @@ final class Renderer {
 			'Búsquedas recientes'    => __( 'Búsquedas recientes', 'imagina-menu' ),
 			'Populares'              => __( 'Populares', 'imagina-menu' ),
 			'Navegación inferior'    => __( 'Navegación inferior', 'imagina-menu' ),
+			'Promociones'            => __( 'Promociones', 'imagina-menu' ),
+			'Carrito'                => __( 'Carrito', 'imagina-menu' ),
+			'Barra superior'         => __( 'Barra superior', 'imagina-menu' ),
 		);
 	}
 
@@ -102,6 +110,7 @@ final class Renderer {
 	 */
 	public function render( array $items ): array {
 		$parts = array(
+			'appbar'       => '',
 			'fab'          => '',
 			'drawer_guest' => '',
 			'drawer_user'  => '',
@@ -136,6 +145,9 @@ final class Renderer {
 		if ( $this->needs_search() ) {
 			$parts['search'] = $this->search();
 		}
+		if ( $this->profile['app_bar']['enabled'] ) {
+			$parts['appbar'] = $this->app_bar();
+		}
 		if ( $this->profile['bottom_bar']['enabled'] && $this->profile['bottom_bar']['items'] ) {
 			$parts['bbar'] = $this->bottom_bar();
 		}
@@ -156,6 +168,9 @@ final class Renderer {
 
 	private function needs_search(): bool {
 		if ( $this->profile['drawer']['enabled'] && $this->profile['drawer']['search'] ) {
+			return true;
+		}
+		if ( $this->profile['app_bar']['enabled'] && $this->profile['app_bar']['search'] ) {
 			return true;
 		}
 		if ( $this->profile['bottom_bar']['enabled'] ) {
@@ -225,6 +240,7 @@ final class Renderer {
 		$html  = '<dialog id="imm-drawer" class="' . esc_attr( $class ) . '" style="' . esc_attr( $style ) . '" popover aria-label="' . esc_attr( $this->s( 'Menú' ) ) . '"' . self::attrs( $data ) . $this->cfg_attr() . '>';
 		$html .= '<div class="imm-d-in">';
 		$html .= $this->drawer_head();
+		$html .= 'top' === $d['banners_position'] ? $this->banners() : '';
 		$html .= '<nav class="imm-nav" aria-label="' . esc_attr( $this->s( 'Menú principal' ) ) . '">';
 		if ( 'slide' === $mode || 'grid' === $mode ) {
 			$html .= '<div class="imm-nav-bar" hidden><button type="button" class="imm-back" data-imm-back>'
@@ -239,6 +255,7 @@ final class Renderer {
 			$html .= '<div class="imm-vp"><ul class="' . $root . '" role="list">' . $this->items( $items ) . '</ul></div>';
 		}
 		$html .= '</nav>';
+		$html .= 'bottom' === $d['banners_position'] ? $this->banners() : '';
 		$html .= $this->drawer_foot();
 		$html .= '</div>';
 		if ( 'outside' === $d['close_position'] ) {
@@ -309,7 +326,7 @@ final class Renderer {
 			$html .= '<a class="imm-cta" href="' . esc_url( $d['cta']['url'] ) . '">' . esc_html( $d['cta']['label'] ) . '</a>';
 		}
 		if ( $d['whatsapp']['enabled'] && '' !== $d['whatsapp']['number'] ) {
-			$html .= '<a class="imm-wa" href="' . esc_url( self::whatsapp_url( $d['whatsapp']['number'], $d['whatsapp']['message'] ) ) . '" target="_blank" rel="noopener">'
+			$html .= '<a class="imm-wa" href="' . esc_url( self::whatsapp_url( $d['whatsapp']['number'], $d['whatsapp']['message'] ) ) . '" target="_blank" rel="noopener"' . $this->hours_attr( $d['whatsapp']['hours'] ) . '>'
 				. $this->icons->use( 'si-whatsapp' ) . '<span>' . esc_html( $d['whatsapp']['label'] ) . '</span></a>';
 		}
 		if ( $d['footer_links'] ) {
@@ -332,6 +349,46 @@ final class Renderer {
 		return '' === $html ? '' : '<footer class="imm-d-foot">' . $html . '</footer>';
 	}
 
+	private function now(): int {
+		return (int) ( $this->site['now'] ?? time() );
+	}
+
+	/**
+	 * Horario de atención de WhatsApp: el navegador cambia el texto fuera de horario (las páginas
+	 * están en caché, así que no lo puede decidir el servidor). Días|desde|hasta|desfase UTC en minutos.
+	 *
+	 * @param array<string, mixed> $hours
+	 */
+	private function hours_attr( array $hours ): string {
+		if ( empty( $hours['enabled'] ) || ! $hours['days'] ) {
+			return '';
+		}
+		$offset = function_exists( 'wp_timezone' ) ? (int) round( wp_timezone()->getOffset( new \DateTimeImmutable( '@' . $this->now() ) ) / 60 ) : 0;
+		return self::attrs(
+			array(
+				'data-imm-hours' => implode( ',', $hours['days'] ) . '|' . $hours['from'] . '|' . $hours['to'] . '|' . $offset,
+				'data-off'       => (string) $hours['off_label'],
+			)
+		);
+	}
+
+	/**
+	 * Banners de promoción: carrusel con scroll-snap (sin JS). Las imágenes se cargan al abrir el
+	 * panel (loading="lazy" dentro de un diálogo cerrado). Solo los vigentes (campañas).
+	 */
+	private function banners(): string {
+		$list = array_values( array_filter( $this->profile['drawer']['banners'], fn( $b ) => Schedule::active( $b, $this->now() ) ) );
+		if ( ! $list ) {
+			return '';
+		}
+		$html = '<section class="imm-banners' . ( count( $list ) > 1 ? ' imm-bn-many' : '' ) . '" aria-label="' . esc_attr( $this->s( 'Promociones' ) ) . '"><ul class="imm-bn-track" role="list">';
+		foreach ( $list as $b ) {
+			$img = '<img src="' . esc_url( $b['image']['url'] ) . '" alt="' . esc_attr( $b['alt'] ) . '" loading="lazy" decoding="async">';
+			$html .= '<li>' . ( '' !== $b['url'] ? '<a class="imm-bn" href="' . esc_url( $b['url'] ) . '">' . $img . '</a>' : '<span class="imm-bn">' . $img . '</span>' ) . '</li>';
+		}
+		return $html . '</ul></section>';
+	}
+
 	/** @param list<array<string, mixed>> $items */
 	private function items( array $items, int $depth = 0 ): string {
 		$html = '';
@@ -350,6 +407,10 @@ final class Renderer {
 
 	/** @param array<string, mixed> $item */
 	private function visible( array $item ): bool {
+		// Campaña programada: fuera de sus fechas el ítem no se compila (Core\Schedule recompila en cada límite).
+		if ( ! empty( $item['schedule'] ) && ! Schedule::active( (array) $item['schedule'], $this->now() ) ) {
+			return false;
+		}
 		return match ( $item['visibility'] ?? 'any' ) {
 			'logged_in'  => 'user' === $this->variant,
 			'logged_out' => 'guest' === $this->variant,
@@ -590,6 +651,39 @@ final class Renderer {
 		return $html;
 	}
 
+	// ── Barra superior móvil ────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Barra superior tipo app (Amazon, Mercado Libre): se imprime al inicio del <body> y con los
+	 * iconos en línea, para verse en el primer pintado. Su alto queda reservado en el CSS crítico
+	 * (CLS = 0). Los botones abren el panel y el buscador con popovertarget (sin JS).
+	 */
+	private function app_bar(): string {
+		$a     = $this->profile['app_bar'];
+		$keep  = 'top' === $a['hide_on_scroll'] && $a['search'];
+		$class = 'imm-appbar' . ( $keep ? ' imm-ab-keep' : '' );
+		$html  = '<div class="' . $class . '" role="navigation" aria-label="' . esc_attr( $this->s( 'Barra superior' ) ) . '"' . ( 'none' !== $a['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . '><div class="imm-ab-row">';
+		if ( $this->profile['drawer']['enabled'] ) {
+			$html .= '<button type="button" class="imm-ab-btn" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open>' . $this->icons->inline( $this->profile['trigger']['icon'] ) . '</button>';
+		}
+		$logo  = $a['logo'] && '' !== ( $this->site['logo'] ?? '' )
+			? '<img src="' . esc_url( $this->site['logo'] ) . '" alt="' . esc_attr( $this->site['name'] ) . '" height="28" decoding="async">'
+			: esc_html( $this->site['name'] );
+		$html .= '<a class="imm-ab-logo" href="' . esc_url( $this->site['home_url'] ) . '">' . $logo . '</a><span class="imm-ab-sp"></span>';
+		if ( $a['account'] && '' !== ( $this->site['account_url'] ?? '' ) ) {
+			$html .= '<a class="imm-ab-btn" href="' . esc_url( $this->site['account_url'] ) . '" aria-label="' . esc_attr( $this->s( 'Mi cuenta' ) ) . '">' . $this->icons->inline( 'user-round' ) . '</a>';
+		}
+		if ( $a['cart'] && '' !== ( $this->site['cart_url'] ?? '' ) ) {
+			$html .= '<a class="imm-ab-btn" href="' . esc_url( $this->site['cart_url'] ) . '" aria-label="' . esc_attr( $this->s( 'Carrito' ) ) . '">' . $this->icons->inline( 'shopping-cart' )
+				. '<span class="imm-badge imm-bb-badge" data-imm-count="cart" hidden></span></a>';
+		}
+		$html .= '</div>';
+		if ( $a['search'] ) {
+			$html .= '<div class="imm-ab-search"><button type="button" class="imm-ab-field" popovertarget="imm-search" data-imm-search>' . $this->icons->inline( 'search' ) . '<span>' . esc_html( $this->profile['search']['placeholder'] ) . '</span></button></div>';
+		}
+		return $html . '</div>';
+	}
+
 	// ── Barra inferior ──────────────────────────────────────────────────────────────────────────
 
 	private function bottom_bar(): string {
@@ -624,6 +718,10 @@ final class Renderer {
 			case 'account':
 				$url = (string) ( $this->site['account_url'] ?? '' );
 				break;
+			case 'wishlist':
+				// Página de favoritos de YITH o TI Wishlist; si se escribió un enlace, manda ese.
+				$url = '' !== (string) $item['url'] ? \ImaginaMenu\Sources\SourceResolver::absolute( (string) $item['url'] ) : (string) ( $this->site['wishlist_url'] ?? '' );
+				break;
 			case 'whatsapp':
 				$url = self::whatsapp_url( (string) $item['url'], '' );
 				return '<a' . $attrs . ' href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . $inner . '</a>';
@@ -642,6 +740,9 @@ final class Renderer {
 	private function bottom_badge( array $item ): string {
 		if ( 'cart' === $item['badge'] || ( 'cart' === $item['action'] && 'none' !== $item['badge'] ) ) {
 			return '<span class="imm-badge imm-bb-badge" data-imm-count="cart" hidden></span>';
+		}
+		if ( 'wishlist' === $item['badge'] || ( 'wishlist' === $item['action'] && 'none' !== $item['badge'] ) ) {
+			return '<span class="imm-badge imm-bb-badge" data-imm-count="wishlist" hidden></span>';
 		}
 		if ( 'custom' === $item['badge'] && '' !== $item['badge_text'] ) {
 			return '<span class="imm-badge imm-bb-badge">' . esc_html( $item['badge_text'] ) . '</span>';

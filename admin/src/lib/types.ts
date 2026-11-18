@@ -25,7 +25,13 @@ export interface AnalyticsSettings {
 	retention: number;
 }
 
-export type RuleType = 'front_page' | 'blog' | 'page' | 'post_type' | 'term' | 'woo' | 'url' | 'logged_in' | 'logged_out' | 'role' | 'language';
+export type RuleType = 'front_page' | 'blog' | 'page' | 'post_type' | 'term' | 'woo' | 'url' | 'logged_in' | 'logged_out' | 'role' | 'language' | 'date';
+
+/** Campaña: fechas en la hora del sitio, formato de <input type="datetime-local"> («2026-11-27T00:00»). */
+export interface Window {
+	from: string;
+	to: string;
+}
 
 export interface RuleCondition {
 	type: RuleType;
@@ -67,6 +73,8 @@ export interface MenuItem {
 	image: { id: number; url: string };
 	badge: { text: string; style: BadgeStyle };
 	description: string;
+	/** El ítem solo aparece entre estas fechas. */
+	schedule: Window;
 	highlight: boolean;
 	view_all: boolean;
 	target: '_self' | '_blank';
@@ -84,7 +92,7 @@ export interface Menu {
 	items: MenuItem[];
 }
 
-export type BottomAction = 'link' | 'drawer' | 'search' | 'cart' | 'account' | 'whatsapp' | 'phone' | 'top';
+export type BottomAction = 'link' | 'drawer' | 'search' | 'cart' | 'account' | 'wishlist' | 'whatsapp' | 'phone' | 'top';
 
 export interface BottomItem {
 	id: string;
@@ -92,7 +100,7 @@ export interface BottomItem {
 	label: string;
 	icon: string;
 	url: string;
-	badge: 'none' | 'cart' | 'custom';
+	badge: 'none' | 'cart' | 'wishlist' | 'custom';
 	badge_text: string;
 	prominent: boolean;
 }
@@ -161,7 +169,15 @@ export interface Profile {
 		open_active: boolean;
 		remember_level: boolean;
 		swipe_close: boolean;
-		whatsapp: { enabled: boolean; number: string; message: string; label: string };
+		whatsapp: {
+			enabled: boolean;
+			number: string;
+			message: string;
+			label: string;
+			hours: { enabled: boolean; days: number[]; from: string; to: string; off_label: string };
+		};
+		banners: ( { image: { id: number; url: string }; url: string; alt: string } & Window )[];
+		banners_position: 'top' | 'bottom';
 		cta: { enabled: boolean; label: string; url: string };
 		footer_links: { label: string; url: string; icon: string }[];
 		social: { network: string; url: string }[];
@@ -183,6 +199,14 @@ export interface Profile {
 		recent: boolean;
 		/** auto: Imagina Search si está activo; native: el buscador propio. */
 		provider: 'auto' | 'native';
+	};
+	app_bar: {
+		enabled: boolean;
+		logo: boolean;
+		account: boolean;
+		cart: boolean;
+		search: boolean;
+		hide_on_scroll: 'none' | 'top' | 'all';
 	};
 	desktop: {
 		enabled: boolean;
@@ -232,6 +256,8 @@ export interface Env {
 	theme: { name: string; template: string; selectors: string[] };
 	optimizers: { name: string; advice: string }[];
 	imagina_turbo: boolean;
+	/** Plugin de favoritos activo: YITH o TI Wishlist. */
+	wishlist?: 'yith' | 'ti' | '';
 	/** Versión de Imagina Search (Woo Smart Search) si está activo; '' si no. */
 	imagina_search: string | boolean;
 	writable: boolean;

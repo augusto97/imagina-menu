@@ -83,7 +83,19 @@ final class Defaults {
 					'number'  => '',
 					'message' => '',
 					'label'   => 'Escríbenos por WhatsApp',
+					// Horario de atención (hora del sitio). Fuera de horario el botón muestra off_label;
+					// lo decide el navegador (las páginas están en caché).
+					'hours'   => array(
+						'enabled'   => false,
+						'days'      => array( 1, 2, 3, 4, 5 ), // 0 = domingo … 6 = sábado
+						'from'      => '08:00',
+						'to'        => '18:00',
+						'off_label' => 'Déjanos tu mensaje',
+					),
 				),
+				// Banners de promoción: [{image: {id, url}, url, alt, from, to}] (from/to: campaña programada).
+				'banners'          => array(),
+				'banners_position' => 'top', // top (bajo el buscador) | bottom (antes del pie)
 				'cta'              => array(
 					'enabled' => false,
 					'label'   => '',
@@ -108,6 +120,16 @@ final class Defaults {
 				'popular'     => array(), // [string]
 				'recent'      => true,
 				'provider'    => 'auto', // auto (Imagina Search si está activo) | native
+			),
+			// Barra superior móvil (app bar): hamburguesa, logo, cuenta, carrito y, debajo, el buscador
+			// siempre a la vista (Amazon, Mercado Libre). Se imprime al inicio del <body> (wp_body_open).
+			'app_bar'             => array(
+				'enabled'        => false,
+				'logo'           => true, // logo del sitio (sin logo: el nombre)
+				'account'        => true,
+				'cart'           => true,
+				'search'         => true, // campo de búsqueda debajo (abre el buscador)
+				'hide_on_scroll' => 'top', // none | top (al bajar queda el buscador) | all
 			),
 			// Escritorio: el mismo panel con un botón tipo «☰ Todo» (Amazon) o con submenús en columnas
 			// a la derecha (Falabella, Mercado Libre). Se decide con CSS a partir del breakpoint.
@@ -164,6 +186,11 @@ final class Defaults {
 				'style' => 'sale', // new | sale | hot | info
 			),
 			'description' => '',
+			// Campaña: el ítem solo aparece entre estas fechas (hora del sitio, «2026-11-27T00:00»).
+			'schedule'    => array(
+				'from' => '',
+				'to'   => '',
+			),
 			'highlight'   => false,
 			'view_all'    => true,
 			'target'      => '_self',

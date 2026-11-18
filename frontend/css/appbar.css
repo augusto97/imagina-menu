@@ -1,0 +1,130 @@
+/*
+ * Barra superior móvil (app bar). Va en el CSS crítico solo si el perfil la usa; el compilador la
+ * envuelve en @media (max-width: breakpoint) y reserva su alto en el <body> (CLS = 0).
+ * Colores de la cabecera del panel (--imm-head-bg / --imm-head-fg).
+ */
+.imm-appbar {
+	position: fixed;
+	top: var(--wp-admin--admin-bar--height, 0px);
+	right: 0;
+	left: 0;
+	z-index: 99990;
+	padding-top: env(safe-area-inset-top, 0px);
+	background: var(--imm-head-bg, #111);
+	box-shadow: 0 1px 0 rgb(0 0 0 / .08), 0 4px 14px -8px rgb(0 0 0 / .3);
+	color: var(--imm-head-fg, #fff);
+	font-family: var(--imm-ff, inherit);
+	transition: transform .25s var(--imm-ease, ease);
+}
+
+.imm-appbar.imm-hidden {
+	transform: translateY(-100%);
+}
+
+.imm-ab-keep.imm-hidden {
+	transform: translateY(-52px);
+}
+
+.imm-ab-row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	height: 52px;
+	padding: 0 6px;
+}
+
+.imm-ab-sp {
+	flex: 1;
+}
+
+button.imm-ab-btn,
+a.imm-ab-btn {
+	display: inline-flex;
+	position: relative;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	color: inherit;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.imm-ab-btn .imm-i {
+	width: 24px;
+	height: 24px;
+}
+
+.imm-ab-btn .imm-bb-badge {
+	position: absolute;
+	top: 4px;
+	right: 0;
+}
+
+a.imm-ab-logo {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	padding: 0 4px;
+	overflow: hidden;
+	color: inherit;
+	font-size: 17px;
+	font-weight: 700;
+	text-decoration: none;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.imm-ab-logo img {
+	display: block;
+	width: auto;
+	max-width: 150px;
+	height: 28px;
+	object-fit: contain;
+}
+
+.imm-ab-search {
+	padding: 0 10px 8px;
+}
+
+button.imm-ab-field {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	height: 42px;
+	margin: 0;
+	padding: 0 16px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--imm-bg, #fff);
+	color: var(--imm-muted, #62626b);
+	font: inherit;
+	font-size: 15px;
+	text-align: start;
+	cursor: text;
+}
+
+.imm-ab-field .imm-i {
+	width: 18px;
+	height: 18px;
+}
+
+.imm-ab-btn:focus-visible,
+.imm-ab-field:focus-visible,
+.imm-ab-logo:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.imm-appbar {
+		transition: none;
+	}
+}

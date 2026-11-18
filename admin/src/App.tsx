@@ -9,6 +9,7 @@ import { useStore } from './lib/store';
 import { AnalyticsScreen } from './screens/Analytics';
 import { BottomBarScreen } from './screens/BottomBar';
 import { Builder } from './screens/Builder';
+import { AppBarScreen } from './screens/AppBar';
 import { Design } from './screens/Design';
 import { DesktopScreen } from './screens/Desktop';
 import { DrawerScreen } from './screens/Drawer';
@@ -50,6 +51,7 @@ export function App() {
 				{ route === 'panel-lateral' && <DrawerScreen /> }
 				{ route === 'barra' && <BottomBarScreen /> }
 				{ route === 'buscador' && <SearchScreen /> }
+				{ route === 'barra-superior' && <AppBarScreen /> }
 				{ route === 'escritorio' && <DesktopScreen /> }
 				{ route === 'diseno' && <Design /> }
 				{ route === 'analitica' && <AnalyticsScreen /> }

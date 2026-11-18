@@ -55,6 +55,7 @@ final class Environment {
 			),
 			'optimizers'       => self::optimizers(),
 			'imagina_turbo'    => defined( 'ITB_VERSION' ),
+			'wishlist'         => Wishlist::provider(),
 			// Imagina Search es el plugin «Woo Smart Search» (carpeta woo-smart-search).
 			'imagina_search'   => SmartSearch::active() ? SmartSearch::version() : '',
 			'writable'         => wp_is_writable( WP_CONTENT_DIR ),

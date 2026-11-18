@@ -31,6 +31,9 @@ final class Frontend {
 
 	private static bool $preview = false;
 
+	/** La barra superior ya se imprimió al inicio del <body>. */
+	private static bool $appbar_done = false;
+
 	public static function boot(): void {
 		if ( is_admin() || ( defined( 'IMM_DISABLE' ) && IMM_DISABLE ) ) {
 			return;
@@ -98,6 +101,7 @@ final class Frontend {
 
 		add_action( 'wp_head', array( self::class, 'head' ), 2 );
 		add_action( 'wp_footer', array( self::class, 'footer' ), 5 );
+		add_action( 'wp_body_open', array( self::class, 'body_open' ), 1 );
 		add_action( 'wp_enqueue_scripts', array( self::class, 'enqueue' ), 20 );
 	}
 
@@ -127,6 +131,17 @@ final class Frontend {
 		echo '<style id="imm-critical">' . $css . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS compilado desde valores validados.
 	}
 
+	/** Barra superior al inicio del <body>: visible en el primer pintado (su alto está reservado). */
+	public static function body_open(): void {
+		$p = self::$profile;
+		if ( ! $p || '' === ( $p['parts']['appbar'] ?? '' ) || self::$appbar_done ) {
+			return;
+		}
+		self::$appbar_done = true;
+		$html              = self::finish( $p['parts']['appbar'] );
+		echo self::$preview ? Preview::fingerprint( $html ) : $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML renderizado y escapado al compilar.
+	}
+
 	public static function footer(): void {
 		$p = self::$profile;
 		if ( ! $p ) {
@@ -142,7 +157,9 @@ final class Frontend {
 		}
 
 		$search = SmartSearch::apply( $parts['search'], (string) ( $p['search'] ?? 'auto' ) );
-		$list   = array( $p['sprite'], $parts['fab'], $drawer, $search, self::$show_bbar ? $parts['bbar'] : '' );
+		// Temas sin wp_body_open: la barra superior va aquí (fija arriba igual; su alto ya está reservado).
+		$appbar = self::$appbar_done ? '' : (string) ( $parts['appbar'] ?? '' );
+		$list   = array( $appbar, $p['sprite'], $parts['fab'], $drawer, $search, self::$show_bbar ? $parts['bbar'] : '' );
 		if ( self::$preview ) {
 			// Vista previa en vivo: cada parte lleva una huella para cambiar solo las que cambiaron.
 			$html = '';
@@ -205,17 +222,44 @@ final class Frontend {
 		return plugins_url( 'assets/dist/core.js', IMM_FILE ) . '?ver=' . IMM_VERSION;
 	}
 
-	/** Lo que depende de la página: el enlace actual y el selector de idioma. */
+	/** Lo que depende de la página: el enlace actual, el selector de idioma y el mensaje de WhatsApp. */
 	private static function finish( string $html ): string {
 		if ( '' === $html ) {
 			return '';
 		}
 		$html = self::mark_current( $html );
+		if ( str_contains( $html, Renderer::PAGE_TITLE_TOKEN ) || str_contains( $html, Renderer::PAGE_URL_TOKEN ) ) {
+			list( $title, $url ) = self::page_context();
+			$html = str_replace( array( Renderer::PAGE_TITLE_TOKEN, Renderer::PAGE_URL_TOKEN ), array( rawurlencode( $title ), rawurlencode( $url ) ), $html );
+		}
 		// Después de marcar la página actual: el selector de idioma marca el suyo.
 		if ( str_contains( $html, Renderer::LANGS_TOKEN ) ) {
 			$html = str_replace( Renderer::LANGS_TOKEN, Languages::switcher(), $html );
 		}
 		return $html;
+	}
+
+	/**
+	 * Título y URL de lo que se está viendo (producto, categoría o página), para el mensaje de
+	 * WhatsApp: «Hola, me interesa {titulo}». Solo se calcula si el mensaje los usa.
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	private static function page_context(): array {
+		$id = (int) get_queried_object_id();
+		if ( is_singular() && $id ) {
+			return array( wp_strip_all_tags( get_the_title( $id ) ), (string) get_permalink( $id ) );
+		}
+		$object = get_queried_object();
+		if ( $object instanceof \WP_Term ) {
+			$link = get_term_link( $object );
+			return array( $object->name, is_string( $link ) ? $link : home_url( '/' ) );
+		}
+		// Ruta pedida sobre el dominio del sitio (nunca la cabecera Host, que la pone el cliente).
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- se escapa abajo.
+		$home = (array) wp_parse_url( home_url() );
+		$base = ( $home['scheme'] ?? 'https' ) . '://' . ( $home['host'] ?? '' ) . ( isset( $home['port'] ) ? ':' . $home['port'] : '' );
+		return array( wp_strip_all_tags( (string) get_bloginfo( 'name' ) ), esc_url_raw( $base . (string) strtok( $uri, '?#' ) ) );
 	}
 
 	/**

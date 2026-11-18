@@ -3,7 +3,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import { ArrowRight, ChevronDown, Filter, GripVertical, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
-import { PageHeader, Segmented } from '@/components/common';
+import { DateRange, PageHeader, Segmented } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { ObjectSearch } from './builder/ObjectSearch';
 
 /** Tipos de condición: etiqueta, qué pide y cómo se lee en el resumen. */
-const TYPES: { value: RuleType; label: string; needs: 'none' | 'ids' | 'post_type' | 'term' | 'woo' | 'text' | 'role' | 'language'; hint: string }[] = [
+const TYPES: { value: RuleType; label: string; needs: 'none' | 'ids' | 'post_type' | 'term' | 'woo' | 'text' | 'role' | 'language' | 'date'; hint: string }[] = [
 	{ value: 'front_page', label: __( 'Portada' ), needs: 'none', hint: __( 'La página de inicio del sitio.' ) },
 	{ value: 'blog', label: __( 'Blog' ), needs: 'none', hint: __( 'Página de entradas y archivos del blog.' ) },
 	{ value: 'page', label: __( 'Páginas concretas' ), needs: 'ids', hint: __( 'Páginas, entradas o productos que elijas.' ) },
@@ -31,6 +31,7 @@ const TYPES: { value: RuleType; label: string; needs: 'none' | 'ids' | 'post_typ
 	{ value: 'logged_out', label: __( 'Visitante sin sesión' ), needs: 'none', hint: __( 'Visitantes anónimos.' ) },
 	{ value: 'role', label: __( 'Rol del usuario' ), needs: 'role', hint: __( 'Por ejemplo cliente o mayorista.' ) },
 	{ value: 'language', label: __( 'Idioma' ), needs: 'language', hint: __( 'Con WPML, Polylang o TranslatePress.' ) },
+	{ value: 'date', label: __( 'Fechas (campaña)' ), needs: 'date', hint: __( 'Entre dos fechas, en la hora del sitio: Hot Sale, CyberLunes, Black Friday…' ) },
 ];
 
 const WOO = [
@@ -51,8 +52,20 @@ function typeInfo( type: RuleType ) {
 
 function defaultCondition( type: RuleType, env: Env | null ): RuleCondition {
 	const value =
-		type === 'woo' ? 'any' : type === 'post_type' ? env?.post_types?.[ 0 ]?.slug ?? 'post' : type === 'term' ? env?.taxonomies?.[ 0 ]?.slug ?? 'category' : type === 'role' ? env?.roles?.[ 0 ]?.slug ?? '' : type === 'language' ? env?.languages?.[ 0 ]?.code ?? '' : '';
+		type === 'date' ? today() + 'T00:00|' : type === 'woo' ? 'any' : type === 'post_type' ? env?.post_types?.[ 0 ]?.slug ?? 'post' : type === 'term' ? env?.taxonomies?.[ 0 ]?.slug ?? 'category' : type === 'role' ? env?.roles?.[ 0 ]?.slug ?? '' : type === 'language' ? env?.languages?.[ 0 ]?.code ?? '' : '';
 	return { type, not: false, value, ids: [] };
+}
+
+/** Hoy en la hora del navegador («2026-11-27»), para la primera fecha de una campaña. */
+function today(): string {
+	const d = new Date();
+	return `${ d.getFullYear() }-${ String( d.getMonth() + 1 ).padStart( 2, '0' ) }-${ String( d.getDate() ).padStart( 2, '0' ) }`;
+}
+
+/** «27/11/2026 00:00» para mostrar una fecha guardada. */
+export function formatWhen( value: string ): string {
+	const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})$/.exec( value );
+	return m ? `${ m[ 3 ] }/${ m[ 2 ] }/${ m[ 1 ] } ${ m[ 4 ] }` : '';
 }
 
 /** Resumen legible de una condición: «es Portada», «no es WooCommerce: Carrito». */
@@ -82,6 +95,11 @@ function describe( c: RuleCondition, env: Env | null ): string {
 		case 'language':
 			detail = env?.languages?.find( ( l ) => l.code === c.value )?.name ?? c.value;
 			break;
+		case 'date': {
+			const [ from = '', to = '' ] = c.value.split( '|' );
+			detail = [ from && __( 'desde' ) + ' ' + formatWhen( from ), to && __( 'hasta' ) + ' ' + formatWhen( to ) ].filter( Boolean ).join( ' ' ) || '—';
+			break;
+		}
 	}
 	return ( c.not ? __( 'no es' ) + ' ' : '' ) + info.label + ( detail ? ': ' + detail : '' );
 }
@@ -395,6 +413,15 @@ function ConditionValue( { condition: c, env, onChange }: { condition: RuleCondi
 					) ) }
 				</Select>
 			);
+		case 'date': {
+			const [ from = '', to = '' ] = c.value.split( '|' );
+			return (
+				<div className="imm:flex imm:flex-col imm:gap-1.5">
+					<DateRange from={ from } to={ to } onChange={ ( w ) => onChange( { value: `${ w.from }|${ w.to }` } ) } />
+					<span className="imm:text-xs imm:text-zinc-500">{ __( 'Al empezar y al terminar, el menú se actualiza y se vacía la caché solos.' ) }</span>
+				</div>
+			);
+		}
 		case 'language':
 			return (
 				<Select value={ c.value } onChange={ ( e ) => onChange( { value: e.target.value } ) } className={ small } aria-label={ __( 'Idioma' ) }>

@@ -21,6 +21,7 @@ const ACTIONS: { value: BottomAction; label: string; hint: string; icon: string 
 	{ value: 'search', label: __( 'Buscar' ), hint: __( 'Abre el buscador a pantalla completa.' ), icon: 'search' },
 	{ value: 'cart', label: __( 'Carrito' ), hint: __( 'Página del carrito con contador.' ), icon: 'shopping-cart' },
 	{ value: 'account', label: __( 'Cuenta' ), hint: __( 'Mi cuenta o inicio de sesión.' ), icon: 'user' },
+	{ value: 'wishlist', label: __( 'Favoritos' ), hint: __( 'Lista de favoritos de YITH o TI Wishlist, con contador.' ), icon: 'heart' },
 	{ value: 'whatsapp', label: 'WhatsApp', hint: __( 'Abre un chat con tu número.' ), icon: 'si-whatsapp' },
 	{ value: 'phone', label: __( 'Llamar' ), hint: __( 'Marca un teléfono.' ), icon: 'phone' },
 	{ value: 'top', label: __( 'Volver arriba' ), hint: __( 'Sube al inicio de la página.' ), icon: 'arrow-up' },
@@ -116,11 +117,11 @@ export function BottomBarScreen() {
 								onChange={ ( e ) => {
 									const action = e.target.value as BottomAction;
 									const def = ACTIONS.find( ( a ) => a.value === action );
-									setItems( items.map( ( i, j ) => ( j === currentIndex ? { ...i, action, icon: i.icon === ACTIONS.find( ( a ) => a.value === i.action )?.icon ? def?.icon ?? i.icon : i.icon, badge: action === 'cart' ? 'cart' : i.badge === 'cart' ? 'none' : i.badge } : i ) ) );
+									setItems( items.map( ( i, j ) => ( j === currentIndex ? { ...i, action, icon: i.icon === ACTIONS.find( ( a ) => a.value === i.action )?.icon ? def?.icon ?? i.icon : i.icon, badge: action === 'cart' || action === 'wishlist' ? action : i.badge === 'cart' || i.badge === 'wishlist' ? 'none' : i.badge } : i ) ) );
 								} }
 							>
 								{ ACTIONS.map( ( a ) => (
-									<option key={ a.value } value={ a.value } disabled={ a.value === 'cart' && ! env?.woo }>
+									<option key={ a.value } value={ a.value } disabled={ ( a.value === 'cart' && ! env?.woo ) || ( a.value === 'wishlist' && ! env?.wishlist ) }>
 										{ a.label }
 									</option>
 								) ) }
@@ -144,6 +145,7 @@ export function BottomBarScreen() {
 								<Select value={ current.badge } className="imm:w-40" onChange={ ( e ) => setItems( items.map( ( i, j ) => ( j === currentIndex ? { ...i, badge: e.target.value as BottomItem[ 'badge' ] } : i ) ) ) }>
 									<option value="none">{ __( 'Ninguna' ) }</option>
 									<option value="cart">{ __( 'Contador del carrito' ) }</option>
+									{ env?.wishlist && <option value="wishlist">{ __( 'Contador de favoritos' ) }</option> }
 									<option value="custom">{ __( 'Texto fijo' ) }</option>
 								</Select>
 								{ current.badge === 'custom' && <Input value={ current.badge_text } maxLength={ 6 } placeholder="2x1" className="imm:w-20" onChange={ ( e ) => setItems( items.map( ( i, j ) => ( j === currentIndex ? { ...i, badge_text: e.target.value } : i ) ) ) } /> }
@@ -248,7 +250,7 @@ function MockItem( { item, index, active, selected, onSelect, profile }: { item:
 						<IconView name={ item.icon } className="imm:size-5" />
 						{ item.badge !== 'none' && (
 							<span className="imm:absolute imm:-top-1 imm:right-0 imm:min-w-4 imm:rounded-full imm:px-1 imm:text-center imm:text-[10px] imm:leading-4 imm:font-bold" style={ { background: String( t.badge_bg ), color: String( t.badge_fg ) } }>
-								{ item.badge === 'cart' ? '2' : item.badge_text || '•' }
+								{ item.badge === 'cart' || item.badge === 'wishlist' ? '2' : item.badge_text || '•' }
 							</span>
 						) }
 					</span>

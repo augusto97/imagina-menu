@@ -28,6 +28,18 @@ final class Icons {
 		return '<svg class="' . esc_attr( $class ) . '" aria-hidden="true"><use href="#imm-i-' . esc_attr( $name ) . '"/></svg>';
 	}
 
+	/**
+	 * Icono con su dibujo dentro (sin <use>): para lo que se ve en el primer pintado, antes de que
+	 * llegue el sprite del final del <body> (barra superior).
+	 */
+	public function inline( string $name, string $class = 'imm-i' ): string {
+		$name = $this->resolve( $name );
+		if ( '' === $name || str_starts_with( $name, 'si-' ) ) {
+			return '';
+		}
+		return '<svg class="' . esc_attr( $class ) . '" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ( self::library()['lucide'][ $name ] ?? '' ) . '</svg>';
+	}
+
 	public function exists( string $name ): bool {
 		return '' !== $this->resolve( $name );
 	}

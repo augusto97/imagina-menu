@@ -34,6 +34,9 @@ final class Compiler {
 	/** @var array<string, string> Cadenas traducibles encontradas. */
 	private array $strings = array();
 
+	/** @var list<int> Inicios y fines de campañas (Core\Schedule). */
+	private array $bounds = array();
+
 	public function __construct(
 		private MenuRepository $menus,
 		private ProfileRepository $profiles,
@@ -58,6 +61,8 @@ final class Compiler {
 		try {
 			$config   = $this->build( false );
 			$previous = $this->state();
+			$bounds   = $config['bounds'];
+			unset( $config['bounds'] );
 			// Si nada cambió (p. ej. se editó una categoría que no sale en el menú), no se reescribe ni se
 			// vacía la caché de todo el sitio.
 			$same = ( $previous['hash'] ?? '' ) === $config['hash'] && ! empty( $previous['ok'] ) && null !== Storage::load();
@@ -81,6 +86,7 @@ final class Compiler {
 				update_option( 'imm_i18n_strings', $config['strings'], false );
 				\ImaginaMenu\Analytics\Stats::sync_schedule( ! empty( $config['settings']['analytics_server'] ) );
 				Storage::cleanup( array_values( array_filter( array_column( $config['profiles'], 'css_url' ) ) ) );
+				$state['next_change'] = \ImaginaMenu\Core\Schedule::sync( $bounds );
 				if ( $purge && ! $same ) {
 					$state['purged'] = CachePurge::purge_all();
 				}
@@ -116,10 +122,12 @@ final class Compiler {
 		$this->resolver = new SourceResolver();
 		$this->labels   = array();
 		$this->strings  = array();
+		$this->bounds   = array();
 		$settings       = $this->settings->get();
 		$menus    = array();
 		foreach ( $this->menus->all( $draft ) as $menu ) {
 			$menus[ (int) $menu['id'] ] = $menu;
+			$this->item_bounds( $menu['items'] );
 		}
 
 		$profiles = array();
@@ -160,6 +168,7 @@ final class Compiler {
 			'labels'   => $this->labels,
 			'strings'  => $this->strings,
 			'languages' => array_values( array_filter( Languages::compiled() ) ),
+			'bounds'   => array_values( array_unique( $this->bounds ) ),
 		);
 		// Ids válidos para /hit (solo con la analítica en el servidor): el endpoint rechaza los demás.
 		if ( ! empty( $config['settings']['analytics_server'] ) ) {
@@ -198,6 +207,9 @@ final class Compiler {
 		$langs        = Languages::compiled();
 		$default_lang = Languages::default();
 		$cfg          = self::client_config( $profile, $settings, $draft );
+		foreach ( $profile['drawer']['banners'] as $banner ) {
+			array_push( $this->bounds, ...\ImaginaMenu\Core\Schedule::bounds( $banner ) );
+		}
 		$i18n         = array();
 		$count        = 0;
 
@@ -223,6 +235,7 @@ final class Compiler {
 				$depth = (string) $settings['html_depth'];
 				SourceResolver::set_home( Languages::home( $lang ) );
 				$site  = self::site( $p, $lang ) + array(
+					'now'          => time(),
 					'hybrid'       => 'hybrid' === $depth || ( 'auto' === $depth && self::count_items( $items ) > self::HYBRID_FROM ),
 					'multilingual' => in_array( $provider, array( 'wpml', 'polylang' ), true ),
 					'cfg'          => $cfg,
@@ -264,7 +277,7 @@ final class Compiler {
 		return array(
 			'id'           => (int) $profile['id'],
 			'title'        => (string) $profile['title'],
-			'rules'        => self::expand_rules( $profile['rules'] ),
+			'rules'        => $this->expand_rules( $profile['rules'] ),
 			'parts'        => $main['parts'],
 			'sprite'       => $main['sprite'],
 			'i18n'         => $i18n,
@@ -294,8 +307,18 @@ final class Compiler {
 	 * @param array<string, mixed> $rules
 	 * @return array<string, mixed>
 	 */
-	private static function expand_rules( array $rules ): array {
+	private function expand_rules( array $rules ): array {
 		foreach ( $rules['conditions'] as $i => $c ) {
+			if ( 'date' === $c['type'] ) {
+				list( $from, $to ) = array_pad( explode( '|', (string) $c['value'] ), 2, '' );
+				$window = array(
+					'from' => $from,
+					'to'   => $to,
+				);
+				$rules['conditions'][ $i ]['span'] = array( \ImaginaMenu\Core\Schedule::ts( $from ), \ImaginaMenu\Core\Schedule::ts( $to ) );
+				array_push( $this->bounds, ...\ImaginaMenu\Core\Schedule::bounds( $window ) );
+				continue;
+			}
 			if ( 'term' !== $c['type'] || ! $c['ids'] || ! taxonomy_exists( $c['value'] ) ) {
 				continue;
 			}
@@ -309,6 +332,20 @@ final class Compiler {
 			$rules['conditions'][ $i ]['all'] = array_values( array_unique( $all ) );
 		}
 		return $rules;
+	}
+
+	/**
+	 * Límites de las campañas de ítems (recursivo).
+	 *
+	 * @param list<array<string, mixed>> $items
+	 */
+	private function item_bounds( array $items ): void {
+		foreach ( $items as $item ) {
+			if ( ! empty( $item['schedule'] ) ) {
+				array_push( $this->bounds, ...\ImaginaMenu\Core\Schedule::bounds( (array) $item['schedule'] ) );
+			}
+			$this->item_bounds( (array) ( $item['children'] ?? array() ) );
+		}
 	}
 
 	/**
@@ -377,6 +414,7 @@ final class Compiler {
 			'home_url'         => $home,
 			'account_url'      => $account,
 			'cart_url'         => $woo ? $page( 'woocommerce_cart_page_id' ) : '',
+			'wishlist_url'     => \ImaginaMenu\Integrations\Wishlist::url(),
 			'search_post_type' => $post_type,
 		);
 	}

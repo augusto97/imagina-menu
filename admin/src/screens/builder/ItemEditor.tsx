@@ -2,7 +2,7 @@ import { ChevronDown, Link2, Link2Off, Unlink } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { IconPicker } from '@/components/IconPicker';
 import { MediaField } from '@/components/MediaField';
-import { Segmented } from '@/components/common';
+import { DateRange, Segmented } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -174,9 +174,13 @@ export function ItemEditor( { item, onChange, onReplace }: { item: MenuItem; onC
 				<Input value={ item.description } maxLength={ 160 } onChange={ ( e ) => set( 'description', e.target.value ) } placeholder={ __( 'Segunda línea opcional' ) } />
 			</Field>
 
+			<Field label={ __( 'Campaña' ) } hint={ __( 'Opcional: el ítem solo aparece entre estas fechas (hora del sitio). Ideal para «Hot Sale» o «Black Friday»: el menú se actualiza solo al empezar y al terminar.' ) }>
+				<DateRange from={ item.schedule?.from ?? '' } to={ item.schedule?.to ?? '' } onChange={ ( w ) => set( 'schedule', w ) } />
+			</Field>
+
 			<div className="imm:flex imm:flex-col imm:gap-3 imm:rounded-lg imm:border imm:border-zinc-200 imm:p-3">
 				<Toggle label={ __( 'Destacado' ) } hint={ __( 'Color de acento, ideal para «Ofertas del día».' ) } checked={ item.highlight } onChange={ ( v ) => set( 'highlight', v ) } />
-				{ item.children.length > 0 && <Toggle label={ __( '«Ver todo» en el submenú' ) } hint={ __( 'Primer ítem del submenú, enlaza a este ítem.' ) } checked={ item.view_all } onChange={ ( v ) => set( 'view_all', v ) } /> }
+				{ item.children.length > 0 && <Toggle label={ __( '«Ver todo» en el submenú' ) } hint={ __( 'Enlaza a este ítem desde su submenú (al final o al inicio, según Panel lateral → Navegación).' ) } checked={ item.view_all } onChange={ ( v ) => set( 'view_all', v ) } /> }
 				<Toggle label={ __( 'Abrir en una pestaña nueva' ) } checked={ item.target === '_blank' } onChange={ ( v ) => set( 'target', v ? '_blank' : '_self' ) } />
 			</div>
 

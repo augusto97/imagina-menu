@@ -64,6 +64,12 @@ final class RuleMatcher {
 				return is_user_logged_in() && in_array( $value, (array) wp_get_current_user()->roles, true );
 			case 'language':
 				return '' !== $value && Languages::current() === $value;
+			case 'date':
+				// Campaña: marcas de tiempo precalculadas al compilar (span); el cambio de perfil lo
+				// dispara un evento de WP-Cron en cada límite que además vacía la caché (Core\Schedule).
+				$span = (array) ( $c['span'] ?? array( 0, 0 ) );
+				$now  = time();
+				return ( empty( $span[0] ) || $now >= (int) $span[0] ) && ( empty( $span[1] ) || $now < (int) $span[1] );
 		}
 		return false;
 	}

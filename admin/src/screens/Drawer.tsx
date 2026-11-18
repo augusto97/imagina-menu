@@ -1,7 +1,8 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
-import { CopyCode, PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { MediaField } from '@/components/MediaField';
+import { CopyCode, DateRange, PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Input, Select } from '@/components/ui/input';
@@ -181,13 +182,19 @@ export function DrawerScreen() {
 					<ToggleRow label={ __( 'Cerrar deslizando' ) } hint={ __( 'Y deslizar a la derecha para volver un nivel.' ) } checked={ d.swipe_close } onChange={ ( v ) => set( [ 'drawer', 'swipe_close' ], v ) } />
 				</Section>
 
+				<Banners profile={ profile } />
+
 				<Section title={ __( 'Pie del panel' ) } description={ __( 'Accesos de servicio y contacto: reducen la fricción y convierten.' ) }>
 					<ToggleRow label={ __( 'Botón de WhatsApp' ) } checked={ d.whatsapp.enabled } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'enabled' ], v ) } />
 					{ d.whatsapp.enabled && (
 						<div className="imm:grid imm:gap-3 imm:px-5 imm:py-4 imm:sm:grid-cols-2">
 							<LabeledInput label={ __( 'Número con código de país' ) } value={ d.whatsapp.number } placeholder="573001234567" onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'number' ], v ) } />
 							<LabeledInput label={ __( 'Texto del botón' ) } value={ d.whatsapp.label } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'label' ], v ) } />
-							<LabeledInput className="imm:sm:col-span-2" label={ __( 'Mensaje inicial' ) } value={ d.whatsapp.message } placeholder={ __( 'Hola, quiero información sobre…' ) } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'message' ], v ) } />
+							<LabeledInput className="imm:sm:col-span-2" label={ __( 'Mensaje inicial' ) } value={ d.whatsapp.message } placeholder={ __( 'Hola, me interesa {titulo}' ) } onChange={ ( v ) => set( [ 'drawer', 'whatsapp', 'message' ], v ) } />
+							<p className="imm:-mt-1 imm:text-xs imm:text-zinc-500 imm:sm:col-span-2">
+								{ __( 'Usa {titulo} y {url} para incluir el producto, la categoría o la página que el cliente está viendo: «Hola, me interesa {titulo} {url}».' ) }
+							</p>
+							<WhatsAppHours profile={ profile } />
 						</div>
 					) }
 					<ToggleRow label={ __( 'Botón destacado (CTA)' ) } hint={ __( '«Vende con nosotros», «Agenda tu cita»…' ) } checked={ d.cta.enabled } onChange={ ( v ) => set( [ 'drawer', 'cta', 'enabled' ], v ) } />
@@ -365,3 +372,91 @@ function LanguagesSection( { profile }: { profile: Profile } ) {
 		</Section>
 	);
 }
+
+const DAYS = [ __( 'Do' ), __( 'Lu' ), __( 'Ma' ), __( 'Mi' ), __( 'Ju' ), __( 'Vi' ), __( 'Sá' ) ];
+
+/** Horario de atención: fuera de horario el botón cambia de texto (el enlace sigue funcionando). */
+function WhatsAppHours( { profile }: { profile: Profile } ) {
+	const h = profile.drawer.whatsapp.hours;
+	const set = ( key: keyof typeof h, value: unknown ) => setProfile( [ 'drawer', 'whatsapp', 'hours', key ], value );
+	const time = 'imm:h-8 imm:rounded-md imm:border imm:border-zinc-200 imm:bg-white imm:px-2 imm:text-[13px]';
+	return (
+		<div className="imm:flex imm:flex-col imm:gap-3 imm:rounded-lg imm:border imm:border-zinc-200 imm:p-3 imm:sm:col-span-2">
+			<label className="imm:flex imm:items-center imm:gap-2 imm:text-[13px] imm:font-medium imm:text-zinc-800">
+				<input type="checkbox" checked={ h.enabled } onChange={ ( e ) => set( 'enabled', e.target.checked ) } />
+				{ __( 'Horario de atención' ) }
+			</label>
+			{ h.enabled && (
+				<>
+					<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-1" role="group" aria-label={ __( 'Días de atención' ) }>
+						{ DAYS.map( ( label, day ) => (
+							<button
+								key={ day }
+								type="button"
+								aria-pressed={ h.days.includes( day ) }
+								onClick={ () => set( 'days', h.days.includes( day ) ? h.days.filter( ( x ) => x !== day ) : [ ...h.days, day ].sort() ) }
+								className={ cn( 'imm:h-8 imm:w-9 imm:rounded-md imm:border imm:text-xs imm:font-medium', h.days.includes( day ) ? 'imm:border-zinc-900 imm:bg-zinc-900 imm:text-white' : 'imm:border-zinc-200 imm:text-zinc-600 imm:hover:bg-zinc-50' ) }
+							>
+								{ label }
+							</button>
+						) ) }
+					</div>
+					<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-2 imm:text-[13px] imm:text-zinc-600">
+						{ __( 'De' ) }
+						<input type="time" value={ h.from } onChange={ ( e ) => set( 'from', e.target.value ) } className={ time } aria-label={ __( 'Desde' ) } />
+						{ __( 'a' ) }
+						<input type="time" value={ h.to } onChange={ ( e ) => set( 'to', e.target.value ) } className={ time } aria-label={ __( 'Hasta' ) } />
+						<span className="imm:text-xs imm:text-zinc-500">{ __( '(hora del sitio)' ) }</span>
+					</div>
+					<LabeledInput label={ __( 'Texto fuera de horario' ) } value={ h.off_label } onChange={ ( v ) => set( 'off_label', v ) } />
+				</>
+			) }
+		</div>
+	);
+}
+
+/** Banners de promoción dentro del panel (carrusel sin JavaScript, con campaña opcional). */
+function Banners( { profile }: { profile: Profile } ) {
+	const list = profile.drawer.banners;
+	const update = ( next: typeof list ) => setProfile( [ 'drawer', 'banners' ], next );
+	const patch = ( i: number, value: Partial<( typeof list )[ number ]> ) => update( list.map( ( b, j ) => ( j === i ? { ...b, ...value } : b ) ) );
+	return (
+		<Section title={ __( 'Banners de promoción' ) } description={ __( 'Imágenes con enlace dentro del panel, como Temu o AliExpress. Con varias, se deslizan. Cada una puede tener fechas de campaña.' ) }>
+			<Row label={ __( 'Posición' ) }>
+				<Segmented
+					value={ profile.drawer.banners_position }
+					onChange={ ( v ) => setProfile( [ 'drawer', 'banners_position' ], v ) }
+					options={ [
+						{ value: 'top', label: __( 'Arriba' ) },
+						{ value: 'bottom', label: __( 'Antes del pie' ) },
+					] }
+				/>
+			</Row>
+			<div className="imm:flex imm:flex-col imm:gap-3 imm:px-5 imm:py-4">
+				{ list.map( ( b, i ) => (
+					<div key={ i } className="imm:flex imm:flex-col imm:gap-3 imm:rounded-lg imm:border imm:border-zinc-200 imm:p-3">
+						<div className="imm:flex imm:items-start imm:gap-3">
+							<MediaField value={ b.image } wide size="medium" onChange={ ( v ) => patch( i, { image: v } ) } />
+							<div className="imm:flex imm:flex-1 imm:flex-col imm:gap-2">
+								<LabeledInput label={ __( 'Enlace' ) } value={ b.url } placeholder="/ofertas/" onChange={ ( v ) => patch( i, { url: v } ) } />
+								<LabeledInput label={ __( 'Texto alternativo' ) } value={ b.alt } placeholder={ __( 'Hasta 50 % en tecnología' ) } onChange={ ( v ) => patch( i, { alt: v } ) } />
+							</div>
+							<Button size="icon" variant="ghost" aria-label={ __( 'Quitar banner' ) } onClick={ () => update( list.filter( ( _, j ) => j !== i ) ) }>
+								<Trash2 aria-hidden />
+							</Button>
+						</div>
+						<DateRange from={ b.from } to={ b.to } onChange={ ( w ) => patch( i, w ) } />
+					</div>
+				) ) }
+				<div className="imm:flex imm:items-center imm:gap-3">
+					<Button variant="outline" size="sm" disabled={ list.length >= 6 } onClick={ () => update( [ ...list, { image: { id: 0, url: '' }, url: '', alt: '', from: '', to: '' } ] ) }>
+						<Plus aria-hidden />
+						{ __( 'Añadir banner' ) }
+					</Button>
+					<span className="imm:text-xs imm:text-zinc-500">{ __( 'Proporción 2:1 (por ejemplo 800 × 400). Se descargan solo al abrir el panel.' ) }</span>
+				</div>
+			</div>
+		</Section>
+	);
+}
+
