@@ -24,6 +24,10 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 - **Seguro por diseño**: auditado (ver [docs/06-seguridad.md](docs/06-seguridad.md)); nada privado descargable aunque el servidor ignore `.htaccess`, analítica sin cookies y a prueba de relleno, CSS global solo para administradores.
 - Licencia y actualizaciones con **Imagina Updater**.
 
+## Descargar
+
+El plugin listo para instalar está en la rama [`release`](https://github.com/augusto97/imagina-menu/tree/release): [última versión (imagina-menu.zip)](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu.zip) y todas las anteriores con sus sumas SHA-256.
+
 ## Instalación
 
 1. Sube la carpeta `imagina-menu` a `wp-content/plugins/` (o el ZIP desde Plugins → Añadir nuevo).
@@ -35,7 +39,8 @@ Formas de abrir el panel: botón flotante, el botón del menú móvil de tu tema
 ## Desarrollo
 
 ```bash
-bash bin/build-zip.sh        # ZIP de distribución (solo lo necesario, autoloader optimizado)
+bash bin/release.sh          # publica la versión actual en la rama release (prueba, empaqueta y sube)
+bash bin/build-zip.sh        # solo genera el ZIP de distribución en dist/
 npm ci && npm run build      # frontend (assets/dist) — sin dependencias en runtime
 npm run size                 # presupuesto de rendimiento
 npm run icons                # regenerar icons/icons.json

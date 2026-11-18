@@ -78,7 +78,7 @@ Auditoría completa el 18-11-2026 (v0.3.1): revisión propia + dos revisores ind
 ```bash
 composer test && npm run size && (cd admin && npm audit --omit=dev)
 IMM_URL=http://sitio-de-pruebas npm run test:e2e
-bash bin/build-zip.sh
+bash bin/release.sh   # empaqueta con bin/build-zip.sh y publica en la rama release
 ```
 
 ## Hallazgos de la auditoría del 18-11-2026 (todos corregidos)
