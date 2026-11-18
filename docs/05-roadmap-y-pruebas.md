@@ -163,6 +163,8 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 
 Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
+**v0.5.4**: botón «Crear página de ofertas» en el Constructor (con WooCommerce). Crea, o reutiliza si ya existe, una página «Ofertas» con `[products on_sale="true" …]` (los productos con precio rebajado; se actualiza sola) y la vincula al ítem. Si la etiqueta del ítem parece de ofertas (oferta, descuento, promo, rebaja, outlet…), el botón se sugiere destacado. Exige además `publish_pages`. Al desinstalar se olvida la página pero no se borra (es contenido del sitio). Corregido: el evento de las campañas programadas no se limpiaba al desactivar ni al desinstalar.
+
 **v0.5.3**: al entrar a un submenú con el dedo o el ratón el primer ítem aparecía marcado (el JS le daba el foco y el tema pintaba `a:focus` con su color). Ahora, con el dedo o el ratón, el foco va a la lista (el lector de pantalla la anuncia) y, con teclado, al primer ítem con su estilo de foco; además los estados `:focus`, `:hover`, `:active` y `:visited` de los ítems ya no toman el color ni el subrayado de los enlaces del tema.
 
 **v0.5.2**: colores propios para el contador de la barra inferior (carrito, favoritos e insignias de texto), independientes de las insignias del panel y de la barra superior.

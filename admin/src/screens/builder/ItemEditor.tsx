@@ -1,4 +1,4 @@
-import { ChevronDown, Link2, Link2Off, Unlink } from 'lucide-react';
+import { BadgePercent, ChevronDown, ExternalLink, Link2, Link2Off, Loader2, Unlink } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { IconPicker } from '@/components/IconPicker';
 import { MediaField } from '@/components/MediaField';
@@ -6,7 +6,9 @@ import { DateRange, Segmented } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { api } from '@/lib/api';
 import { __ } from '@/lib/i18n';
+import { useStore } from '@/lib/store';
 import type { BadgeStyle, MenuItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ObjectSearch } from './ObjectSearch';
@@ -132,6 +134,7 @@ export function ItemEditor( { item, onChange, onReplace }: { item: MenuItem; onC
 						{ item.children.length ? __( 'Sin enlace: al tocarlo solo abre su submenú.' ) : __( 'Sin enlace: se muestra como texto.' ) }
 					</span>
 				) }
+				<OffersLink item={ item } onChange={ onChange } />
 			</Field>
 
 			<div className="imm:grid imm:grid-cols-2 imm:gap-3">
@@ -225,6 +228,58 @@ export function ItemEditor( { item, onChange, onReplace }: { item: MenuItem; onC
 					} )
 				}
 			/>
+		</div>
+	);
+}
+
+/**
+ * «Crear página de ofertas»: WooCommerce no tiene una dirección con solo los productos rebajados,
+ * así que se crea (o se reutiliza) una página con ellos y se vincula a este ítem.
+ */
+function OffersLink( { item, onChange }: { item: MenuItem; onChange: ( item: MenuItem ) => void } ) {
+	const woo = useStore( ( s ) => s.env?.woo );
+	const [ busy, setBusy ] = useState( false );
+	const [ result, setResult ] = useState<{ created: boolean; edit_url: string; title: string } | null>( null );
+	const [ error, setError ] = useState( '' );
+	if ( ! woo ) {
+		return null;
+	}
+	const looksLikeOffers = /oferta|descuento|promo|rebaja|sale|outlet|liquidaci/i.test( item.label );
+	const create = async () => {
+		setBusy( true );
+		setError( '' );
+		try {
+			const page = await api<{ id: number; url: string; title: string; edit_url: string; created: boolean }>( 'offers-page', 'POST' );
+			onChange( { ...item, object: { kind: 'post', id: page.id, type: 'page' }, url: page.url } );
+			setResult( page );
+		} catch ( e ) {
+			setError( e instanceof Error ? e.message : String( e ) );
+		} finally {
+			setBusy( false );
+		}
+	};
+	return (
+		<div className={ cn( 'imm:mt-1 imm:flex imm:flex-col imm:gap-1.5 imm:rounded-md imm:text-[12px]', looksLikeOffers && ! result && 'imm:border imm:border-amber-200 imm:bg-amber-50 imm:p-2.5' ) }>
+			{ looksLikeOffers && ! result && <span className="imm:text-amber-900">{ __( '¿Es un ítem de ofertas? WooCommerce no tiene una dirección con solo los productos rebajados: crea una página que los muestra sola.' ) }</span> }
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-2">
+				<Button type="button" variant="outline" size="sm" className="imm:h-8" disabled={ busy } onClick={ create }>
+					{ busy ? <Loader2 className="imm:animate-spin" aria-hidden /> : <BadgePercent aria-hidden /> }
+					{ __( 'Crear página de ofertas' ) }
+				</Button>
+				{ result && (
+					<span className="imm:inline-flex imm:items-center imm:gap-1 imm:text-emerald-700">
+						{ result.created ? __( 'Página creada y vinculada.' ) : __( 'Ya existía: vinculada.' ) }
+						{ result.edit_url && (
+							<a href={ result.edit_url } target="_blank" rel="noreferrer" className="imm:inline-flex imm:items-center imm:gap-0.5 imm:underline">
+								{ __( 'Editar página' ) }
+								<ExternalLink className="imm:size-3" aria-hidden />
+							</a>
+						) }
+					</span>
+				) }
+				{ error && <span className="imm:text-red-700">{ error }</span> }
+			</div>
+			{ ! result && <span className="imm:text-zinc-500">{ __( 'Muestra los productos con precio rebajado y se actualiza sola. Si ya la creaste, se reutiliza.' ) }</span> }
 		</div>
 	);
 }

@@ -71,6 +71,7 @@ final class Routes {
 		self::route( '/export', 'GET', 'export', $auth );
 		self::route( '/profiles/order', 'PUT', 'order_profiles', $auth );
 		self::route( '/stats', 'GET', 'stats', $auth );
+		self::route( '/offers-page', 'POST', 'offers_page', $auth );
 		// Público: recibe los clics de la analítica (sin cookies). Solo existe si la analítica en el
 		// servidor está activa; validación estricta y cola en archivo.
 		$config = \ImaginaMenu\Frontend\Frontend::config();
@@ -616,6 +617,18 @@ final class Routes {
 	}
 
 	// ── Exportar / importar ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Crea (o reutiliza) la página «Ofertas» con los productos rebajados. Crear páginas exige además
+	 * el permiso de WordPress para publicarlas.
+	 */
+	public static function offers_page(): WP_REST_Response|WP_Error {
+		if ( ! current_user_can( 'publish_pages' ) ) {
+			return new WP_Error( 'imm_forbidden', __( 'Tu usuario no puede publicar páginas.', 'imagina-menu' ), array( 'status' => 403 ) );
+		}
+		$page = \ImaginaMenu\Integrations\OffersPage::ensure();
+		return is_wp_error( $page ) ? $page : new WP_REST_Response( $page, $page['created'] ? 201 : 200 );
+	}
 
 	public static function export(): WP_REST_Response {
 		return new WP_REST_Response( Transfer::export() );

@@ -81,6 +81,10 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 - Controles: abrir/cerrar panel, ir a un nivel, simular usuario conectado, simular carrito con N productos, modo claro/oscuro, `prefers-reduced-motion`.
 - Botón «Ver en mi celular»: muestra un QR con la URL de vista previa firmada (válida 1 h).
 
+## Página de ofertas (v0.5.4)
+
+`POST /imagina-menu/v1/offers-page` (`imm_manage` + `publish_pages`): crea o reutiliza la página «Ofertas» (`[products on_sale="true" limit="24" columns="4" paginate="true"]`, guardada en la opción `imm_offers_page`) y devuelve `{id, url, title, edit_url, created}`. La usa el botón «Crear página de ofertas» del editor de ítems.
+
 ## WP-CLI (v0.5)
 
 ```bash
