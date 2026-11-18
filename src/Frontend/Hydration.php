@@ -53,7 +53,7 @@ final class Hydration {
 			return;
 		}
 		$name = '' !== $user->first_name ? $user->first_name : $user->display_name;
-		self::set( self::NAME_COOKIE, rawurlencode( mb_substr( $name, 0, 30 ) ), 0 );
+		self::set( self::NAME_COOKIE, wp_strip_all_tags( mb_substr( $name, 0, 30 ) ), 0 );
 	}
 
 	public static function logout(): void {
@@ -62,10 +62,14 @@ final class Hydration {
 		}
 	}
 
+	/**
+	 * Cookie legible por JS. Se codifica una sola vez con rawurlencode (setcookie() codificaría otra
+	 * vez y «María José» llegaría como «Mar%C3%ADa%20Jos%C3%A9»); el JS la lee con decodeURIComponent.
+	 */
 	private static function set( string $name, string $value, int $expires ): void {
-		setcookie(
+		setrawcookie(
 			$name,
-			$value,
+			rawurlencode( $value ),
 			array(
 				'expires'  => $expires,
 				'path'     => COOKIEPATH ? COOKIEPATH : '/',

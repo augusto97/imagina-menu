@@ -183,7 +183,7 @@ final class Compiler {
 		$provider     = Languages::provider();
 		$langs        = Languages::compiled();
 		$default_lang = Languages::default();
-		$cfg          = self::client_config( $profile, $settings );
+		$cfg          = self::client_config( $profile, $settings, $draft );
 		$i18n         = array();
 		$count        = 0;
 
@@ -275,7 +275,7 @@ final class Compiler {
 	 * @param array<string, mixed> $profile
 	 * @param array<string, mixed> $settings
 	 */
-	private static function client_config( array $profile, array $settings ): string {
+	private static function client_config( array $profile, array $settings, bool $draft = false ): string {
 		$a   = $settings['analytics'];
 		$cfg = array(
 			'p'  => (int) $profile['id'],
@@ -283,7 +283,8 @@ final class Compiler {
 			// propias Speculation Rules) no se duplica: solo en sitios sin ninguno de los dos.
 			'pf' => $settings['prefetch'] && ! defined( 'ITB_VERSION' ) && ! function_exists( 'wp_get_speculation_rules_configuration' ) ? 1 : 0,
 		);
-		if ( $a['enabled'] && ( $a['server'] || $a['ga4'] ) ) {
+		// En la vista previa no se mide nada: no se ensucian las cifras ni se envía a GA4.
+		if ( ! $draft && $a['enabled'] && ( $a['server'] || $a['ga4'] ) ) {
 			$cfg['a'] = array(
 				's' => $a['server'] ? 1 : 0,
 				'g' => $a['ga4'] ? 1 : 0,

@@ -20,8 +20,9 @@ const qsa = <T extends Element>( sel: string, ctx: ParentNode = doc ) => Array.f
 const RECENT_KEY = 'imm-recent';
 const LEVEL_KEY = 'imm-level';
 
-const drawer = qs<HTMLDialogElement>( '#imm-drawer' );
-const search = qs<HTMLDialogElement>( '#imm-search' );
+// Solo los nodos propios (dialog + clase): un elemento del contenido con el mismo id no los suplanta.
+const drawer = qs<HTMLDialogElement>( 'dialog#imm-drawer.imm-drawer' );
+const search = qs<HTMLDialogElement>( 'dialog#imm-search.imm-search' );
 
 // ── Utilidades de diálogos (modal con JS; popover si ya se abrió sin JS) ─────────────────────────
 
@@ -87,12 +88,17 @@ function fill( host: Element | null, target?: Element | null ): void {
 }
 
 /** Enlace de la página actual, aunque esté dentro de un <template> todavía sin clonar. */
+let notFound = false;
 function findCurrent( d: Element ): Element | null {
+	if ( notFound ) return null; // Ya se buscó en esta página: no repetir el recorrido.
 	for ( let i = 0; i < 6; i++ ) {
 		const found = qs( 'a[aria-current]', d );
 		if ( found ) return found;
 		const tpl = qsa<HTMLTemplateElement>( 'template.imm-tpl', d ).find( ( t ) => hasCurrent( t.content ) );
-		if ( ! tpl ) return null;
+		if ( ! tpl ) {
+			notFound = true;
+			return null;
+		}
 		const host = tpl.parentElement;
 		fill( host, host?.querySelector( ':scope > .imm-level' ) || host );
 	}
@@ -107,10 +113,26 @@ function hasCurrent( frag: DocumentFragment ): boolean {
 // ── Analítica y prefetch (opcionales, configurados en data-imm-cfg) ─────────────────────────────
 
 export type Cfg = { p?: number; pf?: number; a?: { s: number; g: number; r: number; u: string } };
-let cfg: Cfg = {};
-try {
-	cfg = JSON.parse( qs<HTMLElement>( '[data-imm-cfg]' )?.dataset.immCfg || '{}' );
-} catch {}
+/**
+ * Configuración del JS: se lee solo de los nodos propios (el contenido de una entrada podría traer
+ * otro data-imm-cfg) y se valida; la analítica solo se envía al mismo sitio.
+ */
+function readCfg(): Cfg {
+	const host = drawer || search || qs<HTMLElement>( 'nav.imm-bbar' );
+	let raw: unknown = null;
+	try {
+		raw = JSON.parse( host?.dataset.immCfg || '{}' );
+	} catch {}
+	if ( ! raw || typeof raw !== 'object' ) return {};
+	const c = raw as Cfg;
+	try {
+		if ( c.a && new URL( c.a.u, location.href ).origin !== location.origin ) delete c.a;
+	} catch {
+		delete c.a;
+	}
+	return c;
+}
+const cfg: Cfg = readCfg();
 const sampled = !! cfg.a && Math.random() * 100 < cfg.a.r;
 
 /**
@@ -119,31 +141,16 @@ const sampled = !! cfg.a && Math.random() * 100 < cfg.a.r;
  */
 function track( e: 'open' | 'click' | 'search' | 'bbar', id = '', label = '' ): void {
 	if ( ! cfg.a || ! sampled ) return;
-	const ver = new URL( import.meta.url ).search;
-	const mod = './track.js' + ver;
-	import( /* @vite-ignore */ mod ).then( ( m: { send: ( c: Cfg, e: string, id: string, label: string ) => void } ) => m.send( cfg, e, id, label ) ).catch( () => {} );
+	lazy( 'track' ).then( ( m: { send: ( c: Cfg, e: string, id: string, label: string ) => void } ) => m.send( cfg, e, id, label ) ).catch( () => {} );
 }
 
-const prefetched = new Set<string>();
-
-/** Prefetch del destino al tocar un enlace (~100–300 ms antes del clic). Con Imagina Turbo no se usa. */
-function prefetch( a: HTMLAnchorElement ): void {
-	const url = a.href;
-	if ( ! cfg.pf || prefetched.has( url ) || a.origin !== location.origin || a.target === '_blank' || url.split( '#' )[ 0 ] === location.href.split( '#' )[ 0 ] ) return;
-	prefetched.add( url );
-	const supports = ( HTMLScriptElement as unknown as { supports?: ( t: string ) => boolean } ).supports;
-	if ( supports?.( 'speculationrules' ) ) {
-		const s = doc.createElement( 'script' );
-		s.type = 'speculationrules';
-		s.textContent = JSON.stringify( { prefetch: [ { source: 'list', urls: [ url ] } ] } );
-		doc.head.append( s );
-	} else {
-		const l = doc.createElement( 'link' );
-		l.rel = 'prefetch';
-		l.href = url;
-		doc.head.append( l );
-	}
-}
+/** Módulos bajo demanda, junto a core.js y con su misma versión (?ver=). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const lazy = ( name: 'track' | 'prefetch' ): Promise<any> => {
+	const url = new URL( name + '.js', import.meta.url );
+	url.search = new URL( import.meta.url ).search;
+	return import( /* @vite-ignore */ url.href );
+};
 
 // ── Panel ───────────────────────────────────────────────────────────────────────────────────────
 
@@ -365,9 +372,9 @@ function initDrawer( d: HTMLDialogElement ): void {
 				const id = sessionStorage.getItem( LEVEL_KEY );
 				if ( id ) target = doc.getElementById( id );
 			} catch {}
-			if ( target instanceof HTMLDetailsElement ) {
+			if ( target instanceof HTMLDetailsElement && d.contains( target ) ) {
 				reveal( target );
-				forward( target, false );
+				if ( slide ) forward( target, false );
 				target = null;
 			}
 		}
@@ -394,20 +401,25 @@ function initDrawer( d: HTMLDialogElement ): void {
 	if ( themeSelector ) {
 		// Si el tema no imprime su botón en esta página (cabeceras de Elementor, plantillas sin menú…),
 		// se muestra el botón flotante de respaldo para que el panel siempre se pueda abrir.
-		const fallback = qs<HTMLElement>( '[data-imm-fallback]' );
+		const fallback = qs<HTMLElement>( 'button.imm-fab[data-imm-fallback]' );
 		if ( fallback ) {
-			let found = false;
-			try {
-				found = qsa<HTMLElement>( themeSelector ).some( ( el ) => el.getClientRects().length > 0 );
-			} catch {}
-			fallback.hidden = found;
+			// Fuera del camino crítico: medir obliga a calcular el layout.
+			const check = () => {
+				let found = false;
+				try {
+					found = qsa<HTMLElement>( themeSelector ).some( ( el ) => ! el.closest( '.imm-fab, .imm-bbar, .imm-search' ) && el.getClientRects().length > 0 );
+				} catch {}
+				fallback.hidden = found;
+			};
+			setTimeout( check, 300 );
 		}
 		addEventListener( 'click', ( e ) => {
 			let match: Element | null = null;
 			try {
-				match = ( e.target as Element ).closest( themeSelector );
+				match = e.target instanceof Element ? e.target.closest( themeSelector ) : null;
 			} catch {}
-			if ( match && ! d.contains( match ) ) {
+			// Nunca se capturan los botones propios (barra inferior, buscador, botón flotante).
+			if ( match && ! d.contains( match ) && ! match.closest( '.imm-bbar, .imm-search, .imm-fab' ) ) {
 				e.preventDefault();
 				e.stopImmediatePropagation();
 				open( match as HTMLElement );
@@ -421,7 +433,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 	if ( account && name ) {
 		const small = qs( 'small', account );
 		const strong = qs( 'strong', account );
-		if ( small ) small.textContent = ( account.dataset.hello || '%s' ).replace( '%s', name );
+		if ( small ) small.textContent = ( account.dataset.hello || '%s' ).replace( '%s', () => name.slice( 0, 40 ) );
 		if ( strong ) strong.textContent = account.dataset.cta || '';
 	}
 }
@@ -461,9 +473,11 @@ function initSearch( s: HTMLDialogElement ): void {
 	const list = recent ? qs<HTMLElement>( 'ul', recent ) : null;
 	const form = qs<HTMLFormElement>( 'form', s );
 
+	/** Búsquedas recientes, validadas: localStorage lo puede tocar cualquier script del dominio. */
 	const read = (): string[] => {
 		try {
-			return JSON.parse( localStorage.getItem( RECENT_KEY ) || '[]' );
+			const v: unknown = JSON.parse( localStorage.getItem( RECENT_KEY ) || '[]' );
+			return Array.isArray( v ) ? v.filter( ( t ): t is string => typeof t === 'string' && t.length > 0 && t.length <= 100 ).slice( 0, 8 ) : [];
 		} catch {
 			return [];
 		}
@@ -488,7 +502,7 @@ function initSearch( s: HTMLDialogElement ): void {
 
 	form?.addEventListener( 'submit', () => {
 		track( 'search' );
-		const term = input?.value.trim();
+		const term = input?.value.trim().slice( 0, 100 );
 		if ( ! term || ! recent ) return;
 		const items = [ term, ...read().filter( ( t ) => t.toLowerCase() !== term.toLowerCase() ) ].slice( 0, 8 );
 		try {
@@ -519,7 +533,12 @@ let searchOpener: HTMLElement | null = null;
 
 function cookie( name: string ): string {
 	const m = doc.cookie.match( new RegExp( '(?:^|; )' + name + '=([^;]*)' ) );
-	return m ? decodeURIComponent( m[ 1 ] ) : '';
+	if ( ! m ) return '';
+	try {
+		return decodeURIComponent( m[ 1 ] );
+	} catch {
+		return ''; // Una cookie malformada no puede romper el menú.
+	}
 }
 
 function updateCart(): void {
@@ -563,15 +582,18 @@ function initKeyboardWatch(): void {
 // ── Delegación global ───────────────────────────────────────────────────────────────────────────
 
 doc.addEventListener( 'click', ( e ) => {
-	const t = e.target as Element;
+	if ( ! ( e.target instanceof Element ) ) return;
+	const t = e.target;
 	const tracked = t.closest<HTMLElement>( '[data-imm-id]' );
 	if ( tracked ) track( tracked.closest( '.imm-bbar' ) ? 'bbar' : 'click', tracked.dataset.immId, ( tracked.textContent || '' ).trim().slice( 0, 60 ) );
 	const btn = t.closest<HTMLElement>( '[popovertarget]' );
 	if ( btn ) {
 		const id = btn.getAttribute( 'popovertarget' );
 		const action = btn.getAttribute( 'popovertargetaction' );
-		const target = id ? ( doc.getElementById( id ) as HTMLDialogElement | null ) : null;
-		if ( target && ( target === drawer || target === search ) ) {
+		// Se resuelve contra los nodos propios (no por id: el contenido podría repetirlo).
+		const target = id === 'imm-drawer' ? drawer : id === 'imm-search' ? search : null;
+		// Solo se intercepta si el JS de ese diálogo está listo; si no, actúa el popover nativo.
+		if ( target && ( target === drawer ? drawerReady : searchReady ) ) {
 			e.preventDefault();
 			if ( action === 'hide' || ( action !== 'show' && isOpen( target ) ) ) {
 				hide( target );
@@ -598,10 +620,12 @@ doc.addEventListener( 'click', ( e ) => {
 	}
 } );
 
-doc.addEventListener( 'pointerdown', ( e ) => {
-	const a = ( e.target as Element ).closest?.<HTMLAnchorElement>( 'a[href]' );
-	if ( a && a.closest( '.imm-drawer, .imm-bbar, .imm-search' ) ) prefetch( a );
-}, { passive: true } );
+// Prefetch (solo en sitios sin el de WordPress 6.8+ ni Imagina Turbo): módulo bajo demanda.
+if ( cfg.pf ) {
+	doc.addEventListener( 'pointerdown', ( e ) => {
+		lazy( 'prefetch' ).then( ( m: { start: ( e: PointerEvent ) => void } ) => m.start( e ) ).catch( () => {} );
+	}, { passive: true, once: true } );
+}
 
 // Al volver con el botón atrás (bfcache) el panel no debe quedar abierto.
 addEventListener( 'pageshow', ( e ) => {
@@ -621,15 +645,35 @@ for ( const ev of [ 'wc-blocks_added_to_cart', 'wc-blocks_removed_from_cart' ] )
 	doc.body.addEventListener( ev, () => setTimeout( updateCart, 300 ) );
 }
 
-// WooCommerce clásico dispara sus eventos con jQuery: se escuchan solo si jQuery ya existe.
-const jq = ( window as unknown as { jQuery?: ( el: unknown ) => { on: ( ev: string, fn: () => void ) => void } } ).jQuery;
-jq?.( doc.body ).on( 'added_to_cart removed_from_cart updated_cart_totals wc_fragments_refreshed', () => setTimeout( updateCart, 50 ) );
+// WooCommerce clásico dispara sus eventos con jQuery. Si un optimizador retrasa jQuery, se vuelve a
+// intentar al cargar la página y con la primera interacción (sin cargar jQuery nunca).
+let jqBound = false;
+const bindJq = () => {
+	const jq = ( window as unknown as { jQuery?: ( el: unknown ) => { on: ( ev: string, fn: () => void ) => void } } ).jQuery;
+	if ( jqBound || typeof jq !== 'function' ) return;
+	jqBound = true;
+	jq( doc.body ).on( 'added_to_cart removed_from_cart updated_cart_totals wc_fragments_refreshed', () => setTimeout( updateCart, 50 ) );
+};
+bindJq();
+addEventListener( 'load', bindJq, { once: true } );
+addEventListener( 'pointerdown', bindJq, { once: true, passive: true } );
 
-if ( drawer ) initDrawer( drawer );
-if ( search ) initSearch( search );
-updateCart();
-initHideOnScroll();
-initKeyboardWatch();
+/** Cada parte arranca por separado: un fallo en una no deja sin funcionar a las demás. */
+let drawerReady = false;
+let searchReady = false;
+for ( const fn of [
+	() => drawer && ( initDrawer( drawer ), ( drawerReady = true ) ),
+	() => search && ( initSearch( search ), ( searchReady = true ) ),
+	updateCart,
+	initHideOnScroll,
+	initKeyboardWatch,
+] ) {
+	try {
+		fn();
+	} catch ( err ) {
+		console.error( err );
+	}
+}
 
 ( window as unknown as { immMenu: unknown } ).immMenu = {
 	open: () => open( null ),

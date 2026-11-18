@@ -153,7 +153,8 @@ final class Frontend {
 		$config = self::config();
 		if ( $config && 'interaction' === $config['settings']['load_js'] && 'theme_selector' !== $p['trigger']['mode'] ) {
 			// El panel abre sin JS (Popover API); el JS se descarga con el primer gesto del usuario.
-			echo '<script type="module">const e=["pointerdown","keydown","scroll","touchstart"],l=()=>{e.forEach(t=>removeEventListener(t,l,{capture:!0}));import(' . wp_json_encode( self::script_url() ) . ')};e.forEach(t=>addEventListener(t,l,{capture:!0,passive:!0,once:!0}))</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.WP.EnqueuedResources.NonEnqueuedScript
+			// Con wp_get_inline_script_tag los plugins de CSP pueden añadir su nonce (filtro wp_inline_script_attributes).
+			echo wp_get_inline_script_tag( 'const e=["pointerdown","keydown","scroll","touchstart"],l=()=>{e.forEach(t=>removeEventListener(t,l,{capture:!0}));import(' . wp_json_encode( self::script_url() ) . ')};e.forEach(t=>addEventListener(t,l,{capture:!0,passive:!0,once:!0}))', array( 'type' => 'module' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- código propio; la única variable es JSON.
 		}
 	}
 

@@ -112,10 +112,18 @@ export function TopBar() {
 				onClick={ async () => {
 					// Sin espacio para la columna de vista previa: se abre en una pestaña (la ventana se abre antes del await para que no la bloqueen).
 					const win = window.open( 'about:blank', '_blank' );
-					await useStore.getState().flush();
-					const { url } = await api<{ url: string }>( 'preview', 'POST', { path: '/' } );
+					// La pestaña del sitio no debe poder controlar el admin (tabnabbing inverso).
 					if ( win ) {
-						win.location.href = url;
+						win.opener = null;
+					}
+					try {
+						await useStore.getState().flush();
+						const { url } = await api<{ url: string }>( 'preview', 'POST', { path: '/' } );
+						if ( win ) {
+							win.location.href = url;
+						}
+					} catch {
+						win?.close();
 					}
 				} }
 			>

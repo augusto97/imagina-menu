@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 mkdirSync( 'assets/dist', { recursive: true } );
 
 await build( {
-	entryPoints: [ 'frontend/src/core.ts', 'frontend/src/track.ts' ],
+	entryPoints: [ 'frontend/src/core.ts', 'frontend/src/track.ts', 'frontend/src/prefetch.ts' ],
 	outdir: 'assets/dist',
 	bundle: true,
 	format: 'esm',

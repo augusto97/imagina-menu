@@ -16,21 +16,44 @@ const inner = ( svg ) =>
 		.replace( /^[\s\S]*?<svg[^>]*>/, '' )
 		.replace( /<\/svg>[\s\S]*$/, '' )
 		.replace( /<title>[\s\S]*?<\/title>/g, '' )
-		.replace( /\s*\n\s*/g, '' )
+		// Los saltos de línea separan atributos: se cambian por un espacio (no se borran).
+		.replace( /\s*\n\s*/g, ' ' )
+		.replace( />\s+</g, '><' )
 		.replace( /\s+\/>/g, '/>' )
 		.trim();
+
+/**
+ * Defensa ante la cadena de suministro: estos SVG se imprimen tal cual en el sitio y en el admin.
+ * Solo se aceptan elementos y atributos geométricos; un icono con cualquier otra cosa se descarta.
+ */
+const TAGS = new Set( [ 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse', 'g' ] );
+const ATTRS = new Set( [ 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'width', 'height', 'points', 'transform', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'fill-rule', 'clip-rule', 'opacity' ] );
+const safe = ( name, body ) => {
+	const tags = body.match( /<\/?[^>]*>/g ) || [];
+	for ( const tag of tags ) {
+		const m = tag.match( /^<\/?([a-zA-Z0-9-]+)((?:\s+[a-zA-Z0-9:-]+="[^"<>]*")*)\s*\/?>$/ );
+		if ( ! m || ! TAGS.has( m[ 1 ] ) ) return console.warn( 'Icono descartado (elemento):', name, tag ), false;
+		for ( const [ , attr, value ] of m[ 2 ].matchAll( /([a-zA-Z0-9:-]+)="([^"]*)"/g ) ) {
+			if ( ! ATTRS.has( attr ) || /[^-0-9a-zA-Z.,\s#()%]/.test( value ) ) return console.warn( 'Icono descartado (atributo):', name, attr ), false;
+		}
+	}
+	return body.replace( /<[^>]*>/g, '' ).trim() === '';
+};
 
 const lucide = {};
 for ( const file of readdirSync( lucideDir ).sort() ) {
 	if ( ! file.endsWith( '.svg' ) ) continue;
-	lucide[ file.slice( 0, -4 ) ] = inner( readFileSync( join( lucideDir, file ), 'utf8' ) );
+	const name = file.slice( 0, -4 );
+	const body = inner( readFileSync( join( lucideDir, file ), 'utf8' ) );
+	if ( safe( name, body ) ) lucide[ name ] = body;
 }
 
 const brandNames = [ 'whatsapp', 'facebook', 'instagram', 'tiktok', 'youtube', 'x', 'pinterest', 'telegram', 'threads', 'spotify', 'messenger' ];
 const brands = {};
 for ( const name of brandNames ) {
 	try {
-		brands[ name ] = inner( readFileSync( join( simpleDir, name + '.svg' ), 'utf8' ) );
+		const body = inner( readFileSync( join( simpleDir, name + '.svg' ), 'utf8' ) );
+		if ( safe( name, body ) ) brands[ name ] = body;
 	} catch {
 		console.warn( 'Sin icono de marca:', name );
 	}

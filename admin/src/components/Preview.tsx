@@ -116,12 +116,23 @@ export function Preview() {
 				el.close();
 			}
 		};
+		// Primero la API del menú (no simula un clic en la barra: no cuenta como evento de analítica);
+		// si el JS aún no cargó, el clic en el botón (Popover API).
+		const api = ( frame.current?.contentWindow as ( Window & { immMenu?: { open: () => void; search: () => void } } ) | null )?.immMenu;
 		if ( target === 'drawer' && ! isOpen( 'imm-drawer' ) ) {
 			close( 'imm-search' );
-			click( '[popovertarget="imm-drawer"]:not([popovertargetaction="hide"])' );
+			if ( api ) {
+				api.open();
+			} else {
+				click( '[popovertarget="imm-drawer"]:not([popovertargetaction="hide"])' );
+			}
 		} else if ( target === 'search' && ! isOpen( 'imm-search' ) ) {
 			close( 'imm-drawer' );
-			click( '[popovertarget="imm-search"]' );
+			if ( api ) {
+				api.search();
+			} else {
+				click( '[popovertarget="imm-search"]' );
+			}
 		} else if ( target === 'none' ) {
 			close( 'imm-drawer' );
 			close( 'imm-search' );

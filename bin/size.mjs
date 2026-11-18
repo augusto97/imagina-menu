@@ -5,6 +5,7 @@ import { gzipSync } from 'node:zlib';
 const budget = [
 	[ 'assets/dist/core.js', 4096, 'JS inicial' ],
 	[ 'assets/dist/track.js', 3072, 'Módulo de analítica (bajo demanda)' ],
+	[ 'assets/dist/prefetch.js', 3072, 'Módulo de precarga (bajo demanda)' ],
 	[ 'assets/dist/critical.css', 1700, 'CSS crítico (gzip)' ],
 	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css' ], 6144, 'CSS total (modo más pesado: pestañas)' ],
 	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/grid.css' ], 6656, 'CSS de todos los modos juntos (referencia)' ],
