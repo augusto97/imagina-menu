@@ -1,6 +1,7 @@
-import { Check, ChevronDown, CloudUpload, Loader2, Plus, RotateCcw, Smartphone, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Check, ChevronDown, CloudUpload, Loader2, Plus, Redo2, RotateCcw, Smartphone, Trash2, Undo2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { QrButton } from './QrDialog';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { ConfirmDialog } from './ui/dialog';
@@ -10,9 +11,41 @@ import { api } from '@/lib/api';
 import { __ } from '@/lib/i18n';
 import { useActiveProfile, useStore } from '@/lib/store';
 import type { CompileState, Profile, State } from '@/lib/types';
+import { useRouter } from '@/lib/router';
 import { cn } from '@/lib/utils';
 
+const isMac = /Mac|iPhone|iPad/.test( navigator.platform );
+
+/** Atajos de deshacer/rehacer. Dentro de un campo de texto se respeta el deshacer del navegador. */
+function useUndoShortcuts() {
+	useEffect( () => {
+		const handler = ( event: KeyboardEvent ) => {
+			const mod = isMac ? event.metaKey : event.ctrlKey;
+			if ( ! mod || event.altKey ) {
+				return;
+			}
+			const el = document.activeElement as HTMLElement | null;
+			if ( el && ( el.matches( 'input, textarea, select, [contenteditable=""], [contenteditable="true"]' ) || el.isContentEditable ) ) {
+				return;
+			}
+			const key = event.key.toLowerCase();
+			if ( key === 'z' && ! event.shiftKey ) {
+				event.preventDefault();
+				useStore.getState().undo();
+			} else if ( ( key === 'z' && event.shiftKey ) || ( key === 'y' && ! isMac ) ) {
+				event.preventDefault();
+				useStore.getState().redo();
+			}
+		};
+		window.addEventListener( 'keydown', handler );
+		return () => window.removeEventListener( 'keydown', handler );
+	}, [] );
+}
+
 export function TopBar() {
+	useUndoShortcuts();
+	const canUndo = useStore( ( s ) => s.past.length > 0 );
+	const canRedo = useStore( ( s ) => s.future.length > 0 );
 	const client = useQueryClient();
 	const profiles = useStore( ( s ) => s.profiles );
 	const active = useActiveProfile();
@@ -64,6 +97,14 @@ export function TopBar() {
 			{ message && <span className={ cn( 'imm:text-xs', message.tone === 'green' ? 'imm:text-emerald-700' : 'imm:text-red-700' ) }>{ message.text }</span> }
 			{ saveError && <span className="imm:text-xs imm:text-red-700">{ __( 'No se pudo guardar:' ) } { saveError }</span> }
 			<SaveState saving={ saving } pending={ pending > 0 } unpublished={ unpublished } />
+			<div className="imm:flex imm:items-center">
+				<Button size="icon" variant="ghost" disabled={ ! canUndo } onClick={ () => useStore.getState().undo() } title={ __( 'Deshacer' ) + ( isMac ? ' (⌘Z)' : ' (Ctrl+Z)' ) } aria-label={ __( 'Deshacer' ) }>
+					<Undo2 aria-hidden />
+				</Button>
+				<Button size="icon" variant="ghost" disabled={ ! canRedo } onClick={ () => useStore.getState().redo() } title={ __( 'Rehacer' ) + ( isMac ? ' (⇧⌘Z)' : ' (Ctrl+Y)' ) } aria-label={ __( 'Rehacer' ) }>
+					<Redo2 aria-hidden />
+				</Button>
+			</div>
 			<Button
 				size="sm"
 				variant="outline"
@@ -81,6 +122,9 @@ export function TopBar() {
 				<Smartphone aria-hidden />
 				{ __( 'Vista previa' ) }
 			</Button>
+			<span className="imm:min-[1400px]:hidden">
+				<QrButton />
+			</span>
 			<Button size="sm" variant="ghost" disabled={ ! unpublished || !! busy } onClick={ () => setConfirmDiscard( true ) }>
 				<RotateCcw aria-hidden />
 				{ __( 'Descartar' ) }
@@ -128,7 +172,9 @@ function ProfileSwitcher( { profiles, active }: { profiles: Profile[]; active?: 
 	const [ title, setTitle ] = useState( '' );
 	const [ busy, setBusy ] = useState( false );
 	const [ remove, setRemove ] = useState< Profile | null >( null );
-	const first = profiles.find( ( p ) => p.enabled );
+	const general = profiles.find( ( p ) => p.enabled && ! p.rules.conditions.length );
+	const go = useRouter( ( s ) => s.go );
+	const tag = ( p: Profile ) => ( ! p.enabled ? __( 'apagado' ) : p.rules.conditions.length ? __( 'con reglas' ) : p.id === general?.id ? __( 'general' ) : __( 'sin uso' ) );
 
 	const create = async () => {
 		setBusy( true );
@@ -149,7 +195,7 @@ function ProfileSwitcher( { profiles, active }: { profiles: Profile[]; active?: 
 					<button type="button" className="imm:flex imm:items-center imm:gap-2 imm:rounded-md imm:px-2 imm:py-1.5 imm:text-left imm:hover:bg-zinc-100">
 						<span className="imm:text-[11px] imm:font-medium imm:tracking-wide imm:text-zinc-400 imm:uppercase">{ __( 'Perfil' ) }</span>
 						<span className="imm:text-[13px] imm:font-semibold imm:text-zinc-900">{ active?.title ?? '—' }</span>
-						{ active && first?.id === active.id && <Badge tone="green">{ __( 'En el sitio' ) }</Badge> }
+						{ active && active.enabled && ( active.rules.conditions.length ? <Badge tone="blue">{ __( 'Con reglas' ) }</Badge> : active.id === general?.id ? <Badge tone="green">{ __( 'General' ) }</Badge> : null ) }
 						<ChevronDown className="imm:size-3.5 imm:text-zinc-500" aria-hidden />
 					</button>
 				</PopoverTrigger>
@@ -167,7 +213,7 @@ function ProfileSwitcher( { profiles, active }: { profiles: Profile[]; active?: 
 								>
 									<span className={ cn( 'imm:size-1.5 imm:rounded-full', p.enabled ? 'imm:bg-emerald-500' : 'imm:bg-zinc-300' ) } aria-hidden />
 									<span className="imm:flex-1 imm:truncate">{ p.title }</span>
-									{ first?.id === p.id && <span className="imm:text-[11px] imm:text-zinc-500">{ __( 'activo' ) }</span> }
+									<span className="imm:text-[11px] imm:text-zinc-500">{ tag( p ) }</span>
 								</button>
 								{ profiles.length > 1 && (
 									<button type="button" aria-label={ __( 'Eliminar perfil' ) } onClick={ () => setRemove( p ) } className="imm:rounded-md imm:p-1.5 imm:text-zinc-400 imm:opacity-0 imm:group-hover:opacity-100 imm:hover:bg-red-50 imm:hover:text-red-600">
@@ -183,7 +229,16 @@ function ProfileSwitcher( { profiles, active }: { profiles: Profile[]; active?: 
 							<Plus aria-hidden />
 						</Button>
 					</div>
-					<p className="imm:px-2.5 imm:pb-1.5 imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ __( 'En el sitio se muestra el primer perfil activo. Las reglas por página llegan en una próxima versión.' ) }</p>
+					<button
+						type="button"
+						onClick={ () => {
+							setOpen( false );
+							go( 'perfiles' );
+						} }
+						className="imm:w-full imm:rounded-md imm:px-2.5 imm:pt-1 imm:pb-1.5 imm:text-left imm:text-[11px] imm:leading-snug imm:text-zinc-500 imm:hover:text-zinc-900"
+					>
+						{ __( 'Cada perfil puede tener reglas (qué páginas, qué usuarios). Ordénalos y edita sus reglas en Perfiles →' ) }
+					</button>
 				</PopoverContent>
 			</Popover>
 			<ConfirmDialog

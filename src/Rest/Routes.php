@@ -29,6 +29,19 @@ final class Routes {
 
 	public const NAMESPACE = 'imagina-menu/v1';
 
+	/**
+	 * Para el admin, los mapas vacíos van como objeto JSON ({}), no como lista ([]).
+	 *
+	 * @param array<string, mixed>|null $profile
+	 * @return array<string, mixed>|null
+	 */
+	private static function out( ?array $profile ): ?array {
+		if ( $profile && ! $profile['drawer']['menu_by_lang'] ) {
+			$profile['drawer']['menu_by_lang'] = new \stdClass();
+		}
+		return $profile;
+	}
+
 	public static function register(): void {
 		$auth = array( self::class, 'can' );
 		$id   = array(
@@ -92,7 +105,7 @@ final class Routes {
 			},
 			$menus->all( true )
 		);
-		$all_p    = $profiles->all( true );
+		$all_p    = array_map( array( self::class, 'out' ), $profiles->all( true ) );
 		$drafts   = 0;
 		foreach ( $all_m as $m ) {
 			$drafts += $menus->has_draft( (int) $m['id'] ) ? 1 : 0;
@@ -167,7 +180,32 @@ final class Routes {
 			'roles'        => $roles,
 			// WordPress 6.8+ ya precarga los enlaces al tocarlos: el prefetch propio no se usa.
 			'core_speculation' => function_exists( 'wp_get_speculation_rules_configuration' ),
+			'rule_labels'      => self::rule_labels(),
 		);
+	}
+
+	/**
+	 * Nombres de las páginas y términos usados en las reglas (el perfil solo guarda los ids).
+	 *
+	 * @return array<string, string>|\stdClass
+	 */
+	private static function rule_labels(): array|\stdClass {
+		$out = array();
+		foreach ( ( new ProfileRepository() )->all( true ) as $profile ) {
+			foreach ( $profile['rules']['conditions'] as $c ) {
+				foreach ( $c['ids'] as $id ) {
+					if ( 'page' === $c['type'] ) {
+						$out[ 'post:' . $id ] = html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' );
+					} elseif ( 'term' === $c['type'] ) {
+						$term = get_term( $id );
+						if ( $term instanceof \WP_Term ) {
+							$out[ 'term:' . $id ] = html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' );
+						}
+					}
+				}
+			}
+		}
+		return $out ? $out : new \stdClass();
 	}
 
 	public static function order_profiles( WP_REST_Request $request ): WP_REST_Response {
@@ -178,7 +216,7 @@ final class Routes {
 				$repo->set_order( $id, $i );
 			}
 		}
-		return new WP_REST_Response( array( 'profiles' => $repo->all( true ) ) );
+		return new WP_REST_Response( array( 'profiles' => array_map( array( self::class, 'out' ), $repo->all( true ) ) ) );
 	}
 
 	public static function stats( WP_REST_Request $request ): WP_REST_Response {
@@ -346,7 +384,7 @@ final class Routes {
 		$profile['is_default'] = false;
 		$repo                  = new ProfileRepository();
 		$id                    = $repo->create( $profile + array( 'menu_order' => count( $repo->all() ) ) );
-		return new WP_REST_Response( array( 'profile' => $repo->get( $id, true ) ), 201 );
+		return new WP_REST_Response( array( 'profile' => self::out( $repo->get( $id, true ) ) ), 201 );
 	}
 
 	public static function save_profile( WP_REST_Request $request ): WP_REST_Response|WP_Error {
@@ -356,7 +394,7 @@ final class Routes {
 		if ( ! $repo->save_draft( $id, is_array( $data['profile'] ?? null ) ? $data['profile'] : array() ) ) {
 			return new WP_Error( 'imm_not_found', __( 'El perfil no existe.', 'imagina-menu' ), array( 'status' => 404 ) );
 		}
-		return new WP_REST_Response( array( 'profile' => $repo->get( $id, true ) ) );
+		return new WP_REST_Response( array( 'profile' => self::out( $repo->get( $id, true ) ) ) );
 	}
 
 	public static function delete_profile( WP_REST_Request $request ): WP_REST_Response|WP_Error {

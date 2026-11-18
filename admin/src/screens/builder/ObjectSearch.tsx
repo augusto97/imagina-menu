@@ -7,7 +7,25 @@ import { __ } from '@/lib/i18n';
 import type { SearchResult } from '@/lib/types';
 
 /** Buscador de páginas, entradas, productos y categorías para enlazar desde un ítem. */
-export function ObjectSearch( { open, onOpenChange, onPick, title }: { open: boolean; onOpenChange: ( open: boolean ) => void; onPick: ( result: SearchResult ) => void; title?: string } ) {
+export function ObjectSearch( {
+	open,
+	onOpenChange,
+	onPick,
+	title,
+	kind,
+	type,
+	placeholder,
+}: {
+	open: boolean;
+	onOpenChange: ( open: boolean ) => void;
+	onPick: ( result: SearchResult ) => void;
+	title?: string;
+	/** Solo entradas/páginas ('post') o solo términos ('term'). */
+	kind?: 'post' | 'term';
+	/** Tipo de contenido o taxonomía concreta. */
+	type?: string;
+	placeholder?: string;
+} ) {
 	const [ q, setQ ] = useState( '' );
 	const [ results, setResults ] = useState<SearchResult[]>( [] );
 	const [ loading, setLoading ] = useState( false );
@@ -18,13 +36,14 @@ export function ObjectSearch( { open, onOpenChange, onPick, title }: { open: boo
 		}
 		setLoading( true );
 		const timer = window.setTimeout( () => {
-			api<{ results: SearchResult[] }>( 'search', 'GET', undefined, { q } )
-				.then( ( r ) => setResults( r.results ) )
+			api<{ results: SearchResult[] }>( 'search', 'GET', undefined, { q, kind, type } )
+				// El filtro también se aplica aquí por si el servidor no lo soporta.
+				.then( ( r ) => setResults( r.results.filter( ( x ) => ( ! kind || x.kind === kind ) && ( ! type || x.type === type ) ) ) )
 				.catch( () => setResults( [] ) )
 				.finally( () => setLoading( false ) );
 		}, 250 );
 		return () => window.clearTimeout( timer );
-	}, [ q, open ] );
+	}, [ q, open, kind, type ] );
 
 	return (
 		<DialogPrimitive.Root open={ open } onOpenChange={ onOpenChange }>
@@ -35,7 +54,7 @@ export function ObjectSearch( { open, onOpenChange, onPick, title }: { open: boo
 					<DialogPrimitive.Description className="imm:sr-only">{ __( 'Busca una página, producto, entrada o categoría.' ) }</DialogPrimitive.Description>
 					<div className="imm:relative imm:border-b imm:border-zinc-100">
 						<Search className="imm:pointer-events-none imm:absolute imm:top-3.5 imm:left-4 imm:size-4 imm:text-zinc-400" aria-hidden />
-						<Input autoFocus value={ q } onChange={ ( e ) => setQ( e.target.value ) } placeholder={ __( 'Buscar páginas, productos, categorías…' ) } className="imm:h-12 imm:rounded-none imm:border-0 imm:pl-11 imm:text-[15px] imm:shadow-none" />
+						<Input autoFocus value={ q } onChange={ ( e ) => setQ( e.target.value ) } placeholder={ placeholder ?? __( 'Buscar páginas, productos, categorías…' ) } className="imm:h-12 imm:rounded-none imm:border-0 imm:pl-11 imm:text-[15px] imm:shadow-none" />
 						{ loading && <Loader2 className="imm:absolute imm:top-3.5 imm:right-4 imm:size-4 imm:animate-spin imm:text-zinc-400" aria-hidden /> }
 					</div>
 					<ul className="imm:max-h-[50vh] imm:overflow-y-auto imm:p-1.5">

@@ -1,7 +1,7 @@
 import { Download, Loader2, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { PageHeader, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { downloadFile } from '@/lib/utils';
 
 export function SettingsScreen() {
 	const settings = useStore( ( s ) => s.settings );
+	const env = useStore( ( s ) => s.env );
 	const client = useQueryClient();
 	const file = useRef<HTMLInputElement>( null );
 	const [ withSettings, setWithSettings ] = useState( false );
@@ -23,6 +24,14 @@ export function SettingsScreen() {
 		return null;
 	}
 	const set = <K extends keyof typeof settings>( key: K, value: ( typeof settings )[ K ] ) => useStore.getState().updateSettings( ( s ) => ( { ...s, [ key ]: value } ) );
+	const setAnalytics = <K extends keyof typeof settings.analytics>( key: K, value: ( typeof settings.analytics )[ K ] ) =>
+		useStore.getState().updateSettings( ( s ) => ( { ...s, analytics: { ...s.analytics, [ key ]: value } } ) );
+	const a = settings.analytics;
+	const depthHint = {
+		auto: __( 'Automático: si el menú tiene más de 150 ítems, los niveles desde el tercero van en <template> (no cuentan como DOM hasta que se abren). Con menos, todo va en el HTML.' ),
+		full: __( 'Todos los niveles en el HTML: todos los enlaces visibles para Google. Recomendado hasta ~150 ítems.' ),
+		hybrid: __( 'Niveles 1 y 2 en el HTML (Google los ve); del tercero hacia abajo en <template>, que se activa al abrir. Para catálogos de cientos de categorías: menos nodos DOM, mejor rendimiento. Las categorías profundas se siguen alcanzando desde sus páginas padre.' ),
+	}[ settings.html_depth ];
 
 	const exportAll = async () => {
 		setBusy( 'export' );
@@ -71,6 +80,32 @@ export function SettingsScreen() {
 					<Row label={ __( 'Carga del JavaScript' ) } hint={ settings.load_js === 'interaction' ? __( 'No se descarga nada hasta el primer toque, tecla o scroll: 0 KB de JS en la carga. El panel abre igual (sin JS) y las animaciones se activan enseguida.' ) : __( 'Módulo diferido de ~4 KB: no bloquea el render.' ) }>
 						<Segmented value={ settings.load_js } onChange={ ( v ) => set( 'load_js', v ) } options={ [ { value: 'eager', label: __( 'Diferida' ) }, { value: 'interaction', label: __( 'Al interactuar' ) } ] } />
 					</Row>
+					<Row label={ __( 'Profundidad en el HTML' ) } hint={ depthHint }>
+						<Segmented value={ settings.html_depth } onChange={ ( v ) => set( 'html_depth', v ) } options={ [ { value: 'auto', label: __( 'Automática' ) }, { value: 'full', label: __( 'Completa' ) }, { value: 'hybrid', label: __( 'Híbrida' ) } ] } />
+					</Row>
+					{ env?.imagina_turbo || env?.core_speculation ? (
+						<Row label={ __( 'Precarga al tocar' ) } hint={ env?.imagina_turbo ? __( 'Imagina Turbo ya gestiona la navegación instantánea (Speculation Rules): el menú no añade la suya para no duplicar.' ) : __( 'Tu WordPress (6.8 o superior) ya precarga los enlaces al tocarlos en todo el sitio, menú incluido: no hace falta duplicarlo.' ) }>
+							<Switch checked={ false } disabled aria-label={ __( 'Precarga al tocar' ) } />
+						</Row>
+					) : (
+						<ToggleRow label={ __( 'Precarga al tocar' ) } hint={ __( 'Al empezar a tocar un enlace del menú, el navegador precarga la página (gana 100–300 ms). No descarga nada que el visitante no vaya a abrir.' ) } checked={ settings.prefetch } onChange={ ( v ) => set( 'prefetch', v ) } />
+					) }
+				</Section>
+
+				<Section title={ __( 'Analítica' ) } description={ __( 'Contadores sin cookies ni datos personales. Los resultados están en Analítica.' ) }>
+					<ToggleRow label={ __( 'Medir el uso del menú' ) } hint={ __( 'Aperturas, clics por ítem, búsquedas y barra inferior. El JS de medición (~1 KB) solo se descarga en el primer toque.' ) } checked={ a.enabled } onChange={ ( v ) => setAnalytics( 'enabled', v ) } />
+					{ a.enabled && (
+						<>
+							<ToggleRow label={ __( 'Guardar en este sitio' ) } hint={ __( 'Totales por día en una tabla propia, con envío por sendBeacon y escritura en lote (no consulta la base de datos en cada clic).' ) } checked={ a.server } onChange={ ( v ) => setAnalytics( 'server', v ) } />
+							<ToggleRow label={ __( 'Enviar a Google Analytics 4' ) } hint={ __( 'Eventos a dataLayer (GA4 o Tag Manager) si existe en la página.' ) } checked={ a.ga4 } onChange={ ( v ) => setAnalytics( 'ga4', v ) } />
+							<Row label={ __( 'Muestreo' ) } hint={ __( 'Porcentaje de visitas que se miden. Bájalo en sitios con mucho tráfico.' ) }>
+								<Range value={ a.sample } min={ 1 } max={ 100 } unit="%" onChange={ ( v ) => setAnalytics( 'sample', v ) } />
+							</Row>
+							<Row label={ __( 'Conservar los datos' ) } hint={ __( 'Los días más antiguos se borran solos.' ) }>
+								<Range value={ a.retention } min={ 30 } max={ 730 } step={ 10 } unit={ ' ' + __( 'días' ) } onChange={ ( v ) => setAnalytics( 'retention', v ) } />
+							</Row>
+						</>
+					) }
 				</Section>
 
 				<Section title={ __( 'Datos dinámicos' ) } description={ __( 'Cookies propias, pequeñas y legibles por JS: el HTML sigue siendo cacheable para todos.' ) }>

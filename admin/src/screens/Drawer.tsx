@@ -10,6 +10,14 @@ import { setProfile, useActiveProfile, useStore } from '@/lib/store';
 import type { Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+const MODE_HINTS: Record<Profile[ 'drawer' ][ 'submenu_mode' ], string> = {
+	slide: __( 'Cada submenú entra deslizándose desde el lado, con flecha para volver (estilo Amazon).' ),
+	accordion: __( 'Los submenús se despliegan debajo de su ítem.' ),
+	two_pane: __( 'Categorías a la izquierda y subcategorías con imagen a la derecha (estilo apps de compras). Ideal con WooCommerce y ancho del 100 %.' ),
+	tabs: __( 'Pestañas horizontales arriba con las categorías principales y, debajo, sus subcategorías como tarjetas con imagen (estilo tiendas de moda). Ideal para pocos departamentos grandes.' ),
+	grid: __( 'El primer nivel como rejilla de tarjetas con icono o imagen; los submenús se deslizan. Ideal para servicios, restaurantes o pocas categorías.' ),
+};
+
 const NETWORKS = [ 'facebook', 'instagram', 'tiktok', 'youtube', 'x', 'pinterest', 'telegram', 'whatsapp' ];
 
 export function DrawerScreen() {
@@ -38,8 +46,14 @@ export function DrawerScreen() {
 							) ) }
 						</Select>
 					</Row>
-					<Row label={ __( 'Submenús' ) } hint={ d.submenu_mode === 'slide' ? __( 'Cada submenú entra deslizándose desde el lado, con flecha para volver (estilo Amazon).' ) : d.submenu_mode === 'two_pane' ? __( 'Categorías a la izquierda y subcategorías con imagen a la derecha (estilo apps de compras). Ideal con WooCommerce y ancho del 100 %.' ) : __( 'Los submenús se despliegan debajo de su ítem.' ) }>
-						<Segmented value={ d.submenu_mode } onChange={ ( v ) => set( [ 'drawer', 'submenu_mode' ], v ) } options={ [ { value: 'slide', label: __( 'Deslizante' ) }, { value: 'accordion', label: __( 'Acordeón' ) }, { value: 'two_pane', label: __( 'Dos columnas' ) } ] } />
+					<Row label={ __( 'Submenús' ) } hint={ MODE_HINTS[ d.submenu_mode ] }>
+						<Segmented value={ d.submenu_mode } onChange={ ( v ) => set( [ 'drawer', 'submenu_mode' ], v ) } options={ [
+								{ value: 'slide', label: __( 'Deslizante' ) },
+								{ value: 'accordion', label: __( 'Acordeón' ) },
+								{ value: 'two_pane', label: __( 'Dos columnas' ) },
+								{ value: 'tabs', label: __( 'Pestañas' ) },
+								{ value: 'grid', label: __( 'Rejilla' ) },
+							] } />
 					</Row>
 					<Row label={ __( 'Lado' ) }>
 						<Segmented value={ d.side } onChange={ ( v ) => set( [ 'drawer', 'side' ], v ) } options={ [ { value: 'left', label: __( 'Izquierda' ) }, { value: 'right', label: __( 'Derecha' ) }, { value: 'bottom', label: __( 'Abajo' ) } ] } />
@@ -54,6 +68,8 @@ export function DrawerScreen() {
 						<Segmented value={ d.close_position } onChange={ ( v ) => set( [ 'drawer', 'close_position' ], v ) } options={ [ { value: 'outside', label: __( 'Fuera del panel' ) }, { value: 'inside', label: __( 'Dentro' ) }, { value: 'none', label: __( 'Ninguno' ) } ] } />
 					</Row>
 				</Section>
+
+				<LanguagesSection profile={ profile } />
 
 				<Section title={ __( 'Cómo se abre' ) } description={ __( 'El botón abre el panel incluso antes de que cargue el JavaScript.' ) }>
 					<div className="imm:grid imm:gap-2 imm:p-4 imm:sm:grid-cols-3">
@@ -291,4 +307,59 @@ function swap<T>( list: T[], a: number, b: number ): T[] {
 	const copy = [ ...list ];
 	[ copy[ a ], copy[ b ] ] = [ copy[ b ] as T, copy[ a ] as T ];
 	return copy;
+}
+
+/** Menú por idioma y selector de idioma (WPML, Polylang o TranslatePress). */
+function LanguagesSection( { profile }: { profile: Profile } ) {
+	const env = useStore( ( s ) => s.env );
+	const menus = useStore( ( s ) => s.menus );
+	const languages = env?.languages ?? [];
+	const d = profile.drawer;
+	const plugin = { wpml: 'WPML', polylang: 'Polylang', translatepress: 'TranslatePress', '': '' }[ env?.multilingual ?? '' ];
+
+	if ( ! languages.length ) {
+		return (
+			<Section title={ __( 'Idiomas' ) } description={ __( 'Menú por idioma y selector de idioma.' ) }>
+				<div className="imm:px-5 imm:py-4">
+					<Notice level="info">{ __( 'Estas opciones aparecen cuando el sitio usa WPML, Polylang o TranslatePress. Los textos del menú se pueden traducir desde la traducción de cadenas de ese plugin.' ) }</Notice>
+				</div>
+			</Section>
+		);
+	}
+
+	return (
+		<Section title={ __( 'Idiomas' ) } description={ `${ __( 'Detectado:' ) } ${ plugin }. ${ __( 'Cada idioma se compila aparte: los enlaces a páginas y categorías apuntan a su traducción y los textos se traducen desde la traducción de cadenas.' ) }` }>
+			{ languages.map( ( l ) => (
+				<Row key={ l.code } label={ <>{ l.name } <span className="imm:font-mono imm:text-xs imm:text-zinc-400">{ l.code }</span></> } hint={ l.default ? __( 'Idioma principal: usa el menú elegido arriba.' ) : __( 'Usar otro menú en este idioma (opcional).' ) }>
+					{ l.default ? (
+						<span className="imm:text-[13px] imm:text-zinc-500">{ menus.find( ( m ) => m.id === d.menu_id )?.title ?? '—' }</span>
+					) : (
+						<Select
+							value={ d.menu_by_lang[ l.code ] ?? 0 }
+							onChange={ ( e ) => {
+								const value = Number( e.target.value );
+								const next = { ...d.menu_by_lang };
+								if ( value ) {
+									next[ l.code ] = value;
+								} else {
+									delete next[ l.code ];
+								}
+								setProfile( [ 'drawer', 'menu_by_lang' ], next );
+							} }
+							className="imm:w-56"
+							aria-label={ `${ __( 'Menú para' ) } ${ l.name }` }
+						>
+							<option value={ 0 }>{ __( 'El mismo menú (traducido)' ) }</option>
+							{ menus.map( ( m ) => (
+								<option key={ m.id } value={ m.id }>
+									{ m.title }
+								</option>
+							) ) }
+						</Select>
+					) }
+				</Row>
+			) ) }
+			<ToggleRow label={ __( 'Selector de idioma en el pie del panel' ) } hint={ __( 'Enlaces a la traducción de la página actual.' ) } checked={ d.language_switcher } onChange={ ( v ) => setProfile( [ 'drawer', 'language_switcher' ], v ) } />
+		</Section>
+	);
 }

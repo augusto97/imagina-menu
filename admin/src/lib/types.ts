@@ -10,7 +10,36 @@ export interface Settings {
 	cart_cookie: boolean;
 	name_cookie: boolean;
 	delete_on_uninstall: boolean;
+	/** Niveles desde el 3.º dentro de <template> (catálogos enormes). auto = híbrido si hay > 150 ítems. */
+	html_depth: 'auto' | 'full' | 'hybrid';
+	/** Precarga el destino al tocar un enlace (se ignora con Imagina Turbo). */
+	prefetch: boolean;
+	analytics: AnalyticsSettings;
 }
+
+export interface AnalyticsSettings {
+	enabled: boolean;
+	server: boolean;
+	ga4: boolean;
+	sample: number;
+	retention: number;
+}
+
+export type RuleType = 'front_page' | 'blog' | 'page' | 'post_type' | 'term' | 'woo' | 'url' | 'logged_in' | 'logged_out' | 'role' | 'language';
+
+export interface RuleCondition {
+	type: RuleType;
+	not: boolean;
+	value: string;
+	ids: number[];
+}
+
+export interface ProfileRules {
+	match: 'all' | 'any';
+	conditions: RuleCondition[];
+}
+
+export type SubmenuMode = 'slide' | 'accordion' | 'two_pane' | 'tabs' | 'grid';
 
 export type ItemType = 'link' | 'heading' | 'divider' | 'source';
 export type BadgeStyle = 'new' | 'sale' | 'hot' | 'info';
@@ -76,6 +105,8 @@ export interface Profile {
 	title: string;
 	enabled: boolean;
 	is_default: boolean;
+	/** Sin condiciones = perfil general (se aplica en todo el sitio). */
+	rules: ProfileRules;
 	hide_theme_selector: string;
 	trigger: {
 		mode: 'floating' | 'theme_selector' | 'manual';
@@ -93,7 +124,10 @@ export interface Profile {
 		side: 'left' | 'right' | 'bottom';
 		width: number;
 		max_width: number;
-		submenu_mode: 'slide' | 'accordion' | 'two_pane';
+		submenu_mode: SubmenuMode;
+		/** Menú por idioma (código → id de menú). 0 o ausente = drawer.menu_id. */
+		menu_by_lang: Record<string, number>;
+		language_switcher: boolean;
 		close_position: 'outside' | 'inside' | 'none';
 		show_logo: boolean;
 		title: string;
@@ -150,6 +184,7 @@ export interface CompileState {
 	warnings?: string[];
 	error?: string;
 	purged?: string[];
+	languages?: string[];
 }
 
 export interface Env {
@@ -162,6 +197,30 @@ export interface Env {
 	writable: boolean;
 	has_logo: boolean;
 	license: { protected: boolean; licensed: boolean | null; client_active: boolean; license_page: string; masked_key: string };
+	multilingual?: 'wpml' | 'polylang' | 'translatepress' | '';
+	languages?: { code: string; name: string; default: boolean }[];
+	post_types?: { slug: string; label: string }[];
+	taxonomies?: { slug: string; label: string }[];
+	roles?: { slug: string; label: string }[];
+	core_speculation?: boolean;
+	rule_labels?: Record<string, string>;
+}
+
+export interface StatsDay {
+	day: string;
+	open: number;
+	click: number;
+	search: number;
+	bbar: number;
+}
+
+export interface Stats {
+	days: StatsDay[];
+	totals: { open: number; click: number; search: number; bbar: number };
+	top: { id: string; label: string; count: number }[];
+	unused: { id: string; label: string }[];
+	enabled: boolean;
+	ga4: boolean;
 }
 
 export interface State {

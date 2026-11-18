@@ -6,12 +6,14 @@ import { __ } from './lib/i18n';
 import { useAutosave, useBootstrap } from './lib/queries';
 import { useRouter } from './lib/router';
 import { useStore } from './lib/store';
+import { AnalyticsScreen } from './screens/Analytics';
 import { BottomBarScreen } from './screens/BottomBar';
 import { Builder } from './screens/Builder';
 import { Design } from './screens/Design';
 import { DrawerScreen } from './screens/Drawer';
 import { Menus } from './screens/Menus';
 import { Panel } from './screens/Panel';
+import { ProfilesScreen } from './screens/Profiles';
 import { SearchScreen } from './screens/Search';
 import { SettingsScreen } from './screens/Settings';
 
@@ -43,10 +45,12 @@ export function App() {
 				{ route === 'panel' && <Panel /> }
 				{ route === 'menus' && <Menus /> }
 				{ route === 'constructor' && <Builder /> }
+				{ route === 'perfiles' && <ProfilesScreen /> }
 				{ route === 'panel-lateral' && <DrawerScreen /> }
 				{ route === 'barra' && <BottomBarScreen /> }
 				{ route === 'buscador' && <SearchScreen /> }
 				{ route === 'diseno' && <Design /> }
+				{ route === 'analitica' && <AnalyticsScreen /> }
 				{ route === 'ajustes' && <SettingsScreen /> }
 			</ErrorBoundary>
 		</Layout>

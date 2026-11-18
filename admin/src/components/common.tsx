@@ -88,7 +88,7 @@ export function Range( { value, min, max, step = 1, unit = '', onChange, id }: {
 				onChange={ ( e ) => onChange( Number( e.target.value ) ) }
 				className="imm:h-1.5 imm:flex-1 imm:cursor-pointer imm:accent-zinc-900"
 			/>
-			<span className="imm:w-14 imm:text-right imm:font-mono imm:text-xs imm:tabular-nums imm:text-zinc-600">
+			<span className="imm:min-w-14 imm:text-right imm:font-mono imm:text-xs imm:whitespace-nowrap imm:tabular-nums imm:text-zinc-600">
 				{ value }
 				{ unit }
 			</span>

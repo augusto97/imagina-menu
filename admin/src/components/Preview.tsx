@@ -1,5 +1,6 @@
 import { ExternalLink, Menu as MenuIcon, RotateCw, Search, Smartphone } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { QrButton } from './QrDialog';
 import { Button } from './ui/button';
 import { Segmented } from './common';
 import { api } from '@/lib/api';
@@ -168,6 +169,7 @@ export function Preview() {
 					<Button size="icon" variant="ghost" title={ __( 'Recargar' ) } onClick={ () => useStore.getState().reloadPreview() }>
 						<RotateCw aria-hidden />
 					</Button>
+					<QrButton path={ path } />
 					<Button size="icon" variant="ghost" title={ __( 'Abrir en una pestaña nueva' ) } disabled={ ! src } onClick={ () => window.open( src, '_blank', 'noopener' ) }>
 						<ExternalLink aria-hidden />
 					</Button>

@@ -2,6 +2,40 @@ import { create } from 'zustand';
 import { api } from './api';
 import type { Env, Menu, Preset, Profile, Settings, State, CompileState, MenuItem, BottomItem } from './types';
 
+interface Snapshot {
+	menus: Menu[];
+	profiles: Profile[];
+}
+
+const HISTORY_CAP = 100;
+const COALESCE_MS = 500;
+
+/** Rellena los campos nuevos si el servidor todavía no los envía (compatibilidad hacia atrás). */
+function withProfileDefaults( p: Profile ): Profile {
+	return {
+		...p,
+		rules: {
+			match: p.rules?.match === 'any' ? 'any' : 'all',
+			conditions: Array.isArray( p.rules?.conditions ) ? p.rules.conditions.map( ( c ) => ( { type: c.type, not: !! c.not, value: c.value ?? '', ids: Array.isArray( c.ids ) ? c.ids : [] } ) ) : [],
+		},
+		drawer: {
+			...p.drawer,
+			// PHP serializa un arreglo asociativo vacío como []: se normaliza a objeto.
+			menu_by_lang: p.drawer.menu_by_lang && ! Array.isArray( p.drawer.menu_by_lang ) ? p.drawer.menu_by_lang : {},
+			language_switcher: p.drawer.language_switcher ?? true,
+		},
+	};
+}
+
+function withSettingsDefaults( s: Settings ): Settings {
+	return {
+		...s,
+		html_depth: s.html_depth ?? 'auto',
+		prefetch: s.prefetch ?? true,
+		analytics: Object.assign( { enabled: false, server: true, ga4: true, sample: 100, retention: 180 }, s.analytics as Partial<Settings[ 'analytics' ]> | undefined ),
+	};
+}
+
 /**
  * Copias de trabajo del admin. Cada cambio local marca su documento como pendiente; useAutosave
  * los guarda como borrador (PUT) con un retardo y recarga la vista previa. «Publicar» guarda lo
@@ -28,12 +62,19 @@ interface Store {
 	saving: boolean;
 	saveError: string;
 	previewNonce: number;
+	past: Snapshot[];
+	future: Snapshot[];
+	lastEdit: { key: string; at: number };
 
 	hydrate: ( state: State ) => void;
 	setActiveProfile: ( id: number ) => void;
 	setActiveMenu: ( id: number ) => void;
 	selectItem: ( id: string ) => void;
 	updateProfile: ( fn: ( profile: Profile ) => Profile ) => void;
+	updateProfileById: ( id: number, fn: ( profile: Profile ) => Profile ) => void;
+	reorderProfiles: ( ids: number[] ) => Promise<void>;
+	undo: () => void;
+	redo: () => void;
 	updateMenu: ( id: number, fn: ( menu: Menu ) => Menu ) => void;
 	updateSettings: ( fn: ( settings: Settings ) => Settings ) => void;
 	addMenu: ( menu: Menu ) => void;
@@ -61,8 +102,15 @@ export const useStore = create<Store>( ( set, get ) => ( {
 	saving: false,
 	saveError: '',
 	previewNonce: 0,
+	past: [],
+	future: [],
+	lastEdit: { key: '', at: 0 },
 
-	hydrate: ( state ) => {
+	hydrate: ( raw ) => {
+		const state: State = { ...raw, settings: withSettingsDefaults( raw.settings ), profiles: raw.profiles.map( withProfileDefaults ) };
+		if ( state.defaults?.profile ) {
+			state.defaults = { ...state.defaults, profile: withProfileDefaults( state.defaults.profile ) };
+		}
 		const current = get();
 		const profileId = state.profiles.some( ( p ) => p.id === current.activeProfileId ) ? current.activeProfileId : state.profiles[ 0 ]?.id ?? 0;
 		const profile = state.profiles.find( ( p ) => p.id === profileId );
@@ -83,6 +131,9 @@ export const useStore = create<Store>( ( set, get ) => ( {
 			activeMenuId: menuId,
 			pending: {},
 			previewNonce: current.previewNonce + 1,
+			past: [],
+			future: [],
+			lastEdit: { key: '', at: 0 },
 		} );
 	},
 
@@ -90,17 +141,37 @@ export const useStore = create<Store>( ( set, get ) => ( {
 	setActiveMenu: ( id ) => set( { activeMenuId: id, selectedItemId: '' } ),
 	selectItem: ( id ) => set( { selectedItemId: id } ),
 
-	updateProfile: ( fn ) =>
+	updateProfile: ( fn ) => get().updateProfileById( get().activeProfileId, fn ),
+
+	updateProfileById: ( id, fn ) =>
 		set( ( s ) => ( {
-			profiles: s.profiles.map( ( p ) => ( p.id === s.activeProfileId ? fn( p ) : p ) ),
-			pending: { ...s.pending, [ `profile:${ s.activeProfileId }` ]: true },
+			...record( s, `profile:${ id }` ),
+			profiles: s.profiles.map( ( p ) => ( p.id === id ? fn( p ) : p ) ),
+			pending: { ...s.pending, [ `profile:${ id }` ]: true },
 		} ) ),
 
 	updateMenu: ( id, fn ) =>
 		set( ( s ) => ( {
+			...record( s, `menu:${ id }` ),
 			menus: s.menus.map( ( m ) => ( m.id === id ? fn( m ) : m ) ),
 			pending: { ...s.pending, [ `menu:${ id }` ]: true },
 		} ) ),
+
+	reorderProfiles: async ( ids ) => {
+		const before = get().profiles;
+		const byId = new Map( before.map( ( p ) => [ p.id, p ] ) );
+		const ordered = ids.map( ( id ) => byId.get( id ) ).filter( ( p ): p is Profile => !! p );
+		set( { profiles: [ ...ordered, ...before.filter( ( p ) => ! ids.includes( p.id ) ) ] } );
+		try {
+			await api( 'profiles/order', 'PUT', { ids } );
+			set( ( s ) => ( { serverDrafts: Math.max( 1, s.serverDrafts ), previewNonce: s.previewNonce + 1 } ) );
+		} catch ( error ) {
+			set( { profiles: before, saveError: error instanceof Error ? error.message : String( error ) } );
+		}
+	},
+
+	undo: () => set( ( s ) => travel( s, 'undo' ) ),
+	redo: () => set( ( s ) => travel( s, 'redo' ) ),
 
 	updateSettings: ( fn ) =>
 		set( ( s ) => ( {
@@ -114,7 +185,7 @@ export const useStore = create<Store>( ( set, get ) => ( {
 			const menus = s.menus.filter( ( m ) => m.id !== id );
 			return { menus, activeMenuId: s.activeMenuId === id ? menus[ 0 ]?.id ?? 0 : s.activeMenuId };
 		} ),
-	addProfile: ( profile ) => set( ( s ) => ( { profiles: [ ...s.profiles, profile ], activeProfileId: profile.id } ) ),
+	addProfile: ( profile ) => set( ( s ) => ( { profiles: [ ...s.profiles, withProfileDefaults( profile ) ], activeProfileId: profile.id } ) ),
 	removeProfile: ( id ) =>
 		set( ( s ) => {
 			const profiles = s.profiles.filter( ( p ) => p.id !== id );
@@ -160,6 +231,61 @@ export const useStore = create<Store>( ( set, get ) => ( {
 
 	reloadPreview: () => set( ( s ) => ( { previewNonce: s.previewNonce + 1 } ) ),
 } ) );
+
+/**
+ * Historial para deshacer: guarda el estado anterior antes de cada cambio. Las ediciones seguidas
+ * del mismo documento en menos de 500 ms (escribir en un campo) cuentan como una sola.
+ */
+function record( s: Store, key: string ): Partial<Store> {
+	const now = Date.now();
+	if ( s.lastEdit.key === key && now - s.lastEdit.at < COALESCE_MS ) {
+		return { lastEdit: { key, at: now }, future: [] };
+	}
+	const past = [ ...s.past, { menus: s.menus, profiles: s.profiles } ].slice( -HISTORY_CAP );
+	return { past, future: [], lastEdit: { key, at: now } };
+}
+
+/**
+ * Restaura una instantánea documento por documento (por id): se conservan el orden actual de los
+ * perfiles y los menús o perfiles creados o borrados después (eso ya está en el servidor). Los
+ * documentos que cambian quedan pendientes para que el autoguardado los envíe.
+ */
+function travel( s: Store, direction: 'undo' | 'redo' ): Partial<Store> {
+	const from = direction === 'undo' ? s.past : s.future;
+	const target = from[ from.length - 1 ];
+	if ( ! target ) {
+		return {};
+	}
+	const current: Snapshot = { menus: s.menus, profiles: s.profiles };
+	const pending = { ...s.pending };
+	const menuMap = new Map( target.menus.map( ( m ) => [ m.id, m ] ) );
+	const profileMap = new Map( target.profiles.map( ( p ) => [ p.id, p ] ) );
+	const menus = s.menus.map( ( m ) => {
+		const next = menuMap.get( m.id );
+		if ( next && next !== m ) {
+			pending[ `menu:${ m.id }` ] = true;
+			return next;
+		}
+		return m;
+	} );
+	const profiles = s.profiles.map( ( p ) => {
+		const next = profileMap.get( p.id );
+		if ( next && next !== p ) {
+			pending[ `profile:${ p.id }` ] = true;
+			return next;
+		}
+		return p;
+	} );
+	const rest = from.slice( 0, -1 );
+	const other = direction === 'undo' ? [ ...s.future, current ] : [ ...s.past, current ];
+	return {
+		menus,
+		profiles,
+		pending,
+		lastEdit: { key: '', at: 0 },
+		...( direction === 'undo' ? { past: rest, future: other } : { future: rest, past: other } ),
+	};
+}
 
 export function useActiveProfile(): Profile | undefined {
 	return useStore( ( s ) => s.profiles.find( ( p ) => p.id === s.activeProfileId ) );
