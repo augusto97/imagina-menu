@@ -126,7 +126,7 @@ HTML mínimo por ítem: un `<li>` + `<a>` + (si tiene hijos) `<button>` y el spr
 | Cloudflare (Rocket Loader) | Funciona; recomendado apagar Rocket Loader en general. |
 | Imagina Turbo | Integración nativa (ver `docs/02`, M12). |
 
-Los módulos `track.js` (analítica), `prefetch.js` (precarga) y `desktop.js` (cascada y «pasar el mouse» en escritorio, solo en pantallas anchas) se cargan bajo demanda junto a `core.js`: si un optimizador combina o mueve `core.js`, debe excluirlos también (o excluir `imagina-menu` completo). `preview.js` solo se carga en la vista previa del admin.
+Los módulos `track.js` (analítica), `prefetch.js` (precarga), `desktop.js` (cascada y «pasar el mouse» en escritorio, solo en pantallas anchas), `gestures.js` (deslizar para cerrar o volver, con la primera apertura del panel), `hours.js` (horario de WhatsApp, al abrir el panel) y `recent.js` (búsquedas recientes, al abrir el buscador) se cargan bajo demanda junto a `core.js`: si un optimizador combina o mueve `core.js`, debe excluirlos también (o excluir `imagina-menu` completo). `preview.js` solo se carga en la vista previa del admin.
 
 Desde v0.4 el build hace una segunda pasada con terser sobre la salida de esbuild (~3 % menos gzip): `core.js` queda en 3,99 KB con la integración de Imagina Search, el arranque reutilizable para la vista previa en vivo y el cargador del módulo de escritorio. Con Imagina Search activo, su plantilla añade ~0,14 ms por visita (su código; el del menú sigue en ~0,04 ms).
 
@@ -138,3 +138,12 @@ El plugin **detecta** estos plugins y, cuando es posible, añade las exclusiones
 - **Lighthouse CI** en GitHub Actions contra un WordPress de prueba (wp-env) con tres escenarios: tema base sin plugin, tema base con plugin (todos los módulos), WooCommerce con 300 categorías en modo híbrido.
 - **Playwright** con emulación de Moto G Power y iPhone 13, CPU 4×, red 4G lenta: abrir/cerrar, drill-down, barra inferior, CLS, INP, conteo de nodos, axe.
 - **Sitios reales**: 3 sitios de clientes (WooCommerce grande, corporativo con Elementor, blog) con RUM de Imagina Turbo antes/después.
+
+### v0.5
+
+- `core.js` baja a 3,69 KB gzip (de 3,99) al pasar a módulos bajo demanda los gestos (0,31 KB), las búsquedas recientes (0,51 KB) y el horario de WhatsApp (0,38 KB): ningún sitio paga por lo que no usa.
+- La barra superior móvil va en el CSS crítico solo si está activa (el crítico con ella: 1,87 KB gzip, tope 2,1 KB) y reserva su alto: CLS = 0, medido.
+- Los banners no cuestan nada en la carga: `loading="lazy"` dentro del panel cerrado (se descargan al abrirlo).
+- Las campañas no hacen consultas por visita: marcas de tiempo precalculadas y un evento de WP-Cron en cada límite.
+- Análisis estático y CI: PHPStan nivel 6 sin errores, ESLint, presupuesto y build en GitHub Actions en cada push.
+

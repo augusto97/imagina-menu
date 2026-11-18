@@ -41,6 +41,7 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 | **Menús** | Lista de menús (tarjetas con número de ítems, perfiles que lo usan, última edición). Crear, duplicar, importar desde un menú de WordPress, eliminar. |
 | **Constructor de menú** | Ver detalle abajo. |
 | **Perfiles** | Lista ordenable (arrastrar = prioridad). Cada perfil: reglas (constructor de condiciones «Mostrar cuando… y/o…»), disparador, panel (menú, lado, modo de submenú, cabecera/pie), barra inferior (activar y elegir), barra superior, diseño (preset + sobrescrituras). Indicador «Este perfil se muestra en: …» con ejemplos de URLs. |
+| **Barra superior** (v0.5) | Activar la barra tipo app, qué muestra (buscador, logo, cuenta, carrito) y qué se oculta al bajar. |
 | **Escritorio** (v0.4) | Usar el menú en escritorio, estilo Panel (Amazon) o Cascada (Falabella) con bocetos, anchos, abrir al pasar el mouse, cómo poner el botón (bloque, shortcode con `only`/`style`, selector del tema, flotante) y barra inferior en escritorio. La vista previa cambia sola al marco de escritorio. |
 | **Barra inferior** | Editor visual: la barra se dibuja grande arriba; los ítems se arrastran; cada ítem tiene acción, icono, etiqueta, insignia; opciones de estilo/indicador/comportamiento con vista previa en vivo (incluido el ocultar-al-scroll simulado). |
 | **Diseño** | Presets en tarjetas; editor de tokens agrupado (Colores, Tipografía, Espaciado, Forma, Movimiento, Insignias) con controles visuales (selector de color con contraste AA calculado, deslizadores de radio/duración, curvas de animación con previsualización). Claro/oscuro. CSS personalizado (editor con resaltado ligero). Exportar/importar diseño. |
@@ -79,6 +80,18 @@ El mismo de Imagina Turbo, para reutilizar componentes y estética:
 - Con Imagina Search, un cambio que toque el buscador deja su widget sin iniciar en la vista previa hasta recargar (su JS no se puede reiniciar desde fuera); en el sitio no afecta.
 - Controles: abrir/cerrar panel, ir a un nivel, simular usuario conectado, simular carrito con N productos, modo claro/oscuro, `prefers-reduced-motion`.
 - Botón «Ver en mi celular»: muestra un QR con la URL de vista previa firmada (válida 1 h).
+
+## WP-CLI (v0.5)
+
+```bash
+wp imagina-menu status [--format=json]       # compilación, perfiles, borradores y próximo cambio programado
+wp imagina-menu publish                       # publica todos los borradores, compila y vacía la caché
+wp imagina-menu recompile [--no-purge]        # compila lo publicado
+wp imagina-menu export [--file=menu.json]     # ajustes, menús y perfiles (JSON del botón «Exportar» del admin)
+wp imagina-menu import menu.json [--settings] [--enable] [--publish]
+```
+
+La importación crea menús y perfiles nuevos (los perfiles llegan desactivados salvo `--enable`); desde la terminal se importan también el CSS propio y los selectores (quien usa WP-CLI ya administra el servidor). La API REST y WP-CLI comparten `Core\Transfer`.
 
 ## Endpoints REST
 

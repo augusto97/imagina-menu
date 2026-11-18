@@ -84,14 +84,14 @@ final class Command {
 	/**
 	 * Vuelve a compilar lo publicado (sin tocar los borradores).
 	 *
-	 * [--no-purge]
-	 * : No vaciar la caché del sitio.
+	 * [--[no-]purge]
+	 * : Vaciar la caché del sitio si algo cambió (por defecto sí; --no-purge para no hacerlo).
 	 *
 	 * @param list<string>          $args
 	 * @param array<string, string> $assoc
 	 */
 	public function recompile( array $args, array $assoc ): void {
-		self::report( Plugin::compiler()->publish( ! \WP_CLI\Utils\get_flag_value( $assoc, 'no-purge', false ) ) );
+		self::report( Plugin::compiler()->publish( (bool) \WP_CLI\Utils\get_flag_value( $assoc, 'purge', true ) ) );
 	}
 
 	/**

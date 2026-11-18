@@ -42,7 +42,8 @@ final class Schedule {
 		}
 		$zone = function_exists( 'wp_timezone' ) ? wp_timezone() : new \DateTimeZone( 'UTC' );
 		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i', $local, $zone );
-		return $date ? $date->getTimestamp() : 0;
+		// PHP desborda las fechas imposibles (mes 13 → enero siguiente): solo vale si vuelve igual.
+		return $date && $date->format( 'Y-m-d\TH:i' ) === $local ? $date->getTimestamp() : 0;
 	}
 
 	/**

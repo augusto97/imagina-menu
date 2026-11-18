@@ -66,9 +66,9 @@ Tiene que ser **el menú más rápido del mercado**: HTML renderizado en el serv
 
 - Avanzar **por fases** (`docs/05-roadmap-y-pruebas.md`). No empezar una fase sin cumplir los criterios de aceptación de la anterior.
 - Antes de cada fase: leer el doc correspondiente, proponer el plan de archivos y esperar confirmación si hay decisiones abiertas.
-- Cada módulo implementa `ModuleInterface`; ningún módulo carga código si está desactivado.
+- Cada módulo es una parte del compilador (ver docs/05, «Cambios respecto a la planeación»): desactivado no genera HTML ni CSS y su JS bajo demanda nunca se pide.
 - Cada cambio del frontend pasa el presupuesto (`npm run size` + Lighthouse CI). Si un cambio lo rompe, se rediseña; no se sube el presupuesto sin acordarlo.
 - Commits pequeños y descriptivos en español. Rama de trabajo actual: `claude/wordpress-mobile-menu-plugin-1txjk9`.
-- Comandos: `npm run build` (frontend), `npm run size` (presupuesto), `npm run test:e2e` (e2e móvil contra `IMM_URL`), `composer test` (unitarias), `cd admin && npm run build` (admin).
+- Comandos: `npm run build` (frontend), `npm run size` (presupuesto), `npm run lint` (ESLint), `npm run test:e2e` (e2e móvil contra `IMM_URL`), `composer test` (unitarias), `composer phpstan` (nivel 6), `cd admin && npm run build` (admin). En el sitio: `wp imagina-menu status|publish|recompile|export|import`. El CI de GitHub Actions corre todo menos el e2e en cada push.
 - **Cada versión que se lanza se publica en la rama `release`**: subir la versión en `imagina-menu.php` (cabecera `Version:` y `IMM_VERSION`, formato X.Y.Z), confirmar los cambios y ejecutar `bash bin/release.sh`. El script prueba, empaqueta con `bin/build-zip.sh` y sube a `origin/release` el ZIP `imagina-menu-X.Y.Z.zip`, la copia `imagina-menu.zip` (siempre la última), `SHA256SUMS` y un README con los enlaces. `release` es una rama huérfana (solo ZIP, sin código): nunca se desarrolla en ella ni se fusiona con otras. Una versión publicada no se reemplaza (salvo `--force`).
 - Si una decisión de los docs resulta técnicamente inviable, detenerse y explicarlo; no improvisar un reemplazo silencioso.

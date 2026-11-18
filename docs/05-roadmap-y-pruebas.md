@@ -153,6 +153,16 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 - **Vista previa en vivo** sin recargar ni robar el foco; marco de escritorio.
 - Probado en el sitio de pruebas con Imagina Search real (motor local, 33 productos): e2e móvil y de escritorio en verde (28 comprobaciones, incluidas resultados bajo la cabecera, una sola flecha, scroll liberado al cerrar y cascada con mouse), 46 pruebas unitarias, prueba de la vista previa escribiendo en el admin (0 recargas del iframe, foco siempre en el campo).
 
+## Estado de la implementación (v0.5.0) — conversión, campañas y herramientas
+
+- Barra superior móvil con buscador fijo (M8), campañas programadas (M15), banners en el panel, WhatsApp con contexto y horario, favoritos en la barra inferior (YITH/TI), WP-CLI y widget de Elementor.
+- `core.js` 3,69 KB (gestos, recientes y horario bajo demanda).
+- Accesibilidad: el botón de WhatsApp no cumplía AA (blanco sobre #25d366 = 1,98:1); ahora #0e7a55 (5,3:1).
+- Calidad: PHPStan nivel 6 sin errores, ESLint, CI en GitHub Actions (PHP 8.1 y 8.3, presupuesto, build); 53 pruebas unitarias; e2e en verde con barra superior, banners, Imagina Search y contadores.
+- Fuera del propósito de un menú (decisión de producto): PWA, analítica de búsquedas, A/B tests y «vistos recientemente».
+
+Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
+
 ### Cambios respecto a la planeación (justificados)
 
 - **Sin JSON Schema**: el modelo se valida con `Model\Normalizer` (lista blanca guiada por `Model\Defaults`); el admin usa tipos TypeScript equivalentes. Menos piezas y la misma garantía: nada entra sin pasar por la lista blanca.
@@ -160,3 +170,4 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 - **Sin `@layer` en el CSS del frontend**: las reglas sin capa del tema (`button{…}`) ganarían a las nuestras; se usan selectores con elemento + clase y resets mínimos.
 - **CSS crítico**: ~4,5 KB sin comprimir / 1,4 KB gzip (la planeación decía 1,5 KB sin comprimir); incluye la barra inferior completa para no tener saltos. Presupuesto ajustado a ≤ 1,7 KB gzip.
 - **Plantillas sobrescribibles desde el tema**: pospuestas (el render vive en `Compiler\Renderer`); llegan con los filtros de la fase 6.
+- **Sin `ModuleInterface` ni registro de módulos en tiempo de ejecución**: cada módulo (panel, barra inferior, barra superior, buscador, escritorio, analítica) es una parte del compilador. Desactivado, no genera HTML ni CSS y su JS (bajo demanda) nunca se pide; en cada visita solo corre el `Frontend` con la configuración compilada. Un registro de módulos añadiría clases cargadas en cada request sin beneficio.

@@ -691,7 +691,10 @@ final class Renderer {
 		$class = 'imm-bbar imm-bb--' . $b['shape'] . ' imm-bb-ind--' . $b['indicator'] . ' imm-bb-st--' . $b['style'] . ( $b['blur'] ? ' imm-bb--blur' : '' );
 		$html  = '<nav class="' . esc_attr( $class ) . '" aria-label="' . esc_attr( $this->s( 'Navegación inferior' ) ) . '"' . ( $b['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . $this->cfg_attr() . '><ul role="list">';
 		foreach ( $b['items'] as $item ) {
-			$html .= '<li' . ( $item['prominent'] ? ' class="imm-bb-main"' : '' ) . '>' . $this->bottom_item( $item ) . '</li>';
+			$inner = $this->bottom_item( $item );
+			if ( '' !== $inner ) {
+				$html .= '<li' . ( $item['prominent'] ? ' class="imm-bb-main"' : '' ) . '>' . $inner . '</li>';
+			}
 		}
 		return $html . '</ul></nav>';
 	}
@@ -721,6 +724,9 @@ final class Renderer {
 			case 'wishlist':
 				// Página de favoritos de YITH o TI Wishlist; si se escribió un enlace, manda ese.
 				$url = '' !== (string) $item['url'] ? \ImaginaMenu\Sources\SourceResolver::absolute( (string) $item['url'] ) : (string) ( $this->site['wishlist_url'] ?? '' );
+				if ( '' === $url ) {
+					return ''; // Sin plugin de favoritos (o sin su página): el ítem no se muestra.
+				}
 				break;
 			case 'whatsapp':
 				$url = self::whatsapp_url( (string) $item['url'], '' );

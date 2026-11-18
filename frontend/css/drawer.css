@@ -608,7 +608,7 @@ button.imm-back {
 
 /* WhatsApp fuera del horario de atención (lo decide el navegador) */
 .imm-wa.imm-off {
-	filter: saturate(.6);
+	background: #4b5f57;
 }
 
 /* Pie del panel */
@@ -640,9 +640,10 @@ button.imm-back {
 	color: var(--imm-accent-fg);
 }
 
+/* Verde de WhatsApp oscurecido: con el #25d366 de la marca el texto blanco no cumple AA (1,98:1) */
 .imm-wa,
 .imm-wa:hover {
-	background: #25d366;
+	background: #0e7a55;
 	color: #fff;
 }
 

@@ -4,7 +4,7 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 
 | | |
 |---|---|
-| JS en la carga | 4 KB gzip (opcional: 0 KB hasta el primer toque) |
+| JS en la carga | 3,7 KB gzip (opcional: 0 KB hasta el primer toque) |
 | CSS total | ~4 KB gzip con un estilo típico, 5,2 KB en el peor caso (1,45 KB inline crítico) |
 | PHP por visita | ~0,03 ms, 0 consultas a la base de datos |
 | CLS | 0 |
@@ -17,6 +17,10 @@ Navegación móvil tipo app para WordPress y WooCommerce: panel lateral con subm
 - **Buscador** a pantalla completa con búsquedas recientes y populares; con **Imagina Search** activo muestra sus resultados instantáneos (foto, precio, categorías) dentro del mismo buscador.
 - **Escritorio**: el mismo panel con un botón «☰ Todo» en la cabecera (como Amazon) o en **cascada**, con las subcategorías en una columna a la derecha al pasar el mouse (como Falabella o Mercado Libre).
 - **«Ver todo {categoría}»** al final de cada submenú: la categoría padre siempre tiene su enlace.
+- **Barra superior móvil** tipo app con el buscador siempre visible (como Amazon y Mercado Libre), sin mover la página (CLS 0).
+- **Campañas programadas**: perfiles, ítems y banners con fecha de inicio y fin (Hot Sale, Black Friday…); el menú se actualiza y la caché se vacía solos.
+- **Banners de promoción** dentro del panel y **WhatsApp** con el producto que se está viendo y horario de atención.
+- **Favoritos** (YITH o TI Wishlist) con contador en la barra inferior; widget de **Elementor** y comandos **WP-CLI** para replicar la configuración entre sitios.
 - **Bloques de conversión**: saludo y cuenta, WhatsApp, botón CTA, enlaces de servicio, redes sociales.
 - **Fuentes dinámicas**: menús de WordPress, categorías de WooCommerce (con imágenes) o cualquier taxonomía. Se recompila solo cuando cambian.
 - **Por ítem**: icono (1.850 de Lucide + marcas), imagen, insignia, descripción, destacado, visibilidad por sesión, `rel`.
@@ -45,6 +49,9 @@ bash bin/release.sh          # publica la versión actual en la rama release (pr
 bash bin/build-zip.sh        # solo genera el ZIP de distribución en dist/
 npm ci && npm run build      # frontend (assets/dist) — sin dependencias en runtime
 npm run size                 # presupuesto de rendimiento
+npm run lint                 # ESLint (frontend y admin)
+composer phpstan             # PHPStan nivel 6
+wp imagina-menu export --file=menu.json   # y import, publish, status, recompile
 npm run icons                # regenerar icons/icons.json
 cd admin && npm ci && npm run build   # admin React
 composer install && composer test     # pruebas unitarias

@@ -123,15 +123,15 @@ Piezas que se colocan en la cabecera, entre ítems o en el pie del panel.
 | **Buscador** | Campo que abre el overlay de búsqueda (M7). | 1 |
 | **Sección** | Título + lista de ítems + «Ver todo». | 1 |
 | **Enlaces de servicio** | Ayuda, pedidos, contacto, devoluciones. | 1 |
-| **WhatsApp / Llamar** | Botón con número y mensaje predefinido (`wa.me`), horario de atención opcional. | 2 |
+| **WhatsApp / Llamar** | Botón con número y mensaje (`wa.me`). **v0.5**: el mensaje admite `{titulo}` y `{url}` de la página o producto que se está viendo (se reemplazan en el servidor en cada página, compatible con la caché) y **horario de atención** (días y horas en la hora del sitio): fuera de horario el botón muestra otro texto; lo decide el navegador (`hours.js`, bajo demanda) porque las páginas están en caché. Verde oscurecido (#0e7a55) para cumplir AA con texto blanco. | 2 |
 | **Redes sociales** | Iconos (SVG del sprite). | 2 |
-| **Banner / Promo** | Imagen o tarjeta con texto, CTA, color, fechas de inicio/fin y cuenta regresiva opcional (JS bajo demanda). | 3 |
+| **Banner / Promo** | **v0.5**: hasta 6 imágenes con enlace (proporción 2:1), arriba o antes del pie del panel; con varias, carrusel con `scroll-snap` sin JS (se asoma la siguiente). Carga perezosa (se descargan al abrir el panel). Cada una con fechas de campaña (M15). La cuenta regresiva queda fuera (necesitaría JS en cada página). | 3 |
 | **Rejilla de categorías** | Tarjetas con imagen (Woo o manual), 2–4 columnas. | 4 |
 | **Botón CTA** | Botón grande («Vende con nosotros», «Agenda tu cita»). | 2 |
 | **Idioma** | WPML / Polylang / TranslatePress. | 5 |
-| **Moneda** | WOOCS / CURCY / Aelia (si existen). | 5 |
+| **Moneda** | Pendiente: hoy se resuelve con los enlaces de servicio (`?currency=USD` en WOOCS, `?wmc-currency=USD` en CURCY). | 5 |
 | **Modo oscuro** | Interruptor (solo si el tema lo soporta o se usa el modo oscuro del menú). | 5 |
-| **Vistos recientemente** | Desde localStorage (sin consultas). | 6 |
+| **Vistos recientemente** | Descartado: es recomendación de productos, no navegación (lo hace Imagina Turbo). | — |
 | **HTML / Shortcode** | Contenido libre, con aviso de rendimiento (los shortcodes se renderizan al compilar, no en cada visita, cuando son estáticos). | 3 |
 
 ## M6. Barra de navegación inferior — fase 3
@@ -141,11 +141,11 @@ La «app» dentro de la web.
 | Opción | Valores | Por defecto |
 |---|---|---|
 | Ítems | 2–5 (aviso por encima de 5) | Inicio, Categorías, Buscar, Carrito, Cuenta |
-| Acción por ítem | enlace, abrir panel (con modo y nivel inicial), abrir buscador, carrito (página o mini-carrito en hoja inferior), cuenta, WhatsApp, llamar, volver arriba, compartir (Web Share API), abrir un perfil distinto | — |
+| Acción por ítem | enlace, abrir panel (con modo y nivel inicial), abrir buscador, carrito (página o mini-carrito en hoja inferior), cuenta, **favoritos** (v0.5: página de YITH o TI Wishlist; sin plugin, el ítem no se muestra), WhatsApp, llamar, volver arriba, compartir (Web Share API), abrir un perfil distinto | — |
 | Estilo | iconos + etiquetas, solo iconos, etiqueta solo en el activo | iconos + etiquetas |
 | Indicador del activo | color, píldora detrás del icono (Material 3), línea superior, punto | píldora |
 | Botón central destacado | círculo elevado con color de acento (estilo «vender» / «buscar») | apagado |
-| Insignias | contador del carrito, favoritos, número libre, punto | carrito |
+| Insignias | contador del carrito (cookie `imm_cc`), **favoritos** (v0.5, cookie `imm_wl` que se actualiza al añadir o quitar en YITH o TI Wishlist; el JS escucha sus eventos `added_to_wishlist`, `removed_from_wishlist`, `tinvwl_wishlist_ajax_response`), número libre, punto | carrito |
 | Comportamiento | fijo, ocultar al bajar y mostrar al subir, ocultar en páginas concretas (checkout) | ocultar al bajar |
 | Forma | barra completa, flotante con bordes redondeados y margen («isla») | barra completa |
 | Fondo | color, transparencia con desenfoque, borde superior, sombra | sólido |
@@ -164,9 +164,21 @@ Reglas: se oculta automáticamente en checkout y cuando el teclado virtual está
 - **Con Imagina Search activo** (implementado en v0.4, `search.provider = auto`): el diálogo del menú muestra el widget de Imagina Search en lugar del campo propio: resultados instantáneos con foto, precio y categorías mientras se escribe, y su página de resultados con Enter. La flecha del menú queda a la izquierda del campo y los resultados ocupan el resto de la pantalla (se anula la barra fija y la segunda flecha que Imagina Search pone en celulares). Las búsquedas populares del menú se ven antes de escribir. Se decide **en cada visita** (dos marcadores en el HTML compilado): activar o desactivar Imagina Search no exige volver a publicar. Se usa un diseño de desplegable (standard/compact/amazon; los de capa propia no caben dentro de otro diálogo) y una sola versión del widget. Al cerrar el diálogo se cierra su desplegable (libera el scroll). Con `search.provider = native` se usa siempre el buscador propio.
 - Sin Imagina Search: formulario normal a `/?s=` (y `post_type=product` si hay WooCommerce). Sugerencias en vivo opcionales con la Store API de productos (con `debounce`, solo tras 3 caracteres).
 
-## M8. Barra superior móvil (app bar) — fase 5, opcional
+## M8. Barra superior móvil (app bar) — implementada en v0.5
 
-Para temas cuya cabecera móvil es mala: barra fija con hamburguesa, logo, buscar y carrito; opción de buscador siempre visible debajo (patrón Amazon/Mercado Libre) y ocultar al bajar. Reemplaza la cabecera del tema en móvil vía selector. Riesgo de CLS: se reserva el alto en el CSS crítico.
+Barra fija tipo app con hamburguesa (abre el panel), logo (o el nombre del sitio), cuenta, carrito con contador y, debajo, el **buscador siempre visible** (patrón Amazon/Mercado Libre; abre el buscador a pantalla completa, con Imagina Search si está activo). Pantalla **Barra superior** del admin.
+
+| Opción | Valores | Por defecto |
+|---|---|---|
+| Activar | sí / no | no |
+| Buscador visible | sí / no | sí |
+| Logo, cuenta, carrito | sí / no | sí |
+| Al bajar | ocultar solo la fila de arriba (queda el buscador), toda la barra, nada | solo la fila de arriba |
+
+- Se imprime en `wp_body_open` (al inicio del `<body>`, visible en el primer pintado) con los iconos dibujados en línea (el sprite llega al final). Temas sin `wp_body_open`: se imprime en el pie, igual fija arriba.
+- Su CSS va en el crítico solo si se usa (≤ 2,1 KB gzip el crítico con ella) y su alto (52 px, 102 px con el buscador) queda reservado en el `<body>`: **CLS = 0**. Solo hasta el breakpoint (en escritorio no se muestra).
+- Colores de la cabecera del panel (`head_bg`, `head_fg`). Se respeta la barra de administración de WordPress.
+- La cabecera móvil del tema se oculta con «Ocultar el menú móvil del tema» (selector).
 
 ## M9. Diseño, estilos y presets — implementado en v0.3
 
@@ -217,10 +229,11 @@ Condiciones por perfil y por ítem: tipo de página (portada, entrada, página, 
 | Imagina Turbo | Si está activo: no emitir prefetch propio, usar su purga, respetar su navegación (View Transitions), evento de carrito de su Store API. |
 | Imagina Search (Woo Smart Search) | Su widget dentro del buscador del menú (v0.4, ver M7). |
 | WPML / Polylang / TranslatePress | Compilar por idioma, registrar textos, selector de idioma. |
-| Elementor | Widget «Botón Imagina Menu» y aviso para excluir el script del «delay JS» de Elementor si aplica. |
+| Elementor | **v0.5**: widget nativo «Botón de Imagina Menu» (texto, estilo, color, solo escritorio/celular). |
+| YITH / TI WooCommerce Wishlist | **v0.5**: acción «Favoritos» e insignia con contador en la barra inferior (probado con YITH 4.21). |
+| WP-CLI | **v0.5**: `wp imagina-menu status | publish | recompile [--no-purge] | export [--file=] | import <archivo> [--settings] [--enable] [--publish]` para replicar la configuración entre sitios. |
 | Gutenberg | Bloque «Botón de menú» (sin JS en el front) y patrón de cabecera móvil. |
 | LiteSpeed Cache / WP Rocket / Perfmatters / FlyingPress | Detección y recomendaciones: el script module de `core` puede retrasarse sin problema (la apertura no depende de él), pero no debe combinarse con otros archivos. Purga al recompilar. |
-| Plugins de favoritos (YITH, TI) | Contador en la barra inferior — fase 7. |
 | Plugins de moneda | Selector en el pie del panel. |
 
 ## M13. Accesibilidad e i18n — transversal
@@ -259,4 +272,14 @@ Notas:
 - La cascada usa el mismo HTML del celular: el compilador añade `cascade.css` dentro de `@media (min-width: …)` y `desktop.js` (0,9 KB gzip) se descarga **solo en pantallas anchas** y solo si el perfil la usa. Mueve los niveles con la API pública del menú (`immMenu.goTo`): el estado sigue en `core.js`.
 - Teclado: flecha derecha abre la columna y enfoca su primer enlace; flecha izquierda vuelve; Esc cierra. Los títulos de grupo llevan a la página del grupo.
 - Si la barra inferior es la que abre el panel en el celular, el botón flotante de escritorio se genera solo para escritorio (`imm-only-desktop`).
+
+## M15. Campañas programadas — implementado en v0.5
+
+Hot Sale, CyberLunes, Black Friday, Navidad: lo que se enciende y se apaga solo.
+
+- **Perfiles**: condición «Fechas (campaña)» (desde / hasta, cualquiera opcional) en el editor de reglas. Ejemplo: un perfil «Black Friday» con otro menú, otros colores y banners, del 27 al 30 de noviembre.
+- **Ítems**: campo «Campaña» en el constructor; fuera de sus fechas el ítem no se compila.
+- **Banners**: fechas por banner.
+
+Cómo funciona sin romper la caché: las fechas se escriben en la hora del sitio (`datetime-local`). Al publicar, el compilador reúne los inicios y fines futuros y agenda **un** evento de WP-Cron (`imm_schedule_tick`) en el próximo. Ese evento recompila (los ítems y banners entran o salen del HTML) y vacía la caché del sitio (los perfiles por fecha cambian de página sin que cambie el HTML), y agenda el siguiente. Las reglas por fecha comparan marcas de tiempo precalculadas: cero consultas por visita. Con WP-Cron por visitas (sin cron del sistema), el cambio ocurre con la primera visita después de la hora; en ServerAvatar/Plesk conviene el cron del sistema (como ya recomienda WordPress).
 

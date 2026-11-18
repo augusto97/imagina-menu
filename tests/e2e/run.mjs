@@ -50,10 +50,23 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 	check( nodes <= 600, 'Nodos DOM añadidos por el menú', String( nodes ) );
 
 	// El botón flotante solo de escritorio (desktop.floating) no se ve en el celular.
-	const opener = ( await page.$( '.imm-fab:not(.imm-only-desktop)' ) ) ? '.imm-fab:not(.imm-only-desktop)' : '.imm-bbar [data-imm-open]';
+	if ( await page.$( '.imm-appbar' ) ) {
+		// Barra superior: al inicio del <body>, fija arriba y con su alto ya reservado (sin saltos).
+		const ab = await page.evaluate( () => {
+			const a = document.querySelector( '.imm-appbar' );
+			return { top: a.getBoundingClientRect().top, h: a.offsetHeight, pad: parseFloat( getComputedStyle( document.body ).paddingTop ), early: [ ...document.body.children ].indexOf( a ) < 3 };
+		} );
+		check( ab.top === 0 && ab.pad >= ab.h && ab.early, 'Barra superior al inicio, con su alto reservado', JSON.stringify( ab ) );
+	}
+
+	const opener = ( await page.$( '.imm-fab:not(.imm-only-desktop)' ) ) ? '.imm-fab:not(.imm-only-desktop)' : ( await page.$( '.imm-bbar [data-imm-open]' ) ) ? '.imm-bbar [data-imm-open]' : '.imm-appbar [data-imm-open]';
 	await page.click( opener );
 	await page.waitForTimeout( 450 );
 	check( await page.evaluate( () => document.getElementById( 'imm-drawer' ).open ), 'El panel abre como diálogo modal' );
+	if ( await page.$( '#imm-drawer .imm-banners img' ) ) {
+		await page.waitForTimeout( 400 );
+		check( await page.evaluate( () => { const i = document.querySelector( '#imm-drawer .imm-banners img' ); return i.complete && i.naturalWidth > 0; } ), 'Banners: la imagen se carga al abrir el panel' );
+	}
 	check( await page.evaluate( () => document.documentElement.classList.contains( 'imm-lock' ) ), 'Scroll del body bloqueado' );
 
 	if ( await page.$( '#imm-drawer .imm-tp' ) ) {
@@ -134,7 +147,7 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 {
 	const { ctx, page } = await mobile();
 	const host = new URL( BASE ).hostname;
-	await ctx.addCookies( [ { name: 'imm_cc', value: '3', domain: host, path: '/' } ] );
+	await ctx.addCookies( [ { name: 'imm_cc', value: '3', domain: host, path: '/' }, { name: 'imm_wl', value: '2', domain: host, path: '/' } ] );
 	const requests = [];
 	page.on( 'request', ( r ) => r.url().includes( '/wp-json/' ) || r.url().includes( 'wc-ajax' ) ? requests.push( r.url() ) : null );
 	await page.goto( BASE + '/', { waitUntil: 'networkidle' } );
@@ -142,6 +155,10 @@ const isOpen = ( page, id ) => page.evaluate( ( i ) => {
 		const badge = await page.locator( '[data-imm-count="cart"]' ).first().evaluate( ( el ) => [ el.textContent, el.hidden ] );
 		check( badge[ 0 ] === '3' && ! badge[ 1 ], 'Insignia del carrito desde la cookie', badge.join( ' ' ) );
 		check( requests.length === 0, 'Sin peticiones AJAX/REST para el carrito', requests.join( ' ' ) );
+		if ( await page.$( '[data-imm-count="wishlist"]' ) ) {
+			const wl = await page.locator( '[data-imm-count="wishlist"]' ).first().evaluate( ( el ) => [ el.textContent, el.hidden ] );
+			check( wl[ 0 ] === '2' && ! wl[ 1 ], 'Insignia de favoritos desde la cookie', wl.join( ' ' ) );
+		}
 	}
 }
 

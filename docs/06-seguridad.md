@@ -56,6 +56,12 @@ Auditoría completa el 18-11-2026 (v0.3.1): revisión propia + dos revisores ind
 - Los atributos del shortcode `style` y `only` son listas cerradas.
 - El widget de Imagina Search lo genera Imagina Search; el menú solo cambia dos marcadores por él y añade CSS fijo (sin datos del usuario). Si Imagina Search falla, queda el buscador propio.
 
+**v0.5**
+- Mensaje de WhatsApp con `{titulo}`/`{url}`: el título sale del contenido publicado y la URL se arma con el dominio del sitio (nunca con la cabecera `Host`, que la pone el cliente); ambos van codificados con `rawurlencode`.
+- Horario de WhatsApp, banners y fechas de campaña pasan por listas blancas (días 0–6, `HH:MM`, fechas `datetime-local` válidas, imágenes y enlaces `http(s)`); `hours.js` valida el atributo y no cambia nada si está malformado.
+- Favoritos: la cookie `imm_wl` solo lleva un número (como `imm_cc`).
+- WP-CLI: la importación desde la terminal acepta CSS propio y selectores porque quien la usa administra el servidor; desde el admin siguen exigiendo `edit_css`.
+
 **Vista previa**
 - Token HMAC-SHA256 (sales de WordPress), formato y caducidad estrictos (30 min), comparado con `hash_equals`, inválido si el usuario pierde `imm_manage`.
 - Respuestas `no-store`, `DONOTCACHEPAGE`, sin caché de LiteSpeed, `X-Robots-Tag: noindex` y `Referrer-Policy: no-referrer`. Sin analítica.
