@@ -30,7 +30,8 @@ final class SmartSearch {
 	private const DROPDOWN_LAYOUTS = array( 'standard', 'compact', 'amazon' );
 
 	public static function active(): bool {
-		return defined( 'WSS_VERSION' ) && class_exists( 'WSS_Frontend' ) && method_exists( 'WSS_Frontend', 'get_search_widget_html' );
+		// method_exists por versiones antiguas de Imagina Search (en el análisis estático siempre existe).
+		return defined( 'WSS_VERSION' ) && class_exists( 'WSS_Frontend' ) && method_exists( 'WSS_Frontend', 'get_search_widget_html' ); // @phpstan-ignore function.alreadyNarrowedType
 	}
 
 	public static function version(): string {

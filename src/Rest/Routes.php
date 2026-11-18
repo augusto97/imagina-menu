@@ -164,7 +164,11 @@ final class Routes {
 		return $items;
 	}
 
-	/** Listas para el editor de reglas e idiomas. */
+	/**
+	 * Listas para el editor de reglas e idiomas.
+	 *
+	 * @return array<string, mixed>
+	 */
 	private static function env_lists(): array {
 		$post_types = array();
 		foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $type ) {

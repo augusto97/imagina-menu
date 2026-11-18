@@ -201,6 +201,7 @@ final class SourceResolver {
 				// WooCommerce ordena product_cat por su meta "order"; otras taxonomías por nombre.
 				$args['orderby'] = 'product_cat' === $taxonomy ? 'menu_order' : 'name';
 		}
+		/** @var array<string, mixed> $args 'lang' (Polylang) no está en la firma de get_terms. */
 		$terms = get_terms( $args );
 		if ( ! is_array( $terms ) ) {
 			return array();

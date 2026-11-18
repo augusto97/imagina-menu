@@ -211,7 +211,7 @@ function initDrawer( d: HTMLDialogElement ): void {
 
 	/** Entra al submenú de un <details>. */
 	const forward = ( details: HTMLDetailsElement, animate = true ) => {
-		let level = details.querySelector<Level>( ':scope > .imm-level' ) || ( details as unknown as { _level?: Level } )._level;
+		const level = details.querySelector<Level>( ':scope > .imm-level' ) || ( details as unknown as { _level?: Level } )._level;
 		if ( ! level ) return;
 		fill( details, level );
 		if ( level.parentElement !== vp ) {

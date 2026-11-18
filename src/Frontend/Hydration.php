@@ -68,6 +68,7 @@ final class Hydration {
 	 * Parámetros opcionales: algunos plugins aún disparan wp_login con un solo argumento y un tipo
 	 * estricto rompería el inicio de sesión.
 	 *
+	 * @param mixed $login
 	 * @param mixed $user
 	 */
 	public static function login( $login = '', $user = null ): void {

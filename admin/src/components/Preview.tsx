@@ -230,7 +230,7 @@ export function Preview() {
 		const mode = modeFor( route );
 		setOpen( mode );
 		apply( mode );
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		 
 	}, [ route ] );
 
 	const onLoad = () => {

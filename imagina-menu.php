@@ -35,7 +35,7 @@ define( 'IMM_DIR', __DIR__ );
 define( 'IMM_MIN_PHP', 80100 );
 // phpcs:enable
 
-if ( PHP_VERSION_ID < IMM_MIN_PHP ) {
+if ( PHP_VERSION_ID < IMM_MIN_PHP ) { // @phpstan-ignore smaller.alwaysFalse (aviso en PHP antiguo, fuera del rango analizado)
 	add_action(
 		'admin_notices',
 		function () {

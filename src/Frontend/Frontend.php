@@ -42,7 +42,11 @@ final class Frontend {
 		add_shortcode( 'imagina_menu_toggle', array( Toggle::class, 'shortcode' ) );
 	}
 
-	/** Configuración publicada (memorizada). */
+	/**
+	 * Configuración publicada (memorizada).
+	 *
+	 * @return array<string, mixed>|null
+	 */
 	public static function config(): ?array {
 		if ( false === self::$config ) {
 			self::$config = Storage::load();
@@ -50,7 +54,11 @@ final class Frontend {
 		return self::$config;
 	}
 
-	/** Perfil elegido para este request (null si no hay menú en esta página). */
+	/**
+	 * Perfil elegido para este request (null si no hay menú en esta página).
+	 *
+	 * @return array<string, mixed>|null
+	 */
 	public static function profile(): ?array {
 		return self::$profile;
 	}

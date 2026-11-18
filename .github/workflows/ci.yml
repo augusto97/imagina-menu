@@ -1,0 +1,72 @@
+# Integración continua: pruebas, análisis estático, presupuesto de rendimiento y build.
+# Las pruebas e2e necesitan un WordPress con datos (tests/e2e/seed-demo.php): se corren antes de
+# cada versión (bin/release.sh y docs/05) contra un sitio de pruebas, no aquí.
+name: CI
+
+on:
+  push:
+    branches-ignore: [ release ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.1', '8.3' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+      - name: Sintaxis
+        run: find src imagina-menu.php uninstall.php -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - run: composer install --no-interaction --no-progress
+      - name: Pruebas unitarias
+        run: composer test
+      - name: PHPStan (nivel 6)
+        run: composer phpstan
+
+  frontend:
+    name: Frontend y presupuesto
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Presupuesto de rendimiento
+        run: npm run size
+      - name: assets/dist corresponde al código fuente
+        run: git diff --exit-code -- assets/dist
+
+  admin:
+    name: Admin
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit -p .
+      - run: npm run build
+      - name: Dependencias que llegan al navegador sin avisos
+        run: npm audit --omit=dev

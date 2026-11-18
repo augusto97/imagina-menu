@@ -1,0 +1,20 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 6
+	paths:
+		- src
+		- imagina-menu.php
+		- uninstall.php
+	bootstrapFiles:
+		- tests/stubs/constants.php
+	scanFiles:
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+		- tests/stubs/integrations.php
+	treatPhpDocTypesAsCertain: false
+	dynamicConstantNames:
+		- COOKIEPATH
+		- COOKIE_DOMAIN
+		- IMM_DISABLE

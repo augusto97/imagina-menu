@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
 	}
 
 	componentDidCatch( error: Error, info: ErrorInfo ): void {
-		// eslint-disable-next-line no-console
+		 
 		console.error( '[Imagina Menu]', error, info.componentStack );
 	}
 

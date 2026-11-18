@@ -70,7 +70,11 @@ final class Languages {
 		return $out;
 	}
 
-	/** Idiomas que se compilan por separado (TranslatePress y sitios de un idioma: uno solo). */
+	/**
+	 * Idiomas que se compilan por separado (TranslatePress y sitios de un idioma: uno solo).
+	 *
+	 * @return list<string>
+	 */
 	public static function compiled(): array {
 		$codes = array_column( self::languages(), 'code' );
 		return $codes ? $codes : array( '' );
@@ -168,7 +172,11 @@ final class Languages {
 		return $id;
 	}
 
-	/** Argumentos extra de get_terms para filtrar por idioma. */
+	/**
+	 * Argumentos extra de get_terms para filtrar por idioma.
+	 *
+	 * @return array<string, string>
+	 */
 	public static function terms_args( string $lang ): array {
 		return ( '' !== $lang && 'polylang' === self::provider() ) ? array( 'lang' => $lang ) : array();
 	}
