@@ -15,6 +15,16 @@ export interface Settings {
 	/** Precarga el destino al tocar un enlace (se ignora con Imagina Turbo). */
 	prefetch: boolean;
 	analytics: AnalyticsSettings;
+	exclude: ExcludeSettings;
+}
+
+/** Dónde no se carga nada del menú (se decide en el servidor por URL, o en el navegador para los iframes). */
+export interface ExcludeSettings {
+	ids: number[];
+	/** Una ruta por línea: la ruta contiene el texto; * es comodín; «/» sola es la portada. */
+	urls: string;
+	blank: boolean;
+	iframes: boolean;
 }
 
 export interface AnalyticsSettings {

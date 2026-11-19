@@ -160,6 +160,7 @@ final class Compiler {
 				'cart_cookie' => (bool) $settings['cart_cookie'],
 				'name_cookie' => (bool) $settings['name_cookie'],
 				'analytics_server' => $settings['analytics']['enabled'] && $settings['analytics']['server'],
+				'exclude'     => self::exclusions( $settings['exclude'] ),
 			),
 			'profiles' => $profiles,
 			'sizes'    => $sizes,
@@ -332,6 +333,27 @@ final class Compiler {
 			$rules['conditions'][ $i ]['all'] = array_values( array_unique( $all ) );
 		}
 		return $rules;
+	}
+
+	/**
+	 * Exclusiones listas para cada visita: ids como claves (isset) y patrones de URL ya convertidos
+	 * en expresiones regulares (sin trabajo de texto por visita).
+	 *
+	 * @param array<string, mixed> $exclude
+	 * @return array{ids: array<int, true>, urls: list<string>, blank: bool, iframes: bool}
+	 */
+	private static function exclusions( array $exclude ): array {
+		$urls = array();
+		foreach ( \ImaginaMenu\Model\Normalizer::url_patterns( (string) $exclude['urls'] ) as $pattern ) {
+			// «/» sola es la portada (si no, excluiría todo el sitio); lo demás: la ruta contiene el texto.
+			$urls[] = '/' === $pattern ? '#^' . preg_quote( (string) ( wp_parse_url( home_url( '/' ), PHP_URL_PATH ) ?? '/' ), '#' ) . '$#' : '#' . str_replace( '\\*', '.*', preg_quote( $pattern, '#' ) ) . '#iu';
+		}
+		return array(
+			'ids'     => array_fill_keys( array_map( 'intval', (array) $exclude['ids'] ), true ),
+			'urls'    => $urls,
+			'blank'   => (bool) $exclude['blank'],
+			'iframes' => (bool) $exclude['iframes'],
+		);
 	}
 
 	/**

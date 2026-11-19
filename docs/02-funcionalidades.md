@@ -227,6 +227,23 @@ Condiciones por perfil y por ítem: tipo de página (portada, entrada, página, 
 
 **Importante**: nunca se detecta el dispositivo en PHP (user agent): rompería la caché de página. El «solo móvil» se resuelve con media queries.
 
+### Dónde no se muestra (v0.5.6)
+
+Ajustes → «Dónde no se muestra». En esas páginas no se carga **nada** del menú (ni HTML, ni CSS, ni JS, ni el botón del shortcode o del widget de Elementor). Es una lista global que se revisa antes que los perfiles:
+
+| Opción | Por defecto | Cómo se decide |
+|---|---|---|
+| Plantillas en blanco | Sí | En el servidor: la página usa una plantilla cuyo nombre contiene `blank` o `canvas` (Elementor Canvas, «Blank Page» de Divi, plantillas «Blank» de temas de bloques). Las landings sin cabecera del tema. |
+| Dentro de un iframe de otro sitio | Sí | En el navegador (la página en caché es la misma): un script mínimo en el `<head>` comprueba si la página está dentro de un marco de **otro origen** y marca `<html class="imm-framed">`; el CSS crítico oculta el botón flotante, las barras y los botones del menú, no reserva su espacio y no oculta la cabecera ni el menú del tema. En el propio sitio (incluida la vista previa del admin y el Personalizador, que son del mismo origen) se ve normal. |
+| Páginas | — | En el servidor: páginas, entradas o productos concretos (por id; la tienda de WooCommerce también cuenta). |
+| Direcciones (URL) | — | En el servidor: una ruta por línea, sin dominio ni parámetros (si se pega la URL completa se toma la ruta). La ruta contiene el texto (`/landing/` excluye esa página y lo de debajo), `*` es comodín (`/promo-*/gracias`) y `/` sola es la portada. Sin distinguir mayúsculas; hasta 50. Los demás caracteres se toman literalmente (no son expresiones regulares). |
+
+Siempre, sin opción: dentro de los editores visuales (Elementor, Beaver Builder, Divi, Oxygen, Bricks, Brizy, Thrive, Breakdance), donde el menú taparía lo que se edita. Filtro para casos propios: `imm/excluded` (bool).
+
+**Al revés** («que solo cargue donde yo decida»): dale condiciones al perfil general en Perfiles (por ejemplo «Página es…» o «La URL contiene…»); donde ningún perfil coincide, no se carga nada.
+
+Todo se decide por URL, no por visitante: compatible con la caché de página (cada URL tiene un solo HTML) y sin consultas propias (la plantilla sale de la caché de metadatos de la consulta principal). Los cambios se aplican al publicar.
+
 ## M12. Integraciones — fases 4–6
 
 | Integración | Qué hace |

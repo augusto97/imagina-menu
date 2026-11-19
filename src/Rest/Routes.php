@@ -224,6 +224,12 @@ final class Routes {
 				}
 			}
 		}
+		// Y las páginas excluidas en Ajustes → Dónde no se muestra.
+		foreach ( ( new SettingsRepository() )->get()['exclude']['ids'] as $id ) {
+			if ( self::public_post( (int) $id ) ) {
+				$out[ 'post:' . $id ] = html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' );
+			}
+		}
 		return $out ? $out : new \stdClass();
 	}
 

@@ -163,6 +163,8 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 
 Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
+**v0.5.6**: «Dónde no se muestra» (Ajustes): nada del menú en páginas o URL concretas, en plantillas en blanco (Elementor Canvas y similares), dentro de un iframe de otro sitio ni en los editores visuales (ver docs/02, M11). Probado: Canvas, id, patrón de URL y editor sin menú; iframe de otro origen sin barras ni espacio reservado y con la cabecera del tema visible; iframe del mismo sitio y página directa sin cambios; e2e en verde.
+
 **v0.5.5**: ocultar categorías concretas de una fuente dinámica sin dejar de agregar las demás automáticamente (ojo en la vista previa de la fuente; ver docs/02).
 
 **v0.5.4**: botón «Crear página de ofertas» en el Constructor (con WooCommerce). Crea, o reutiliza si ya existe, una página «Ofertas» con `[products on_sale="true" …]` (los productos con precio rebajado; se actualiza sola) y la vincula al ítem. Si la etiqueta del ítem parece de ofertas (oferta, descuento, promo, rebaja, outlet…), el botón se sugiere destacado. Exige además `publish_pages`. Al desinstalar se olvida la página pero no se borra (es contenido del sitio). Corregido: el evento de las campañas programadas no se limpiaba al desactivar ni al desinstalar.

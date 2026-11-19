@@ -82,6 +82,10 @@ final class Frontend {
 		if ( ! $config || ! $config['profiles'] ) {
 			return;
 		}
+		// Exclusiones: nada del menú en esta página (ni HTML, ni CSS, ni JS).
+		if ( self::excluded( (array) ( $config['settings']['exclude'] ?? array() ) ) ) {
+			return;
+		}
 		// Tras actualizar el plugin, la recompilación va a WP-Cron (nunca en la visita).
 		if ( IMM_VERSION !== ( $config['version'] ?? '' ) && ! self::$preview && ! wp_next_scheduled( 'imm_upgrade' ) ) {
 			wp_schedule_single_event( time(), 'imm_upgrade' );
@@ -135,8 +139,58 @@ final class Frontend {
 		if ( ! $p ) {
 			return;
 		}
+		$config = self::config();
+		if ( ! self::$preview && ! empty( $config['settings']['exclude']['iframes'] ) ) {
+			// Dentro de un iframe de otro sitio (landing embebida) el menú no se muestra. Solo lo sabe el
+			// navegador (la página en caché es la misma): marca <html> antes del CSS crítico, que oculta
+			// botones y barras y no reserva su espacio. Leer top.location falla si el marco es de otro origen.
+			wp_print_inline_script_tag( 'try{top.location.href}catch(e){document.documentElement.classList.add("imm-framed")}' );
+		}
 		$css = $p['critical'] . ( self::$show_bbar ? $p['bbar_space'] : '' );
 		echo '<style id="imm-critical">' . $css . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS compilado desde valores validados.
+	}
+
+	/**
+	 * ¿Esta página está excluida? Por id, plantilla en blanco o URL (Ajustes → Dónde no se muestra),
+	 * y siempre dentro de los editores visuales. Sin consultas: la plantilla sale de la caché de
+	 * metadatos de la consulta principal.
+	 *
+	 * @param array<string, mixed> $ex
+	 */
+	private static function excluded( array $ex ): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- solo se comprueba si existen.
+		foreach ( array( 'elementor-preview', 'fl_builder', 'et_fb', 'ct_builder', 'brizy-edit-iframe', 'tve', 'breakdance_iframe' ) as $param ) {
+			if ( isset( $_GET[ $param ] ) ) {
+				return true; // Editor visual: el menú taparía lo que se edita.
+			}
+		}
+		if ( isset( $_GET['bricks'] ) && 'run' === $_GET['bricks'] ) {
+			return true;
+		}
+		// phpcs:enable
+		$id = is_singular() || is_home() ? (int) get_queried_object_id() : 0;
+		if ( ! $id && function_exists( 'is_shop' ) && is_shop() ) {
+			$id = (int) wc_get_page_id( 'shop' );
+		}
+		if ( $id > 0 && isset( $ex['ids'][ $id ] ) ) {
+			return true;
+		}
+		if ( ! empty( $ex['blank'] ) && $id > 0 && is_singular() ) {
+			$template = (string) get_page_template_slug( $id );
+			if ( '' !== $template && preg_match( '/blank|canvas/i', $template ) ) {
+				return true; // Elementor Canvas, «Blank» de Divi, Beaver, temas de bloques…
+			}
+		}
+		if ( ! empty( $ex['urls'] ) ) {
+			$uri  = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- solo se compara.
+			$path = rawurldecode( (string) strtok( $uri, '?#' ) );
+			foreach ( (array) $ex['urls'] as $regex ) {
+				if ( preg_match( (string) $regex, $path ) ) {
+					return true;
+				}
+			}
+		}
+		return (bool) apply_filters( 'imm/excluded', false );
 	}
 
 	/** Barra superior al inicio del <body>: visible en el primer pintado (su alto está reservado). */

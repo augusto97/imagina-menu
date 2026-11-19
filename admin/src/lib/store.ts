@@ -39,6 +39,7 @@ function withSettingsDefaults( s: Settings ): Settings {
 		html_depth: s.html_depth ?? 'auto',
 		prefetch: s.prefetch ?? true,
 		analytics: Object.assign( { enabled: false, server: true, ga4: true, sample: 100, retention: 180 }, s.analytics as Partial<Settings[ 'analytics' ]> | undefined ),
+		exclude: Object.assign( { ids: [], urls: '', blank: true, iframes: true }, s.exclude as Partial<Settings[ 'exclude' ]> | undefined ),
 	};
 }
 

@@ -100,7 +100,34 @@ final class Normalizer {
 	 * @return array<string, mixed>
 	 */
 	public static function settings( array $input ): array {
-		return ( new self() )->merge( Defaults::settings(), $input, '' );
+		$out = ( new self() )->merge( Defaults::settings(), $input, '' );
+		$ids = is_array( $out['exclude']['ids'] ) ? array_slice( $out['exclude']['ids'], 0, 500 ) : array();
+		$out['exclude']['ids']  = array_values( array_unique( array_filter( array_map( 'intval', $ids ), static fn( $id ) => $id > 0 ) ) );
+		// Los patrones se leen de la entrada original: la limpieza de textos de merge() quita los saltos de línea.
+		$urls                   = is_array( $input['exclude'] ?? null ) ? ( $input['exclude']['urls'] ?? '' ) : '';
+		$out['exclude']['urls'] = implode( "\n", self::url_patterns( is_string( $urls ) ? $urls : '' ) );
+		return $out;
+	}
+
+	/**
+	 * Patrones de URL de las exclusiones: una ruta por línea (sin dominio ni parámetros), hasta 50.
+	 *
+	 * @return list<string>
+	 */
+	public static function url_patterns( string $text ): array {
+		$out = array();
+		foreach ( preg_split( '/\R/', $text ) ?: array() as $line ) {
+			$line = trim( wp_strip_all_tags( $line ) );
+			// Si pegan la URL completa, se toma solo la ruta.
+			if ( preg_match( '#^https?://[^/]+(/.*)?$#i', $line, $m ) ) {
+				$line = $m[1] ?? '/';
+			}
+			$line = (string) strtok( $line, '?#' );
+			if ( '' !== $line && strlen( $line ) <= 200 ) {
+				$out[] = $line;
+			}
+		}
+		return array_slice( array_values( array_unique( $out ) ), 0, 50 );
 	}
 
 	/**

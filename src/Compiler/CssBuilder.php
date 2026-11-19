@@ -42,6 +42,12 @@ final class CssBuilder {
 			$critical .= '@media (prefers-color-scheme:dark){' . self::vars( $design['dark_tokens'] ) . '}';
 		}
 		$critical .= self::asset( 'critical.css' );
+		// Dentro de un iframe de otro sitio (Ajustes → Dónde no se muestra) el <html> lleva .imm-framed:
+		// nada del menú se ve y no se reserva su espacio ni se oculta la cabecera o el menú del tema.
+		$root = ! empty( $settings['exclude']['iframes'] ) ? 'html:not(.imm-framed) ' : '';
+		if ( '' !== $root ) {
+			$critical .= '.imm-framed :is(.imm-fab,.imm-bbar,.imm-toggle' . ( $profile['app_bar']['enabled'] ? ',.imm-appbar' : '' ) . '){display:none!important}';
+		}
 		if ( ! empty( $profile['bottom_bar']['badge_custom'] ) ) {
 			// Colores propios de los contadores de la barra inferior (hexadecimales validados).
 			$critical .= '.imm-bbar{--imm-bb-bbg:' . $profile['bottom_bar']['badge_bg'] . ';--imm-bb-bfg:' . $profile['bottom_bar']['badge_fg'] . '}';
@@ -66,7 +72,7 @@ final class CssBuilder {
 		// Botón del shortcode/bloque solo en escritorio o solo en celular (only="desktop|mobile").
 		$critical .= '@media (max-width:' . $bp . 'px){.imm-only-desktop{display:none!important}}@media (min-width:' . ( $bp + 1 ) . 'px){.imm-only-mobile{display:none!important}}';
 		if ( '' !== $profile['hide_theme_selector'] ) {
-			$rule      = $profile['hide_theme_selector'] . '{display:none!important}';
+			$rule      = self::scope( $root, $profile['hide_theme_selector'] ) . '{display:none!important}';
 			$critical .= $mobile ? '@media (max-width:' . $bp . 'px){' . $rule . '}' : $rule;
 		}
 
@@ -76,14 +82,14 @@ final class CssBuilder {
 		if ( $ab['enabled'] ) {
 			$height    = 52 + ( $ab['search'] ? 50 : 0 );
 			// La cabecera del tema se oculta solo en celulares y solo con la barra activa (la reemplaza).
-			$header    = '' !== $ab['hide_header'] ? $ab['hide_header'] . '{display:none!important}' : '';
-			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
+			$header    = '' !== $ab['hide_header'] ? self::scope( $root, $ab['hide_header'] ) . '{display:none!important}' : '';
+			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . $root . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
 				. '@media (min-width:' . ( $bp + 1 ) . 'px){.imm-appbar{display:none!important}}';
 		}
 
 		// Reserva el alto de la barra (sin saltos) y sube el botón flotante por encima de ella.
 		$gap        = 'floating' === $profile['bottom_bar']['shape'] ? 10 : 0;
-		$space      = ':root{--imm-fab-y:calc(var(--imm-bb-h) + ' . ( $gap + 16 ) . 'px)}body{padding-bottom:calc(var(--imm-bb-h) + ' . $gap . 'px + env(safe-area-inset-bottom,0px))}';
+		$space      = ':root{--imm-fab-y:calc(var(--imm-bb-h) + ' . ( $gap + 16 ) . 'px)}' . $root . 'body{padding-bottom:calc(var(--imm-bb-h) + ' . $gap . 'px + env(safe-area-inset-bottom,0px))}';
 		$bbar_space = $mobile && ! ( $on && $desk['bottom_bar'] ) ? '@media (max-width:' . $bp . 'px){' . $space . '}' : $space;
 
 		$full = self::asset( 'drawer.css' );
@@ -116,6 +122,14 @@ final class CssBuilder {
 			'bbar_space' => $bbar_space,
 			'full'       => $full,
 		);
+	}
+
+	/**
+	 * Limita un selector del dueño (puede ser una lista) a las páginas fuera de un iframe ajeno.
+	 * :is() acepta listas y descarta las partes inválidas sin anular la regla.
+	 */
+	private static function scope( string $root, string $selector ): string {
+		return '' === $root ? $selector : $root . ':is(' . $selector . ')';
 	}
 
 	/**

@@ -24,6 +24,14 @@ final class Defaults {
 			'delete_on_uninstall' => false,
 			'html_depth'          => 'auto', // auto | full | hybrid
 			'prefetch'            => true,
+			// Dónde no se muestra nada del menú (ni HTML, ni CSS, ni JS). Se decide por URL: compatible
+			// con la caché de página. Los editores visuales (Elementor, Divi…) se excluyen siempre.
+			'exclude'             => array(
+				'ids'     => array(), // páginas, entradas o productos concretos
+				'urls'    => '', // una por línea; «*» = cualquier cosa; sin «*»: la ruta contiene el texto
+				'blank'   => true, // plantillas en blanco o lienzo (Elementor Canvas y similares)
+				'iframes' => true, // dentro de un iframe de otro sitio (lo decide el navegador)
+			),
 			'analytics'           => array(
 				'enabled'   => false,
 				'server'    => true,

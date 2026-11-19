@@ -61,6 +61,7 @@ Auditoría completa el 18-11-2026 (v0.3.1): revisión propia + dos revisores ind
 - Horario de WhatsApp, banners y fechas de campaña pasan por listas blancas (días 0–6, `HH:MM`, fechas `datetime-local` válidas, imágenes y enlaces `http(s)`); `hours.js` valida el atributo y no cambia nada si está malformado.
 - Favoritos: la cookie `imm_wl` solo lleva un número (como `imm_cc`).
 - WP-CLI: la importación desde la terminal acepta CSS propio y selectores porque quien la usa administra el servidor; desde el admin siguen exigiendo `edit_css`.
+- Exclusiones (v0.5.6): los patrones de URL son texto literal (`preg_quote`; solo `*` es comodín), hasta 50 de 200 caracteres, compilados al publicar: el usuario no escribe expresiones regulares (sin ReDoS ni errores de patrón). Los ids son enteros positivos (hasta 500). El script del iframe es fijo (sin datos), se imprime con `wp_print_inline_script_tag` (respeta el nonce de CSP) y solo lee `top.location`. Añadir `?elementor-preview` u otro parámetro de editor a una URL solo quita el menú de esa respuesta (como `?imm_off`, pero para cualquiera): no expone nada.
 
 **Vista previa**
 - Token HMAC-SHA256 (sales de WordPress), formato y caducidad estrictos (30 min), comparado con `hash_equals`, inválido si el usuario pierde `imm_manage`.

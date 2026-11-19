@@ -32,6 +32,7 @@ function esc_url_raw( $url, $protocols = null ) {
 	return in_array( $scheme, $protocols, true ) ? $url : '';
 }
 function esc_url( $url, $protocols = null ) { return esc_attr( esc_url_raw( $url, $protocols ) ); }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( (string) $url, $component ); }
 function home_url( $path = '' ) { return 'https://tienda.test' . ( $path ? '/' . ltrim( $path, '/' ) : '' ); }
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
 function rest_url( $path = '' ) { return 'https://tienda.test/wp-json/' . ltrim( $path, '/' ); }

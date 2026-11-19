@@ -1,16 +1,17 @@
-import { Download, Loader2, Upload } from 'lucide-react';
+import { Download, Loader2, Plus, Upload, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
-import { Input } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import { __ } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import type { State } from '@/lib/types';
 import { downloadFile } from '@/lib/utils';
+import { ObjectSearch } from './builder/ObjectSearch';
 
 export function SettingsScreen() {
 	const settings = useStore( ( s ) => s.settings );
@@ -20,6 +21,8 @@ export function SettingsScreen() {
 	const [ withSettings, setWithSettings ] = useState( false );
 	const [ busy, setBusy ] = useState( '' );
 	const [ message, setMessage ] = useState< { level: 'success' | 'error'; text: string } | null >( null );
+	const [ picking, setPicking ] = useState( false );
+	const [ picked, setPicked ] = useState< Record<number, string> >( {} );
 	if ( ! settings ) {
 		return null;
 	}
@@ -27,6 +30,10 @@ export function SettingsScreen() {
 	const setAnalytics = <K extends keyof typeof settings.analytics>( key: K, value: ( typeof settings.analytics )[ K ] ) =>
 		useStore.getState().updateSettings( ( s ) => ( { ...s, analytics: { ...s.analytics, [ key ]: value } } ) );
 	const a = settings.analytics;
+	const ex = settings.exclude;
+	const setExclude = <K extends keyof typeof ex>( key: K, value: ( typeof ex )[ K ] ) =>
+		useStore.getState().updateSettings( ( s ) => ( { ...s, exclude: { ...s.exclude, [ key ]: value } } ) );
+	const pageLabel = ( id: number ) => picked[ id ] ?? env?.rule_labels?.[ 'post:' + id ] ?? '#' + id;
 	const depthHint = {
 		auto: __( 'Automático: si el menú tiene más de 150 ítems, los niveles desde el tercero van en <template> (no cuentan como DOM hasta que se abren). Con menos, todo va en el HTML.' ),
 		full: __( 'Todos los niveles en el HTML: todos los enlaces visibles para Google. Recomendado hasta ~150 ítems.' ),
@@ -73,6 +80,74 @@ export function SettingsScreen() {
 							<Input type="number" min={ 320 } max={ 4000 } value={ settings.breakpoint } onChange={ ( e ) => set( 'breakpoint', Number( e.target.value ) ) } className="imm:w-24" />
 							<span className="imm:text-xs imm:text-zinc-500">px</span>
 						</div>
+					</Row>
+				</Section>
+
+				<Section
+					title={ __( 'Dónde no se muestra' ) }
+					description={ __( 'En estas páginas no se carga nada del menú: ni botones, ni barras, ni CSS, ni JS. Para mostrarlo solo donde tú elijas, dale condiciones al perfil general en Perfiles.' ) }
+				>
+					<ToggleRow
+						label={ __( 'Plantillas en blanco' ) }
+						hint={ __( 'Páginas con la plantilla de lienzo o en blanco (Elementor Canvas, «Blank Page» de Divi o de tu tema): las landings sin cabecera del tema. Los editores visuales (Elementor, Divi, Bricks…) nunca muestran el menú.' ) }
+						checked={ ex.blank }
+						onChange={ ( v ) => setExclude( 'blank', v ) }
+					/>
+					<ToggleRow
+						label={ __( 'Dentro de un iframe de otro sitio' ) }
+						hint={ __( 'Si otra web muestra una de tus páginas en un iframe, ahí no aparecen el menú ni las barras (y la cabecera del tema vuelve a verse). Lo decide el navegador: la caché de página no cambia. En tu sitio y en la vista previa se ve normal.' ) }
+						checked={ ex.iframes }
+						onChange={ ( v ) => setExclude( 'iframes', v ) }
+					/>
+					<Row label={ __( 'Páginas' ) } hint={ __( 'Páginas, entradas o productos concretos.' ) } stacked>
+						<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-1.5">
+							{ ex.ids.map( ( id ) => (
+								<span key={ id } className="imm:inline-flex imm:items-center imm:gap-1 imm:rounded-full imm:border imm:border-zinc-200 imm:bg-white imm:py-0.5 imm:pr-1 imm:pl-2.5 imm:text-xs imm:text-zinc-700">
+									{ pageLabel( id ) }
+									<button
+										type="button"
+										aria-label={ __( 'Quitar' ) + ' ' + pageLabel( id ) }
+										onClick={ () => setExclude( 'ids', ex.ids.filter( ( x ) => x !== id ) ) }
+										className="imm:rounded-full imm:p-0.5 imm:text-zinc-400 imm:hover:bg-zinc-100 imm:hover:text-zinc-700"
+									>
+										<X className="imm:size-3" aria-hidden />
+									</button>
+								</span>
+							) ) }
+							<Button size="sm" variant="outline" className="imm:h-7" onClick={ () => setPicking( true ) }>
+								<Plus aria-hidden />
+								{ __( 'Elegir páginas' ) }
+							</Button>
+							<ObjectSearch
+								open={ picking }
+								onOpenChange={ setPicking }
+								kind="post"
+								title={ __( 'Excluir una página' ) }
+								placeholder={ __( 'Buscar páginas, entradas o productos…' ) }
+								onPick={ ( r ) => {
+									setPicked( ( p ) => ( { ...p, [ r.id ]: r.label } ) );
+									if ( ! ex.ids.includes( r.id ) ) {
+										setExclude( 'ids', [ ...ex.ids, r.id ] );
+									}
+								} }
+							/>
+						</div>
+					</Row>
+					<Row
+						label={ __( 'Direcciones (URL)' ) }
+						htmlFor="imm-exclude-urls"
+						hint={ __( 'Una por línea, solo la ruta. Basta una parte: /landing/ excluye esa página y todo lo que tiene debajo. * es comodín (/promo-*/gracias). «/» sola es la portada.' ) }
+						stacked
+					>
+						<Textarea
+							id="imm-exclude-urls"
+							rows={ 3 }
+							value={ ex.urls }
+							onChange={ ( e ) => setExclude( 'urls', e.target.value ) }
+							placeholder={ '/landing/\n/gracias-*' }
+							spellCheck={ false }
+							className="imm:font-mono imm:text-xs"
+						/>
 					</Row>
 				</Section>
 

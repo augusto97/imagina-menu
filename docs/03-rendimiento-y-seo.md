@@ -86,6 +86,7 @@ HTML mínimo por ítem: un `<li>` + `<a>` + (si tiene hijos) `<button>` y el spr
 - Lo dinámico se hidrata en el cliente (cookies propias legibles por JS: contador del carrito y, opcional, primer nombre). Sin `admin-ajax`, sin «cart fragments» de WooCommerce.
 - Ninguna cookie se crea para visitantes anónimos sin carrito (no rompe la caché por variación de cookies).
 - Al recompilar se purga la caché de página (integración con Imagina Turbo, LSCache, WP Rocket); el admin lo muestra.
+- Las exclusiones (páginas, URL, plantillas en blanco) se deciden por URL, así que cada URL sigue teniendo un único HTML. La de «iframe de otro sitio» la decide el navegador con una clase en `<html>` (el HTML no cambia): un script inline de 84 bytes antes del CSS crítico y una regla de CSS; con la opción apagada no se imprime nada (ver docs/02, «Dónde no se muestra»).
 
 ### 8. Navegación instantánea
 
