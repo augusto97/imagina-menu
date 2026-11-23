@@ -163,6 +163,8 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 
 Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
+**v0.5.11**: plantillas de estructura del panel lateral (8, con miniaturas) en la pantalla Panel lateral, con acceso directo a los 12 estilos visuales de Diseño. Solo admin: usan opciones que ya existían, sin cambios en el frontend ni en el presupuesto.
+
 **v0.5.10**: plantillas del botón flotante (8, con miniaturas; forma, estilo, tamaño y distancia al borde, que antes no se aplicaban) y colores de un clic. Las miniaturas de las galerías usan una página neutra en gris (antes, un degradado de colores que distraía). Con la barra superior activa, el botón flotante ya no se duplica en celulares. El CSS del botón flotante y el del botón del shortcode solo se cargan si se usan (CSS crítico base 0,49 KB). Corregido: el relleno del botón flotante con texto no se aplicaba. Probado: las 8 plantillas en 390 px (tamaños, radios y distancia exactos), apertura del panel con el botón, el CSS del shortcode una sola vez por página con dos botones, galerías del admin; e2e en verde.
 
 **v0.5.9**: plantillas de la barra inferior (8, con miniaturas; nueva forma «Redondeada») y paletas de color de un clic. Barra superior: tamaño del campo de búsqueda (pequeño, mediano, grande) y, en una fila, el logo conserva su ancho (antes quedaba limitado al 26 % de la pantalla). Presupuesto con el peor caso de todas las variantes: 2,08 KB (tope 2,10). Probado: las 8 plantillas de la barra inferior, el campo en sus tamaños con el alto reservado correcto (96, 102 y 108 px), el logo en una fila con 150 y 100 px y el logo centrado; e2e en verde.

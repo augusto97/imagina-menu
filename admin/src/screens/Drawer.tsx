@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
 import { MediaField } from '@/components/MediaField';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Input, Select } from '@/components/ui/input';
 import { __ } from '@/lib/i18n';
+import { useRouter } from '@/lib/router';
 import { setProfile, useActiveProfile, useStore } from '@/lib/store';
 import type { Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ export function DrawerScreen() {
 		<>
 			<PageHeader title={ __( 'Panel lateral' ) } description={ __( 'El panel que se abre con el botón de menú: cómo se abre, qué muestra arriba y abajo, y cómo navegan los submenús.' ) } />
 			<div className="imm:flex imm:flex-col imm:gap-5">
+				{ d.enabled && <PanelTemplates profile={ profile } /> }
 				<Section title={ __( 'Panel' ) }>
 					<ToggleRow label={ __( 'Activar el panel' ) } checked={ d.enabled } onChange={ ( v ) => set( [ 'drawer', 'enabled' ], v ) } />
 					<Row label={ __( 'Menú' ) } hint={ __( 'Qué árbol de enlaces muestra.' ) }>
@@ -589,6 +591,181 @@ function FabMock( { profile, look }: { profile: Profile; look: FabLook } ) {
 				<IconView name={ t.icon } className="imm:size-3.5" />
 				{ look.label && <span>{ t.label || __( 'Menú' ) }</span> }
 			</span>
+		</MockPage>
+	);
+}
+
+type PanelShape = Pick<Profile[ 'drawer' ], 'submenu_mode' | 'side' | 'width' | 'close_position'>;
+
+/** Plantillas de estructura del panel: cómo se abre y cómo se navega (no cambian colores ni estilo). */
+const PANEL_TEMPLATES: { id: string; name: string; hint: string; d: PanelShape }[] = [
+	{ id: 'slide', name: __( 'Deslizante' ), hint: __( 'Submenús que entran de lado, con flecha para volver.' ), d: { submenu_mode: 'slide', side: 'left', width: 86, close_position: 'outside' } },
+	{ id: 'accordion', name: __( 'Acordeón' ), hint: __( 'Los submenús se despliegan debajo de su ítem.' ), d: { submenu_mode: 'accordion', side: 'left', width: 86, close_position: 'outside' } },
+	{ id: 'two_pane', name: __( 'Dos columnas' ), hint: __( 'Categorías a la izquierda y subcategorías con imagen.' ), d: { submenu_mode: 'two_pane', side: 'left', width: 100, close_position: 'inside' } },
+	{ id: 'tabs', name: __( 'Pestañas' ), hint: __( 'Departamentos arriba y tarjetas debajo.' ), d: { submenu_mode: 'tabs', side: 'left', width: 100, close_position: 'inside' } },
+	{ id: 'grid', name: __( 'Rejilla de iconos' ), hint: __( 'El primer nivel como tarjetas: servicios, restaurantes.' ), d: { submenu_mode: 'grid', side: 'left', width: 100, close_position: 'inside' } },
+	{ id: 'right', name: __( 'Desde la derecha' ), hint: __( 'Deslizante, se abre por la derecha.' ), d: { submenu_mode: 'slide', side: 'right', width: 86, close_position: 'outside' } },
+	{ id: 'sheet', name: __( 'Hoja inferior' ), hint: __( 'Sube desde abajo: cómoda para el pulgar.' ), d: { submenu_mode: 'slide', side: 'bottom', width: 100, close_position: 'inside' } },
+	{ id: 'full', name: __( 'Pantalla completa' ), hint: __( 'Ocupa toda la pantalla, sin distracciones.' ), d: { submenu_mode: 'slide', side: 'left', width: 100, close_position: 'inside' } },
+];
+
+/**
+ * Plantillas del panel: la estructura (aquí) y el estilo visual (los estilos con capturas reales de
+ * Diseño, que cambian colores, cabecera e ítems).
+ */
+function PanelTemplates( { profile }: { profile: Profile } ) {
+	const d = profile.drawer;
+	const presets = useStore( ( s ) => s.presets );
+	const go = useRouter( ( s ) => s.go );
+	const current = presets[ profile.design.preset ];
+	const apply = ( shape: PanelShape ) => {
+		for ( const [ key, value ] of Object.entries( shape ) ) {
+			setProfile( [ 'drawer', key ], value );
+		}
+	};
+	const count = Object.keys( presets ).length;
+	return (
+		<Section title={ __( 'Plantillas' ) } description={ __( 'La estructura del panel: cómo se abre y cómo se navega. Se ven con tus colores; los menús no cambian.' ) }>
+			<div className="imm:grid imm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] imm:gap-3 imm:px-5 imm:py-4">
+				{ PANEL_TEMPLATES.map( ( tpl ) => {
+					const on = d.submenu_mode === tpl.d.submenu_mode && d.side === tpl.d.side && d.width === tpl.d.width && d.close_position === tpl.d.close_position;
+					return (
+						<button
+							key={ tpl.id }
+							type="button"
+							aria-pressed={ on }
+							onClick={ () => apply( tpl.d ) }
+							className={ cn( 'imm:flex imm:flex-col imm:gap-2 imm:rounded-xl imm:border imm:p-2 imm:text-left imm:transition', on ? 'imm:border-zinc-900 imm:ring-2 imm:ring-zinc-900/10' : 'imm:border-zinc-200 imm:hover:border-zinc-300' ) }
+						>
+							<PanelMock profile={ profile } shape={ tpl.d } />
+							<span className="imm:px-1">
+								<span className="imm:block imm:text-[13px] imm:font-medium imm:text-zinc-800">{ tpl.name }</span>
+								<span className="imm:block imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ tpl.hint }</span>
+							</span>
+						</button>
+					);
+				} ) }
+			</div>
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:justify-between imm:gap-3 imm:px-5 imm:py-3">
+				<div className="imm:flex imm:min-w-0 imm:items-center imm:gap-3">
+					{ current?.thumb && <img src={ current.thumb } alt="" className="imm:h-14 imm:w-7 imm:shrink-0 imm:rounded imm:border imm:border-zinc-200 imm:object-cover imm:object-top" /> }
+					<div className="imm:min-w-0">
+						<p className="imm:text-[13px] imm:text-zinc-800">
+							{ __( 'Estilo visual:' ) } <strong className="imm:font-semibold">«{ current?.label ?? profile.design.preset }»</strong>
+						</p>
+						<p className="imm:text-xs imm:text-zinc-500">{ __( 'Colores, cabecera, ítems e iconos: %s estilos con capturas reales en Diseño.' ).replace( '%s', String( count ) ) }</p>
+					</div>
+				</div>
+				<Button variant="outline" size="sm" onClick={ () => go( 'diseno' ) }>
+					{ __( 'Ver los estilos' ) }
+					<ArrowRight aria-hidden />
+				</Button>
+			</div>
+		</Section>
+	);
+}
+
+/** Miniatura de la estructura del panel sobre una página neutra, con los colores del diseño. */
+function PanelMock( { profile, shape }: { profile: Profile; shape: PanelShape } ) {
+	const tk = profile.design.tokens;
+	const c = ( k: string, f: string ) => String( tk[ k ] ?? f );
+	const bg = c( 'bg', '#ffffff' );
+	const line = c( 'border', '#e5e7eb' );
+	const muted = `color-mix(in srgb, ${ c( 'fg', '#18181b' ) } 22%, ${ bg })`;
+	const accent = c( 'accent', '#f97316' );
+	const bottom = shape.side === 'bottom';
+	const width = bottom ? 100 : shape.width === 100 ? 100 : 78;
+	const panel: React.CSSProperties = bottom
+		? { left: 0, right: 0, bottom: 0, height: '74%', borderRadius: '10px 10px 0 0' }
+		: { top: 0, bottom: 0, [ shape.side ]: 0, width: `${ width }%` };
+	const row = ( i: number, chevron = true ) => (
+		<span key={ i } className="imm:flex imm:items-center imm:gap-1 imm:px-1.5 imm:py-[3px]" style={ { borderBottom: `1px solid ${ line }` } }>
+			<span className="imm:size-1.5 imm:rounded-sm" style={ { background: muted } } />
+			<span className="imm:h-1 imm:flex-1 imm:rounded-full" style={ { background: muted, maxWidth: `${ 70 - i * 9 }%` } } />
+			{ chevron && <span className="imm:ml-auto imm:text-[7px] imm:leading-none" style={ { color: muted } }>›</span> }
+		</span>
+	);
+	let body;
+	switch ( shape.submenu_mode ) {
+		case 'accordion':
+			body = (
+				<>
+					{ row( 0 ) }
+					<span className="imm:flex imm:flex-col imm:gap-[3px] imm:py-[3px] imm:pl-4" style={ { borderBottom: `1px solid ${ line }` } }>
+						<span className="imm:h-1 imm:w-1/2 imm:rounded-full" style={ { background: muted } } />
+						<span className="imm:h-1 imm:w-2/5 imm:rounded-full" style={ { background: muted } } />
+					</span>
+					{ row( 1 ) }
+					{ row( 2 ) }
+				</>
+			);
+			break;
+		case 'two_pane':
+			body = (
+				<span className="imm:flex imm:flex-1">
+					<span className="imm:flex imm:w-[34%] imm:flex-col imm:gap-[5px] imm:px-1 imm:py-1.5" style={ { background: c( 'hover_bg', '#f4f5f7' ) } }>
+						{ [ 0, 1, 2, 3 ].map( ( i ) => (
+							<span key={ i } className="imm:h-1 imm:rounded-full" style={ { background: i === 0 ? accent : muted } } />
+						) ) }
+					</span>
+					<span className="imm:grid imm:flex-1 imm:grid-cols-3 imm:content-start imm:gap-1 imm:p-1.5">
+						{ [ 0, 1, 2, 3, 4, 5 ].map( ( i ) => (
+							<span key={ i } className="imm:aspect-square imm:rounded" style={ { background: muted } } />
+						) ) }
+					</span>
+				</span>
+			);
+			break;
+		case 'tabs':
+			body = (
+				<>
+					<span className="imm:flex imm:gap-1 imm:px-1.5 imm:py-1" style={ { borderBottom: `1px solid ${ line }` } }>
+						{ [ 0, 1, 2 ].map( ( i ) => (
+							<span key={ i } className="imm:h-1.5 imm:w-5 imm:rounded-full" style={ { background: i === 0 ? accent : muted } } />
+						) ) }
+					</span>
+					<span className="imm:grid imm:grid-cols-3 imm:gap-1 imm:p-1.5">
+						{ [ 0, 1, 2, 3, 4, 5 ].map( ( i ) => (
+							<span key={ i } className="imm:aspect-[4/3] imm:rounded" style={ { background: muted } } />
+						) ) }
+					</span>
+				</>
+			);
+			break;
+		case 'grid':
+			body = (
+				<span className="imm:grid imm:grid-cols-3 imm:gap-1 imm:p-1.5">
+					{ [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ].map( ( i ) => (
+						<span key={ i } className="imm:flex imm:aspect-square imm:items-center imm:justify-center imm:rounded" style={ { background: c( 'hover_bg', '#f4f5f7' ) } }>
+							<span className="imm:size-1.5 imm:rounded-full" style={ { background: i === 0 ? accent : muted } } />
+						</span>
+					) ) }
+				</span>
+			);
+			break;
+		default:
+			body = [ 0, 1, 2, 3 ].map( ( i ) => row( i ) );
+	}
+	return (
+		<MockPage>
+			<span className="imm:absolute imm:inset-0" style={ { background: 'rgba(0,0,0,.35)' } } />
+			<span className="imm:absolute imm:flex imm:flex-col imm:overflow-hidden" style={ { ...panel, background: bg, boxShadow: '0 0 12px rgba(0,0,0,.2)' } }>
+				{ bottom && <span className="imm:mx-auto imm:mt-1 imm:h-0.5 imm:w-5 imm:shrink-0 imm:rounded-full" style={ { background: muted } } /> }
+				<span className="imm:flex imm:h-4 imm:shrink-0 imm:items-center imm:gap-1 imm:px-1.5" style={ { background: c( 'head_bg', '#0f172a' ) } }>
+					<span className="imm:size-1.5 imm:rounded-full" style={ { background: c( 'head_fg', '#ffffff' ), opacity: 0.8 } } />
+					<span className="imm:h-1 imm:w-8 imm:rounded-full" style={ { background: c( 'head_fg', '#ffffff' ), opacity: 0.8 } } />
+					{ shape.close_position === 'inside' && <span className="imm:ml-auto imm:text-[7px] imm:leading-none" style={ { color: c( 'head_fg', '#ffffff' ) } }>✕</span> }
+				</span>
+				{ body }
+			</span>
+			{ shape.close_position === 'outside' && ! bottom && width < 100 && (
+				<span
+					className="imm:absolute imm:top-1.5 imm:flex imm:size-3.5 imm:items-center imm:justify-center imm:rounded-full imm:bg-white imm:text-[7px] imm:leading-none imm:text-zinc-700"
+					style={ { [ shape.side === 'left' ? 'right' : 'left' ]: `calc(${ 100 - width }% - 18px)` } }
+				>
+					✕
+				</span>
+			) }
 		</MockPage>
 	);
 }

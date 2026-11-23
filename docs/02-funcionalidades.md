@@ -30,6 +30,8 @@ Compatibilidad verificada (v0.2, Playwright en móvil, `tests/e2e/themes.cjs`): 
 
 ## M2. Panel lateral (drawer) — fase 1
 
+**Plantillas** (v0.5.11, en la pantalla Panel lateral): 8 estructuras con miniaturas que usan los colores del diseño: Deslizante, Acordeón, Dos columnas, Pestañas, Rejilla de iconos, Desde la derecha, Hoja inferior y Pantalla completa. Cada una fija el modo de submenú, el lado, el ancho y el botón cerrar; los menús, colores y estilo no cambian. Debajo, el estilo visual actual (de los 12 estilos con capturas reales de Diseño, M9) con un acceso directo para cambiarlo.
+
 | Opción | Valores | Por defecto |
 |---|---|---|
 | Lado | izquierda, derecha, abajo (bottom sheet con arrastre), arriba, pantalla completa | izquierda |
