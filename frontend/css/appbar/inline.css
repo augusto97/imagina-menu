@@ -1,7 +1,8 @@
-/* Una fila: el campo ocupa el hueco entre el logo y los botones (el logo se encoge) */
+/* Una fila: el campo ocupa el espacio que dejan el logo (con su ancho máximo) y los botones; si
+   no cabe, el campo se queda en 112 px y el logo se encoge */
 .imm-ab-inline .imm-ab-search {
 	flex: 1;
-	min-width: 0;
+	min-width: 112px;
 	padding: 0 4px;
 }
 
@@ -15,8 +16,4 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.imm-ab-inline a.imm-ab-logo {
-	max-width: min(var(--imm-ab-logo-w, 150px), 26vw);
 }

@@ -84,7 +84,8 @@ final class CssBuilder {
 		$ab = $profile['app_bar'];
 		if ( $ab['enabled'] ) {
 			// 52 px la fila; 50 más con el buscador debajo; la isla flotante deja 8 px arriba y abajo.
-			$height    = 52 + ( $ab['search'] && 'inline' !== $ab['layout'] ? 50 : 0 ) + ( 'floating' === $ab['shape'] ? 16 : 0 );
+			$field     = array( 'sm' => 44, 'lg' => 56 )[ $ab['field_size'] ] ?? 50; // el campo y 8 px debajo
+			$height    = 52 + ( $ab['search'] && 'inline' !== $ab['layout'] ? $field : 0 ) + ( 'floating' === $ab['shape'] ? 16 : 0 );
 			// La cabecera del tema se oculta solo en celulares y solo con la barra activa (la reemplaza).
 			$header    = '' !== $ab['hide_header'] ? self::scope( $root, $ab['hide_header'] ) . '{display:none!important}' : '';
 			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_extras( $ab ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . $root . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
@@ -186,6 +187,10 @@ final class CssBuilder {
 		} elseif ( 'center' === $ab['logo_align'] ) {
 			$files[] = 'center';
 		}
+		// Después de «inline»: el tamaño también cambia el alto del campo en una fila.
+		if ( 'md' !== $ab['field_size'] && $ab['search'] ) {
+			$files[] = 'size-' . $ab['field_size'];
+		}
 		foreach ( $ab['actions'] as $action ) {
 			if ( 'button' === $action['style'] && '' !== $action['label'] ) {
 				$files[] = 'cta';
@@ -209,8 +214,8 @@ final class CssBuilder {
 		if ( 'labels' !== $bar['style'] ) {
 			$files[] = 'bbar/labels-hidden';
 		}
-		if ( 'floating' === $bar['shape'] ) {
-			$files[] = 'bbar/floating';
+		if ( 'bar' !== $bar['shape'] ) {
+			$files[] = 'bbar/' . $bar['shape']; // floating | rounded
 		}
 		if ( $bar['blur'] ) {
 			$files[] = 'bbar/blur';

@@ -117,7 +117,7 @@ final class Defaults {
 				'items'          => array(),
 				'style'          => 'labels', // labels | icons | active_label
 				'indicator'      => 'pill', // pill | line | dot | color
-				'shape'          => 'bar', // bar | floating
+				'shape'          => 'bar', // bar | floating (isla) | rounded (esquinas de arriba redondeadas)
 				'hide_on_scroll' => true,
 				'hide_on'        => array( 'checkout' ),
 				'blur'           => false,
@@ -150,6 +150,7 @@ final class Defaults {
 				'layout'         => 'stacked', // stacked (buscador debajo) | inline (todo en una fila)
 				'shape'          => 'flat', // flat | curved (esquinas de abajo redondeadas) | floating (isla) | line (minimal, sin sombra)
 				'field'          => 'pill', // pill | rounded | soft (translúcido, del color de la barra)
+				'field_size'     => 'md', // sm | md | lg: alto del campo (debajo 36/42/48 px; en una fila 32/38/44)
 				'glass'          => false, // fondo translúcido con desenfoque
 				// Cabecera del tema que se oculta en celulares cuando la barra está activa (selector CSS).
 				'hide_header'    => '',

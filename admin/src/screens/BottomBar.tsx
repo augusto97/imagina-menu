@@ -13,7 +13,7 @@ import { Input, Select } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { __ } from '@/lib/i18n';
 import { makeBottomItem, setProfile, useActiveProfile, useStore } from '@/lib/store';
-import type { BottomAction, BottomItem, Profile } from '@/lib/types';
+import type { BottomAction, BottomItem, Env, Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ContrastRow } from './Design';
 
@@ -166,9 +166,12 @@ export function BottomBarScreen() {
 					</Section>
 				) }
 
+				<DesignGallery profile={ profile } />
+				<Palettes profile={ profile } />
+
 				<Section title={ __( 'Estilo y comportamiento' ) }>
 					<Row label={ __( 'Forma' ) }>
-						<Segmented value={ b.shape } onChange={ ( v ) => setProfile( [ 'bottom_bar', 'shape' ], v ) } options={ [ { value: 'bar', label: __( 'Barra completa' ) }, { value: 'floating', label: __( 'Isla flotante' ) } ] } />
+						<Segmented value={ b.shape } onChange={ ( v ) => setProfile( [ 'bottom_bar', 'shape' ], v ) } options={ [ { value: 'bar', label: __( 'Barra completa' ) }, { value: 'rounded', label: __( 'Redondeada' ) }, { value: 'floating', label: __( 'Isla flotante' ) } ] } />
 					</Row>
 					<Row label={ __( 'Etiquetas' ) }>
 						<Segmented value={ b.style } onChange={ ( v ) => setProfile( [ 'bottom_bar', 'style' ], v ) } options={ [ { value: 'labels', label: __( 'Siempre' ) }, { value: 'active_label', label: __( 'Solo el activo' ) }, { value: 'icons', label: __( 'Solo iconos' ) } ] } />
@@ -287,5 +290,178 @@ function MockItem( { item, index, active, selected, onSelect, profile }: { item:
 				{ active && b.indicator === 'dot' && <span className="imm:size-1 imm:rounded-full" style={ { background: String( t.bbar_active ) } } /> }
 			</button>
 		</li>
+	);
+}
+
+type BarDesign = { shape: Profile[ 'bottom_bar' ][ 'shape' ]; style: Profile[ 'bottom_bar' ][ 'style' ]; indicator: Profile[ 'bottom_bar' ][ 'indicator' ]; blur: boolean; center: boolean };
+
+/** Plantillas de la barra inferior: combinaciones probadas de forma, etiquetas, indicador y efectos. */
+const TEMPLATES: { id: string; name: string; hint: string; d: BarDesign }[] = [
+	{ id: 'classic', name: __( 'Clásica' ), hint: __( 'Etiquetas y píldora en el activo.' ), d: { shape: 'bar', style: 'labels', indicator: 'pill', blur: false, center: false } },
+	{ id: 'line', name: __( 'Línea superior' ), hint: __( 'Una línea marca la sección activa.' ), d: { shape: 'bar', style: 'labels', indicator: 'line', blur: false, center: false } },
+	{ id: 'minimal', name: __( 'Minimal' ), hint: __( 'Solo la etiqueta del activo.' ), d: { shape: 'bar', style: 'active_label', indicator: 'dot', blur: false, center: false } },
+	{ id: 'icons', name: __( 'Solo iconos' ), hint: __( 'Sin texto: más limpia.' ), d: { shape: 'bar', style: 'icons', indicator: 'pill', blur: false, center: false } },
+	{ id: 'rounded', name: __( 'Redondeada' ), hint: __( 'Esquinas de arriba redondeadas.' ), d: { shape: 'rounded', style: 'labels', indicator: 'color', blur: false, center: false } },
+	{ id: 'island', name: __( 'Isla flotante' ), hint: __( 'Separada de los bordes.' ), d: { shape: 'floating', style: 'labels', indicator: 'pill', blur: false, center: false } },
+	{ id: 'center', name: __( 'Botón central' ), hint: __( 'Un acceso destacado en el centro.' ), d: { shape: 'bar', style: 'labels', indicator: 'color', blur: false, center: true } },
+	{ id: 'glass', name: __( 'Vidrio' ), hint: __( 'Translúcida con desenfoque.' ), d: { shape: 'rounded', style: 'labels', indicator: 'pill', blur: true, center: false } },
+];
+
+/** Índice del acceso que va destacado en la plantilla «Botón central»: el del medio. */
+const middle = ( n: number ) => Math.floor( n / 2 );
+
+/** Accesos que se ven en la página (sin plugin de favoritos, sin WooCommerce o sin panel, no salen). */
+function visibleItems( profile: Profile, env: Env | null ): BottomItem[] {
+	return profile.bottom_bar.items.filter(
+		( i ) => ! ( i.action === 'wishlist' && ! env?.wishlist && ! i.url.trim() ) && ! ( i.action === 'cart' && ! env?.woo ) && ! ( i.action === 'drawer' && ! profile.drawer.enabled )
+	);
+}
+
+/**
+ * Galería de diseños de la barra inferior. Se ve con los accesos y colores actuales; elegir una
+ * plantilla cambia forma, etiquetas, indicador, translúcida y el botón central (no los accesos).
+ */
+function DesignGallery( { profile }: { profile: Profile } ) {
+	const env = useStore( ( s ) => s.env );
+	const b = profile.bottom_bar;
+	const visible = visibleItems( profile, env );
+	const hasCenter = b.items.some( ( i ) => i.prominent );
+	const apply = ( d: BarDesign ) => {
+		setProfile( [ 'bottom_bar', 'shape' ], d.shape );
+		setProfile( [ 'bottom_bar', 'style' ], d.style );
+		setProfile( [ 'bottom_bar', 'indicator' ], d.indicator );
+		setProfile( [ 'bottom_bar', 'blur' ], d.blur );
+		if ( d.center !== hasCenter ) {
+			const centerId = visible[ middle( visible.length ) ]?.id;
+			setProfile( [ 'bottom_bar', 'items' ], b.items.map( ( i ) => ( { ...i, prominent: d.center && i.id === centerId } ) ) );
+		}
+	};
+	return (
+		<Section title={ __( 'Diseño' ) } description={ __( 'Elige una plantilla y ajusta los detalles en «Estilo y comportamiento». Se ven con tus accesos y colores.' ) }>
+			<div className="imm:grid imm:grid-cols-[repeat(auto-fill,minmax(176px,1fr))] imm:gap-3 imm:px-5 imm:py-4">
+				{ TEMPLATES.map( ( tpl ) => {
+					const on = b.shape === tpl.d.shape && b.style === tpl.d.style && b.indicator === tpl.d.indicator && b.blur === tpl.d.blur && hasCenter === tpl.d.center;
+					return (
+						<button
+							key={ tpl.id }
+							type="button"
+							aria-pressed={ on }
+							onClick={ () => apply( tpl.d ) }
+							className={ cn( 'imm:flex imm:flex-col imm:gap-2 imm:rounded-xl imm:border imm:p-2 imm:text-left imm:transition', on ? 'imm:border-zinc-900 imm:ring-2 imm:ring-zinc-900/10' : 'imm:border-zinc-200 imm:hover:border-zinc-300' ) }
+						>
+							<BottomMock profile={ profile } items={ visible } design={ tpl.d } />
+							<span className="imm:px-1">
+								<span className="imm:block imm:text-[13px] imm:font-medium imm:text-zinc-800">{ tpl.name }</span>
+								<span className="imm:block imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ tpl.hint }</span>
+							</span>
+						</button>
+					);
+				} ) }
+			</div>
+			{ hasCenter && visible.length % 2 === 0 && (
+				<div className="imm:px-5 imm:pb-4">
+					<Notice level="info">{ __( 'El botón central queda en el centro con un número impar de accesos (3 o 5).' ) }</Notice>
+				</div>
+			) }
+		</Section>
+	);
+}
+
+/** Miniatura de la barra inferior con un diseño, los accesos y los colores actuales. */
+function BottomMock( { profile, items: all, design }: { profile: Profile; items: BottomItem[]; design: BarDesign } ) {
+	const t = profile.design.tokens;
+	const items = all.slice( 0, 6 );
+	const col = ( k: string, f: string ) => String( t[ k ] ?? f );
+	const bg = col( 'bbar_bg', '#ffffff' );
+	const floating = design.shape === 'floating';
+	return (
+		<span className="imm:relative imm:block imm:h-24 imm:overflow-hidden imm:rounded-lg imm:bg-zinc-100" aria-hidden>
+			<span className="imm:absolute imm:top-2 imm:left-2 imm:h-1.5 imm:w-2/3 imm:rounded imm:bg-zinc-300" />
+			<span className="imm:absolute imm:right-2 imm:bottom-5 imm:left-2 imm:h-12 imm:rounded-md imm:bg-gradient-to-r imm:from-rose-300 imm:via-amber-200 imm:to-sky-300" />
+			<span
+				className="imm:absolute imm:flex imm:items-stretch imm:justify-around imm:px-1"
+				style={ {
+					left: floating ? 6 : 0,
+					right: floating ? 6 : 0,
+					bottom: floating ? 6 : 0,
+					height: 34,
+					borderRadius: floating ? 14 : design.shape === 'rounded' ? '12px 12px 0 0' : 0,
+					background: design.blur ? `color-mix(in srgb, ${ bg } 75%, transparent)` : bg,
+					backdropFilter: design.blur ? 'blur(6px)' : undefined,
+					borderTop: design.shape === 'bar' ? `1px solid ${ col( 'border', '#e5e7eb' ) }` : undefined,
+					boxShadow: floating ? '0 6px 14px -6px rgba(0,0,0,.3)' : design.shape === 'rounded' ? '0 -4px 12px rgba(0,0,0,.08)' : undefined,
+					color: col( 'bbar_fg', '#62626b' ),
+				} }
+			>
+				{ items.map( ( item, i ) => {
+					const active = i === 0;
+					const main = design.center && i === middle( items.length );
+					const label = design.style === 'labels' || ( design.style === 'active_label' && active );
+					return (
+						<span key={ item.id } className="imm:relative imm:flex imm:flex-1 imm:flex-col imm:items-center imm:justify-center imm:gap-0.5" style={ { color: active ? col( 'bbar_active', '#ea580c' ) : undefined } }>
+							{ main ? (
+								<span className="imm:-mt-4 imm:flex imm:size-7 imm:items-center imm:justify-center imm:rounded-full" style={ { background: col( 'accent', '#f97316' ), color: col( 'accent_fg', '#ffffff' ), boxShadow: `0 0 0 2px ${ bg }` } }>
+									<IconView name={ item.icon } className="imm:size-3.5" />
+								</span>
+							) : (
+								<span className="imm:flex imm:h-4 imm:items-center imm:justify-center imm:rounded-full imm:px-2" style={ { background: active && design.indicator === 'pill' ? col( 'bbar_active_bg', '#ffedd5' ) : undefined } }>
+									<IconView name={ item.icon } className="imm:size-3" />
+								</span>
+							) }
+							{ label && <span className="imm:max-w-full imm:truncate imm:text-[7px] imm:leading-none imm:font-medium">{ item.label }</span> }
+							{ active && design.indicator === 'line' && <span className="imm:absolute imm:top-0 imm:h-0.5 imm:w-4 imm:rounded-full" style={ { background: col( 'bbar_active', '#ea580c' ) } } /> }
+							{ active && design.indicator === 'dot' && <span className="imm:size-0.5 imm:rounded-full imm:bg-current" /> }
+						</span>
+					);
+				} ) }
+				{ ! items.length && <span className="imm:self-center imm:text-[9px]">{ __( 'Sin accesos' ) }</span> }
+			</span>
+		</span>
+	);
+}
+
+/** Mezcla dos colores hexadecimales (t = peso del segundo). */
+function mix( a: string, b: string, t: number ): string {
+	const p = ( h: string ) => {
+		const x = h.replace( '#', '' );
+		const full = x.length === 3 ? x.split( '' ).map( ( c ) => c + c ).join( '' ) : x.slice( 0, 6 );
+		return [ 0, 2, 4 ].map( ( i ) => parseInt( full.slice( i, i + 2 ), 16 ) || 0 );
+	};
+	const [ ca, cb ] = [ p( a ), p( b ) ];
+	return '#' + ca.map( ( v, i ) => Math.round( v + ( cb[ i ]! - v ) * t ).toString( 16 ).padStart( 2, '0' ) ).join( '' );
+}
+
+/**
+ * Paletas de un clic para la barra inferior. Cambian los colores de la barra en el diseño del perfil
+ * (los mismos que en Diseño → Barra inferior).
+ */
+function Palettes( { profile }: { profile: Profile } ) {
+	const t = profile.design.tokens;
+	const accent = String( t.accent ?? '#f97316' );
+	const accentFg = String( t.accent_fg ?? '#ffffff' );
+	const palettes: { label: string; c: { bbar_bg: string; bbar_fg: string; bbar_active: string; bbar_active_bg: string } }[] = [
+		{ label: __( 'Clara' ), c: { bbar_bg: '#ffffff', bbar_fg: '#62626b', bbar_active: mix( accent, '#000000', 0.25 ), bbar_active_bg: mix( accent, '#ffffff', 0.85 ) } },
+		{ label: __( 'Gris' ), c: { bbar_bg: '#f4f4f5', bbar_fg: '#52525b', bbar_active: '#18181b', bbar_active_bg: '#e4e4e7' } },
+		{ label: __( 'Oscura' ), c: { bbar_bg: '#111827', bbar_fg: '#9ca3af', bbar_active: '#ffffff', bbar_active_bg: '#374151' } },
+		{ label: __( 'Con el acento' ), c: { bbar_bg: accent, bbar_fg: mix( accentFg, accent, 0.3 ), bbar_active: accentFg, bbar_active_bg: mix( accent, accentFg, 0.22 ) } },
+	];
+	const apply = ( c: Record<string, string> ) => {
+		for ( const [ key, value ] of Object.entries( c ) ) {
+			setProfile( [ 'design', 'tokens', key ], value );
+		}
+	};
+	return (
+		<Section title={ __( 'Colores' ) } description={ __( 'Paletas de un clic. Cada color se ajusta, y se revisa su contraste, en Diseño → Barra inferior.' ) }>
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-1.5 imm:px-5 imm:py-3">
+				{ palettes.map( ( p ) => (
+					<button key={ p.label } type="button" onClick={ () => apply( p.c ) } className="imm:inline-flex imm:items-center imm:gap-1.5 imm:rounded-full imm:border imm:border-zinc-200 imm:bg-white imm:py-1 imm:pr-3 imm:pl-1.5 imm:text-xs imm:font-medium imm:text-zinc-700 imm:hover:bg-zinc-50">
+						<span aria-hidden className="imm:flex imm:size-4 imm:items-center imm:justify-center imm:rounded-full imm:border imm:border-black/10" style={ { background: p.c.bbar_bg } }>
+							<span className="imm:size-1.5 imm:rounded-full" style={ { background: p.c.bbar_active } } />
+						</span>
+						{ p.label }
+					</button>
+				) ) }
+			</div>
+		</Section>
 	);
 }

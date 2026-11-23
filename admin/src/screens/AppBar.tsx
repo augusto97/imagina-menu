@@ -63,7 +63,7 @@ export function AppBarScreen() {
 									<Row label={ __( 'Alto' ) } hint={ __( 'La fila mide 52 px.' ) }>
 										<Range value={ a.logo_height } min={ 16 } max={ 44 } unit="px" onChange={ ( v ) => set( 'logo_height', v ) } />
 									</Row>
-									<Row label={ __( 'Ancho máximo' ) } hint={ __( 'Los logos muy anchos se reducen hasta caber.' ) }>
+									<Row label={ __( 'Ancho máximo' ) } hint={ inline ? __( 'En una fila, el logo conserva este ancho y el buscador ocupa el resto (mínimo 112 px; si no cabe, el logo se reduce).' ) : __( 'Los logos muy anchos se reducen hasta caber.' ) }>
 										<Range value={ a.logo_width } min={ 60 } max={ 240 } step={ 5 } unit="px" onChange={ ( v ) => set( 'logo_width', v ) } />
 									</Row>
 									<Row label={ __( 'Posición' ) } hint={ inline ? __( 'Con el buscador en la misma fila no hay sitio para centrarlo: va junto al menú.' ) : undefined }>
@@ -485,7 +485,8 @@ function DesignSection( { profile }: { profile: Profile } ) {
 			setProfile( [ 'app_bar', key ], value );
 		}
 	};
-	const set = ( key: keyof Design, value: unknown ) => setProfile( [ 'app_bar', key ], value );
+	const set = ( key: keyof Design | 'field_size', value: unknown ) => setProfile( [ 'app_bar', key ], value );
+	const inlineLayout = a.search && a.layout === 'inline';
 	const list = a.search ? TEMPLATES : TEMPLATES.filter( ( x ) => x.d.layout === 'stacked' );
 	return (
 		<Section title={ __( 'Diseño' ) } description={ __( 'Elige una plantilla y ajusta los detalles abajo. Se ven con tus colores y tus botones; los colores se cambian en «Colores».' ) }>
@@ -528,6 +529,11 @@ function DesignSection( { profile }: { profile: Profile } ) {
 				/>
 			</Row>
 			{ a.search && (
+				<Row label={ __( 'Tamaño del campo' ) } hint={ inlineLayout ? __( 'En una fila, el campo ocupa el espacio que dejan el logo y los botones. Para darle más espacio al logo, sube su «Ancho máximo» en Logo; para un campo más ancho, bájalo.' ) : __( 'Alto del campo de búsqueda.' ) }>
+					<Segmented value={ a.field_size } onChange={ ( v ) => set( 'field_size', v ) } options={ [ { value: 'sm', label: __( 'Pequeño' ) }, { value: 'md', label: __( 'Mediano' ) }, { value: 'lg', label: __( 'Grande' ) } ] } />
+				</Row>
+			) }
+			{ a.search && (
 				<Row label={ __( 'Campo de búsqueda' ) } hint={ a.field === 'soft' ? __( 'Del color de la barra, translúcido (no usa los colores del buscador).' ) : undefined }>
 					<Segmented value={ a.field } onChange={ ( v ) => set( 'field', v ) } options={ [ { value: 'pill', label: __( 'Píldora' ) }, { value: 'rounded', label: __( 'Redondeado' ) }, { value: 'soft', label: __( 'Suave' ) } ] } />
 				</Row>
@@ -555,7 +561,7 @@ function BarMock( { profile, design }: { profile: Profile; design: Design } ) {
 	const shadow = { flat: '0 2px 8px -4px rgba(0,0,0,.35)', curved: '0 2px 8px -4px rgba(0,0,0,.35)', floating: '0 6px 14px -8px rgba(0,0,0,.45)', line: `0 1px 0 color-mix(in srgb, ${ c.fg } 18%, transparent)` }[ design.shape ];
 	const field = (
 		<span
-			className="imm:flex imm:h-5 imm:min-w-0 imm:flex-1 imm:items-center imm:gap-1 imm:px-1.5 imm:text-[8px]"
+			className={ cn( 'imm:flex imm:min-w-0 imm:flex-1 imm:items-center imm:gap-1 imm:px-1.5 imm:text-[8px]', { sm: 'imm:h-4', md: 'imm:h-5', lg: 'imm:h-6' }[ a.field_size ] ) }
 			style={ {
 				borderRadius: design.field === 'rounded' ? 5 : 999,
 				background: design.field === 'soft' ? `color-mix(in srgb, ${ c.fg } 15%, transparent)` : c.search_bg,

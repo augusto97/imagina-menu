@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * v0.5.8: diseños de la barra superior, CSS crítico con solo las variantes usadas y el buscador
- * que queda al bajar con margen arriba.
+ * que queda al bajar con margen arriba. v0.5.9: tamaño del campo, el logo conserva su ancho en una
+ * fila y la barra inferior redondeada.
  */
 final class AppBarDesignsTest extends TestCase {
 
@@ -112,5 +113,42 @@ final class AppBarDesignsTest extends TestCase {
 		foreach ( array( 'ind-line', 'ind-dot', 'labels-hidden', 'floating', 'blur' ) as $file ) {
 			$this->assertStringNotContainsString( self::dist( 'bbar/' . $file . '.css' ), $css, $file );
 		}
+	}
+
+	public function test_field_size_changes_height_and_reserved_space(): void {
+		$this->assertSame( 'md', self::profile()['app_bar']['field_size'] );
+		$this->assertSame( 'md', self::profile( array( 'field_size' => 'xl' ) )['app_bar']['field_size'] );
+
+		$sm = self::css( self::profile( array( 'field_size' => 'sm' ) ) );
+		$this->assertStringContainsString( self::dist( 'appbar/size-sm.css' ), $sm );
+		$this->assertStringContainsString( 'body{padding-top:calc(96px', $sm, '52 + 36 + 8' );
+		$this->assertStringContainsString( 'body{padding-top:calc(108px', self::css( self::profile( array( 'field_size' => 'lg' ) ) ), '52 + 48 + 8' );
+		$this->assertStringNotContainsString( 'size-', self::css( self::profile() ) );
+
+		// En una fila el alto de la barra no cambia; el tamaño va después de «inline» para ganarle.
+		$inline = self::css( self::profile( array( 'layout' => 'inline', 'field_size' => 'lg' ) ) );
+		$this->assertStringContainsString( 'body{padding-top:calc(52px', $inline );
+		$this->assertGreaterThan( strpos( $inline, self::dist( 'appbar/inline.css' ) ), strpos( $inline, self::dist( 'appbar/size-lg.css' ) ) );
+	}
+
+	public function test_inline_layout_keeps_the_logo_width(): void {
+		$css = self::dist( 'appbar/inline.css' );
+		$this->assertStringNotContainsString( 'imm-ab-logo', $css, 'El logo conserva su «Ancho máximo»: el campo ocupa el resto' );
+		$this->assertStringContainsString( 'min-width:112px', $css );
+	}
+
+	public function test_rounded_bottom_bar(): void {
+		$bar = array(
+			'enabled' => true,
+			'shape'   => 'rounded',
+			'items'   => array( array( 'action' => 'link', 'label' => 'Inicio', 'url' => '/' ) ),
+		);
+		$profile = self::profile( array( 'enabled' => false ), array( 'bottom_bar' => $bar ) );
+		$this->assertSame( 'rounded', $profile['bottom_bar']['shape'] );
+		$css = self::css( $profile );
+		$this->assertStringContainsString( self::dist( 'bbar/rounded.css' ), $css );
+		$this->assertStringNotContainsString( self::dist( 'bbar/floating.css' ), $css );
+		$html = ( new Renderer( $profile, array( 'name' => 'T', 'logo' => '', 'home_url' => 'https://t.test/', 'search_post_type' => 'any', 'breakpoint' => 1024 ) ) )->render( array() )['bbar'];
+		$this->assertStringContainsString( 'imm-bb--rounded', $html );
 	}
 }

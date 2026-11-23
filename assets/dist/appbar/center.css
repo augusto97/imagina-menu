@@ -1,1 +1,1 @@
-.imm-ab-center .imm-ab-row{position:relative}.imm-ab-center a.imm-ab-logo{max-width:min(var(--imm-ab-logo-w,150px), calc(100% - 200px));justify-content:center;position:absolute;left:50%;transform:translate(-50%)}.imm-ab-center .imm-ab-logo img{object-position:center}
+.imm-ab-center a.imm-ab-logo{max-width:min(var(--imm-ab-logo-w,150px), calc(100% - 200px));justify-content:center;position:absolute;left:50%;transform:translate(-50%)}.imm-ab-center .imm-ab-logo img{object-position:center}

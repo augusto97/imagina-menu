@@ -218,7 +218,7 @@ export interface Profile {
 		items: BottomItem[];
 		style: 'labels' | 'icons' | 'active_label';
 		indicator: 'pill' | 'line' | 'dot' | 'color';
-		shape: 'bar' | 'floating';
+		shape: 'bar' | 'floating' | 'rounded';
 		hide_on_scroll: boolean;
 		hide_on: string[];
 		blur: boolean;
@@ -247,6 +247,8 @@ export interface Profile {
 		layout: AppBarLayout;
 		shape: AppBarShape;
 		field: AppBarField;
+		/** Alto del campo: debajo 36/42/48 px; en una fila 32/38/44 px. */
+		field_size: 'sm' | 'md' | 'lg';
 		/** Fondo translúcido con desenfoque. */
 		glass: boolean;
 		/** Selector de la cabecera del tema que se oculta en celulares (requiere edit_css). */

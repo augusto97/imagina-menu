@@ -7,9 +7,9 @@ import { gzipSync } from 'node:zlib';
 const dist = 'assets/dist/';
 const size = ( f ) => readFileSync( dist + f ).length;
 const heaviestOf = ( files ) => files.reduce( ( a, b ) => ( size( a ) >= size( b ) ? a : b ) );
-const bbarWorst = [ 'bbar.css', heaviestOf( [ 'bbar/ind-pill.css', 'bbar/ind-line.css', 'bbar/ind-dot.css' ] ), 'bbar/labels-hidden.css', 'bbar/floating.css', 'bbar/blur.css', 'bbar/main.css' ];
+const bbarWorst = [ 'bbar.css', heaviestOf( [ 'bbar/ind-pill.css', 'bbar/ind-line.css', 'bbar/ind-dot.css' ] ), 'bbar/labels-hidden.css', heaviestOf( [ 'bbar/floating.css', 'bbar/rounded.css' ] ), 'bbar/blur.css', 'bbar/main.css' ];
 // El logo centrado y la distribución en una fila no van juntos.
-const appbarWorst = [ 'appbar.css', heaviestOf( [ 'appbar/shape-curved.css', 'appbar/shape-floating.css', 'appbar/shape-line.css' ] ), heaviestOf( [ 'appbar/field-rounded.css', 'appbar/field-soft.css' ] ), 'appbar/glass.css', heaviestOf( [ 'appbar/inline.css', 'appbar/center.css' ] ), 'appbar/cta.css' ];
+const appbarWorst = [ 'appbar.css', heaviestOf( [ 'appbar/shape-curved.css', 'appbar/shape-floating.css', 'appbar/shape-line.css' ] ), heaviestOf( [ 'appbar/field-rounded.css', 'appbar/field-soft.css' ] ), 'appbar/glass.css', heaviestOf( [ 'appbar/inline.css', 'appbar/center.css' ] ), heaviestOf( [ 'appbar/size-sm.css', 'appbar/size-lg.css' ] ), 'appbar/cta.css' ];
 const fabWorst = heaviestOf( [ 'fab/bottom-left.css', 'fab/bottom-right.css', 'fab/top-left.css', 'fab/top-right.css' ] );
 const critical = [ 'critical.css', fabWorst, ...bbarWorst ].map( ( f ) => dist + f );
 

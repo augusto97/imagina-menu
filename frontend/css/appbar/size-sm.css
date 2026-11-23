@@ -1,0 +1,8 @@
+/* Campo de búsqueda pequeño (debajo: 36 px; en una fila: 32 px) */
+button.imm-ab-field {
+	height: 36px;
+}
+
+.imm-ab-inline button.imm-ab-field {
+	height: 32px;
+}
