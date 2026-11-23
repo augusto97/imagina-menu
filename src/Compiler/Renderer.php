@@ -81,6 +81,8 @@ final class Renderer {
 			'Navegación inferior'    => __( 'Navegación inferior', 'imagina-menu' ),
 			'Promociones'            => __( 'Promociones', 'imagina-menu' ),
 			'Carrito'                => __( 'Carrito', 'imagina-menu' ),
+			'Favoritos'              => __( 'Favoritos', 'imagina-menu' ),
+			'Llamar'                 => __( 'Llamar', 'imagina-menu' ),
 			'Barra superior'         => __( 'Barra superior', 'imagina-menu' ),
 		);
 	}
@@ -170,8 +172,15 @@ final class Renderer {
 		if ( $this->profile['drawer']['enabled'] && $this->profile['drawer']['search'] ) {
 			return true;
 		}
-		if ( $this->profile['app_bar']['enabled'] && $this->profile['app_bar']['search'] ) {
-			return true;
+		if ( $this->profile['app_bar']['enabled'] ) {
+			if ( $this->profile['app_bar']['search'] ) {
+				return true;
+			}
+			foreach ( $this->profile['app_bar']['actions'] as $action ) {
+				if ( 'search' === $action['action'] ) {
+					return true;
+				}
+			}
 		}
 		if ( $this->profile['bottom_bar']['enabled'] ) {
 			foreach ( $this->profile['bottom_bar']['items'] as $item ) {
@@ -673,18 +682,78 @@ final class Renderer {
 			? '<img src="' . esc_url( $src ) . '" alt="' . esc_attr( $this->site['name'] ) . '" height="' . (int) $a['logo_height'] . '" decoding="async">'
 			: esc_html( $this->site['name'] );
 		$html .= '<a class="imm-ab-logo" href="' . esc_url( $this->site['home_url'] ) . '">' . $logo . '</a><span class="imm-ab-sp"></span>';
-		if ( $a['account'] && '' !== ( $this->site['account_url'] ?? '' ) ) {
-			$html .= '<a class="imm-ab-btn" href="' . esc_url( $this->site['account_url'] ) . '" aria-label="' . esc_attr( $this->s( 'Mi cuenta' ) ) . '">' . $this->icons->inline( 'user-round' ) . '</a>';
-		}
-		if ( $a['cart'] && '' !== ( $this->site['cart_url'] ?? '' ) ) {
-			$html .= '<a class="imm-ab-btn" href="' . esc_url( $this->site['cart_url'] ) . '" aria-label="' . esc_attr( $this->s( 'Carrito' ) ) . '">' . $this->icons->inline( 'shopping-cart' )
-				. '<span class="imm-badge imm-bb-badge" data-imm-count="cart" hidden></span></a>';
+		foreach ( $a['actions'] as $action ) {
+			$html .= $this->app_bar_action( $action );
 		}
 		$html .= '</div>';
 		if ( $a['search'] ) {
 			$html .= '<div class="imm-ab-search"><button type="button" class="imm-ab-field" popovertarget="imm-search" data-imm-search>' . $this->icons->inline( 'search' ) . '<span>' . esc_html( $this->profile['search']['placeholder'] ) . '</span></button></div>';
 		}
 		return $html . '</div>';
+	}
+
+	/** Nombre de cada acción para los lectores de pantalla (los iconos sin etiqueta propia). */
+	private const AB_NAMES = array(
+		'search'   => 'Buscar',
+		'account'  => 'Mi cuenta',
+		'cart'     => 'Carrito',
+		'wishlist' => 'Favoritos',
+		'whatsapp' => 'WhatsApp',
+		'phone'    => 'Llamar',
+	);
+
+	/** Icono por defecto de cada acción (si se dejó vacío). */
+	private const AB_ICONS = array(
+		'link'     => 'arrow-up-right',
+		'search'   => 'search',
+		'account'  => 'user-round',
+		'cart'     => 'shopping-cart',
+		'wishlist' => 'heart',
+		'whatsapp' => 'si-whatsapp',
+		'phone'    => 'phone',
+	);
+
+	/**
+	 * Botón de la derecha de la barra superior: un icono (con nombre para el lector de pantalla) o un
+	 * botón con texto («Cotizar», «Agendar»). Sin destino (sin WooCommerce, sin número…) no se muestra.
+	 *
+	 * @param array<string, mixed> $action
+	 */
+	private function app_bar_action( array $action ): string {
+		$type   = (string) $action['action'];
+		$label  = '' !== (string) $action['label'] ? (string) $action['label'] : $this->s( self::AB_NAMES[ $type ] ?? (string) $this->site['name'] );
+		$button = 'button' === $action['style'] && '' !== (string) $action['label'];
+		$icon   = $this->icons->inline( (string) $action['icon'] );
+		if ( '' === $icon && ! $button ) {
+			$icon = $this->icons->inline( self::AB_ICONS[ $type ] ?? 'star' );
+		}
+		$badge = 'cart' === $type || 'wishlist' === $type ? '<span class="imm-badge imm-bb-badge" data-imm-count="' . $type . '" hidden></span>' : '';
+		$attrs = ' class="imm-ab-btn' . ( $button ? ' imm-ab-cta' : '' ) . '"' . ( $button ? '' : ' aria-label="' . esc_attr( $label ) . '"' );
+		$inner = $icon . ( $button ? '<span>' . esc_html( $label ) . '</span>' : '' ) . $badge;
+		$url   = (string) $action['url'];
+		$extra = '';
+		switch ( $type ) {
+			case 'search':
+				return '<button type="button"' . $attrs . ' popovertarget="imm-search" data-imm-search>' . $inner . '</button>';
+			case 'account':
+				$url = (string) ( $this->site['account_url'] ?? '' );
+				break;
+			case 'cart':
+				$url = (string) ( $this->site['cart_url'] ?? '' );
+				break;
+			case 'wishlist':
+				$url = '' !== $url ? \ImaginaMenu\Sources\SourceResolver::absolute( $url ) : (string) ( $this->site['wishlist_url'] ?? '' );
+				break;
+			case 'whatsapp':
+				$url   = '' !== $url ? self::whatsapp_url( $url, '' ) : '';
+				$extra = ' target="_blank" rel="noopener"';
+				break;
+			case 'phone':
+				return '' !== $url ? '<a' . $attrs . ' href="' . esc_url( 'tel:' . $url, array( 'tel' ) ) . '">' . $inner . '</a>' : '';
+			default:
+				$url = '' !== $url ? \ImaginaMenu\Sources\SourceResolver::absolute( $url ) : '';
+		}
+		return '' !== $url ? '<a' . $attrs . ' href="' . esc_url( $url ) . '"' . $extra . '>' . $inner . '</a>' : '';
 	}
 
 	// ── Barra inferior ──────────────────────────────────────────────────────────────────────────

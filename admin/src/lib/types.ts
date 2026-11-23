@@ -106,6 +106,21 @@ export interface Menu {
 
 export type BottomAction = 'link' | 'drawer' | 'search' | 'cart' | 'account' | 'wishlist' | 'whatsapp' | 'phone' | 'top';
 
+export type AppBarActionType = 'link' | 'search' | 'account' | 'cart' | 'wishlist' | 'whatsapp' | 'phone';
+
+/** Botón de la derecha de la barra superior: un icono o un botón con texto («Cotizar»). */
+export interface AppBarAction {
+	id: string;
+	action: AppBarActionType;
+	style: 'icon' | 'button';
+	/** Con «button» puede ir vacío (solo texto). */
+	icon: string;
+	/** Texto del botón; en los iconos, el nombre que lee el lector de pantalla (vacío = el de la acción). */
+	label: string;
+	/** Enlace, o número de WhatsApp o teléfono. */
+	url: string;
+}
+
 export interface BottomItem {
 	id: string;
 	action: BottomAction;
@@ -226,13 +241,13 @@ export interface Profile {
 		logo_align: 'left' | 'center';
 		/** Selector de la cabecera del tema que se oculta en celulares (requiere edit_css). */
 		hide_header: string;
-		account: boolean;
-		cart: boolean;
+		/** Botones de la derecha (hasta 3). */
+		actions: AppBarAction[];
 		search: boolean;
 		hide_on_scroll: 'none' | 'top' | 'all';
 		/** Apagado: los colores de la cabecera del panel (Diseño). */
 		custom_colors: boolean;
-		colors: { bg: string; bg2: string; fg: string; search_bg: string; search_fg: string; badge_bg: string; badge_fg: string };
+		colors: { bg: string; bg2: string; fg: string; search_bg: string; search_fg: string; badge_bg: string; badge_fg: string; cta_bg: string; cta_fg: string };
 	};
 	desktop: {
 		enabled: boolean;

@@ -1,13 +1,19 @@
-import type { ReactNode } from 'react';
+import { ArrowDown, ArrowUp, Plus, Search, Trash2 } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { ColorField } from '@/components/ColorField';
+import { IconPicker } from '@/components/IconPicker';
+import { IconView } from '@/components/IconView';
 import { MediaField } from '@/components/MediaField';
 import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Notice } from '@/components/ui/feedback';
 import { __ } from '@/lib/i18n';
-import { setProfile, useActiveProfile, useStore } from '@/lib/store';
-import type { Profile } from '@/lib/types';
+import { newId, setProfile, useActiveProfile, useStore } from '@/lib/store';
+import type { AppBarAction, AppBarActionType, Env, Profile } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { ObjectSearch } from './builder/ObjectSearch';
 import { ContrastRow } from './Design';
 import { Suggestions } from './Drawer';
 
@@ -38,9 +44,8 @@ export function AppBarScreen() {
 					<>
 						<Section title={ __( 'Contenido' ) }>
 							<ToggleRow label={ __( 'Buscador siempre visible' ) } hint={ __( 'Un campo debajo de la barra que abre el buscador a pantalla completa (con Imagina Search, si está activo).' ) } checked={ a.search } onChange={ ( v ) => set( 'search', v ) } />
-							<ToggleRow label={ __( 'Cuenta' ) } checked={ a.account } onChange={ ( v ) => set( 'account', v ) } />
-							{ env?.woo && <ToggleRow label={ __( 'Carrito con contador' ) } hint={ __( 'El contador sale de una cookie: sin peticiones al servidor.' ) } checked={ a.cart } onChange={ ( v ) => set( 'cart', v ) } /> }
 						</Section>
+						<Actions profile={ profile } env={ env } />
 						<Section title={ __( 'Logo' ) } description={ __( 'Su tamaño es fijo: aunque el tema o un plugin de imágenes intente agrandarlo, no se sale de la barra.' ) }>
 							<ToggleRow
 								label={ __( 'Mostrar logo' ) }
@@ -116,6 +121,8 @@ function Colors( { profile }: { profile: Profile } ) {
 	const c = a.colors;
 	const t = profile.design.tokens;
 	const set = ( key: keyof Colors, value: string ) => setProfile( [ 'app_bar', 'colors', key ], value );
+	const hasButton = a.actions.some( ( x ) => x.style === 'button' && x.label.trim() !== '' );
+	const hasCounter = a.actions.some( ( x ) => x.action === 'cart' || x.action === 'wishlist' );
 	const enable = ( on: boolean ) => {
 		if ( on ) {
 			const s = ( key: string, fallback: string ) => String( t[ key ] ?? fallback );
@@ -127,6 +134,9 @@ function Colors( { profile }: { profile: Profile } ) {
 				search_fg: s( 'muted', c.search_fg ),
 				badge_bg: s( 'badge_bg', c.badge_bg ),
 				badge_fg: s( 'badge_fg', c.badge_fg ),
+				// El botón con texto parte de la barra invertida, como se ve sin colores propios.
+				cta_bg: s( 'head_fg', c.cta_bg ),
+				cta_fg: s( 'head_bg', c.cta_fg ),
 			} );
 		}
 		setProfile( [ 'app_bar', 'custom_colors' ], on );
@@ -155,12 +165,19 @@ function Colors( { profile }: { profile: Profile } ) {
 						<ColorField label={ __( 'Fondo' ) } value={ c.badge_bg } onChange={ ( v ) => set( 'badge_bg', v ) } />
 						<ColorField label={ __( 'Número' ) } value={ c.badge_fg } onChange={ ( v ) => set( 'badge_fg', v ) } />
 					</Group>
+					{ hasButton && (
+						<Group title={ __( 'Botón con texto' ) }>
+							<ColorField label={ __( 'Fondo' ) } value={ c.cta_bg } onChange={ ( v ) => set( 'cta_bg', v ) } />
+							<ColorField label={ __( 'Texto' ) } value={ c.cta_fg } onChange={ ( v ) => set( 'cta_fg', v ) } />
+						</Group>
+					) }
 					<div className="imm:flex imm:flex-col imm:gap-2 imm:rounded-lg imm:border imm:border-zinc-200 imm:p-3">
 						<p className="imm:text-xs imm:font-medium imm:text-zinc-700">{ __( 'Contraste (WCAG AA pide 4,5:1)' ) }</p>
 						<ContrastRow label={ __( 'Iconos sobre el fondo' ) } fg={ c.fg } bg={ c.bg } />
 						{ '' !== c.bg2 && <ContrastRow label={ __( 'Iconos sobre el segundo color' ) } fg={ c.fg } bg={ c.bg2 } /> }
 						{ a.search && <ContrastRow label={ __( 'Texto del buscador' ) } fg={ c.search_fg } bg={ c.search_bg } /> }
-						{ a.cart && <ContrastRow label={ __( 'Contador del carrito' ) } fg={ c.badge_fg } bg={ c.badge_bg } /> }
+						{ hasCounter && <ContrastRow label={ __( 'Contador' ) } fg={ c.badge_fg } bg={ c.badge_bg } /> }
+						{ hasButton && <ContrastRow label={ __( 'Texto del botón' ) } fg={ c.cta_fg } bg={ c.cta_bg } /> }
 					</div>
 				</div>
 			) }
@@ -177,3 +194,232 @@ function Group( { title, children }: { title: string; children: ReactNode } ) {
 	);
 }
 
+
+/** Acciones de los botones de la derecha, con su icono y nombre por defecto. */
+const ACTIONS: { value: AppBarActionType; label: string; icon: string; hint: string }[] = [
+	{ value: 'link', label: __( 'Enlace' ), icon: 'arrow-up-right', hint: __( 'Va a una página: contacto, cotizar, agendar, reservar…' ) },
+	{ value: 'whatsapp', label: 'WhatsApp', icon: 'si-whatsapp', hint: __( 'Abre un chat con tu número.' ) },
+	{ value: 'phone', label: __( 'Llamar' ), icon: 'phone', hint: __( 'Marca un teléfono.' ) },
+	{ value: 'search', label: __( 'Buscar' ), icon: 'search', hint: __( 'Abre el buscador a pantalla completa (útil si apagas el campo de búsqueda).' ) },
+	{ value: 'account', label: __( 'Mi cuenta' ), icon: 'user-round', hint: __( 'Mi cuenta de WooCommerce o el inicio de sesión.' ) },
+	{ value: 'cart', label: __( 'Carrito' ), icon: 'shopping-cart', hint: __( 'Con contador (sale de una cookie: sin peticiones al servidor).' ) },
+	{ value: 'wishlist', label: __( 'Favoritos' ), icon: 'heart', hint: __( 'Lista de YITH o TI Wishlist, con contador.' ) },
+];
+
+const make = ( patch: Partial<AppBarAction> ): AppBarAction => ( { id: newId( 'ab_' ), action: 'link', style: 'icon', icon: 'arrow-up-right', label: '', url: '', ...patch } );
+
+/**
+ * Botones de la derecha de la barra superior: hasta 3, cada uno un icono o un botón con texto.
+ * Para sitios que no son tiendas (sin carrito ni cuenta): WhatsApp, llamar o un «Cotizar».
+ */
+function Actions( { profile, env }: { profile: Profile; env: Env | null } ) {
+	const list = profile.app_bar.actions;
+	const [ open, setOpen ] = useState( list[ 0 ]?.id ?? '' );
+	const save = ( next: AppBarAction[] ) => setProfile( [ 'app_bar', 'actions' ], next );
+	const patch = ( i: number, p: Partial<AppBarAction> ) => save( list.map( ( x, j ) => ( j === i ? { ...x, ...p } : x ) ) );
+	const move = ( i: number, d: number ) => {
+		const next = [ ...list ];
+		[ next[ i ], next[ i + d ] ] = [ next[ i + d ]!, next[ i ]! ];
+		save( next );
+	};
+	const preset = ( items: Partial<AppBarAction>[] ) => {
+		const next = items.map( make );
+		save( next );
+		setOpen( next[ 0 ]?.id ?? '' );
+	};
+	const presets: { label: string; items: Partial<AppBarAction>[]; show?: boolean }[] = [
+		{ label: __( 'Tienda: cuenta y carrito' ), items: [ { action: 'account', icon: 'user-round' }, { action: 'cart', icon: 'shopping-cart' } ], show: !! env?.woo },
+		{ label: __( 'Contacto: WhatsApp y llamar' ), items: [ { action: 'whatsapp', icon: 'si-whatsapp' }, { action: 'phone', icon: 'phone' } ] },
+		{ label: __( 'Botón «Cotizar»' ), items: [ { action: 'link', style: 'button', icon: '', label: __( 'Cotizar' ), url: '/contacto/' } ] },
+		{ label: __( 'Ninguno' ), items: [] },
+	];
+
+	return (
+		<Section
+			title={ __( 'Botones de la derecha' ) }
+			description={ __( 'Hasta 3: iconos (cuenta, carrito, WhatsApp, llamar…) o un botón con texto como «Cotizar» o «Agendar cita». Un botón sin destino no se muestra (por ejemplo, el carrito sin WooCommerce o WhatsApp sin número).' ) }
+		>
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-1.5 imm:px-5 imm:py-3">
+				<span className="imm:mr-1 imm:text-xs imm:text-zinc-500">{ __( 'Empezar con:' ) }</span>
+				{ presets.filter( ( p ) => p.show !== false ).map( ( p ) => (
+					<button key={ p.label } type="button" onClick={ () => preset( p.items ) } className="imm:rounded-full imm:border imm:border-zinc-200 imm:bg-white imm:px-3 imm:py-1 imm:text-xs imm:font-medium imm:text-zinc-700 imm:hover:bg-zinc-50">
+						{ p.label }
+					</button>
+				) ) }
+			</div>
+			{ list.map( ( item, i ) => (
+				<ActionRow
+					key={ item.id }
+					item={ item }
+					env={ env }
+					open={ open === item.id }
+					onToggle={ () => setOpen( open === item.id ? '' : item.id ) }
+					onChange={ ( p ) => patch( i, p ) }
+					onUp={ i > 0 ? () => move( i, -1 ) : undefined }
+					onDown={ i < list.length - 1 ? () => move( i, 1 ) : undefined }
+					onRemove={ () => save( list.filter( ( _, j ) => j !== i ) ) }
+				/>
+			) ) }
+			{ ! list.length && <p className="imm:px-5 imm:py-3 imm:text-[13px] imm:text-zinc-500">{ __( 'Sin botones: a la derecha solo queda espacio libre.' ) }</p> }
+			<div className="imm:flex imm:flex-col imm:gap-2 imm:px-5 imm:py-3">
+				<div>
+					<Button
+						size="sm"
+						variant="outline"
+						disabled={ list.length >= 3 }
+						onClick={ () => {
+							const item = make( { action: 'whatsapp', icon: 'si-whatsapp' } );
+							save( [ ...list, item ] );
+							setOpen( item.id );
+						} }
+					>
+						<Plus aria-hidden />
+						{ __( 'Añadir botón' ) }
+					</Button>
+				</div>
+				{ list.filter( ( x ) => x.style === 'button' ).length > 0 && list.length > 2 && (
+					<Notice level="warning">{ __( 'Un botón con texto y dos iconos se ven apretados en celulares pequeños: usa un texto corto o quita un icono.' ) }</Notice>
+				) }
+			</div>
+		</Section>
+	);
+}
+
+function ActionRow( {
+	item,
+	env,
+	open,
+	onToggle,
+	onChange,
+	onUp,
+	onDown,
+	onRemove,
+}: {
+	item: AppBarAction;
+	env: Env | null;
+	open: boolean;
+	onToggle: () => void;
+	onChange: ( patch: Partial<AppBarAction> ) => void;
+	onUp?: () => void;
+	onDown?: () => void;
+	onRemove: () => void;
+} ) {
+	const [ searching, setSearching ] = useState( false );
+	const info = ACTIONS.find( ( x ) => x.value === item.action ) ?? ACTIONS[ 0 ]!;
+	const button = item.style === 'button';
+	const name = item.label.trim() || info.label;
+	const needsNumber = item.action === 'whatsapp' || item.action === 'phone';
+	const unavailable = ( item.action === 'cart' && ! env?.woo ) || ( item.action === 'wishlist' && ! env?.wishlist );
+	const missing = ( item.action === 'link' && ! item.url.trim() ) || ( needsNumber && ! item.url.trim() );
+	const small = 'imm:size-7 imm:p-0';
+
+	return (
+		<div className="imm:px-5 imm:py-3">
+			<div className="imm:flex imm:items-center imm:gap-3">
+				<button type="button" onClick={ onToggle } aria-expanded={ open } className="imm:flex imm:min-w-0 imm:flex-1 imm:items-center imm:gap-3 imm:text-left">
+					{ button ? (
+						<span className="imm:inline-flex imm:h-7 imm:max-w-40 imm:shrink-0 imm:items-center imm:gap-1.5 imm:rounded-full imm:bg-zinc-900 imm:px-3 imm:text-xs imm:font-semibold imm:text-white">
+							{ item.icon && <IconView name={ item.icon } className="imm:size-3.5" /> }
+							<span className="imm:truncate">{ item.label || __( 'Texto' ) }</span>
+						</span>
+					) : (
+						<span className="imm:flex imm:size-8 imm:shrink-0 imm:items-center imm:justify-center imm:rounded-full imm:bg-zinc-100 imm:text-zinc-800">
+							<IconView name={ item.icon || info.icon } className="imm:size-4" />
+						</span>
+					) }
+					<span className="imm:min-w-0">
+						<span className="imm:block imm:truncate imm:text-[13px] imm:font-medium imm:text-zinc-800">{ info.label + ( item.label.trim() && item.label.trim() !== info.label ? ' · ' + item.label.trim() : '' ) }</span>
+						<span className={ cn( 'imm:block imm:truncate imm:text-xs', unavailable || missing ? 'imm:text-amber-700' : 'imm:text-zinc-500' ) }>
+							{ unavailable
+								? item.action === 'cart' ? __( 'Sin WooCommerce: no se muestra.' ) : __( 'Sin plugin de favoritos: no se muestra.' )
+								: missing
+								? needsNumber ? __( 'Falta el número: no se muestra.' ) : __( 'Falta el enlace: no se muestra.' )
+								: button ? __( 'Botón con texto' ) : __( 'Icono' ) }
+						</span>
+					</span>
+				</button>
+				<div className="imm:flex imm:shrink-0 imm:items-center imm:gap-0.5">
+					<Button size="icon" variant="ghost" className={ small } disabled={ ! onUp } onClick={ onUp } aria-label={ __( 'Subir' ) + ' ' + name }>
+						<ArrowUp aria-hidden />
+					</Button>
+					<Button size="icon" variant="ghost" className={ small } disabled={ ! onDown } onClick={ onDown } aria-label={ __( 'Bajar' ) + ' ' + name }>
+						<ArrowDown aria-hidden />
+					</Button>
+					<Button size="icon" variant="ghost" className={ cn( small, 'imm:text-red-600 imm:hover:bg-red-50' ) } onClick={ onRemove } aria-label={ __( 'Quitar' ) + ' ' + name }>
+						<Trash2 aria-hidden />
+					</Button>
+				</div>
+			</div>
+			{ open && (
+				<div className="imm:mt-3 imm:grid imm:gap-3 imm:rounded-lg imm:border imm:border-zinc-200 imm:bg-zinc-50/60 imm:p-3 imm:sm:grid-cols-2">
+					<label className="imm:flex imm:flex-col imm:gap-1.5">
+						<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ __( 'Acción' ) }</span>
+						<Select
+							value={ item.action }
+							onChange={ ( e ) => {
+								const action = e.target.value as AppBarActionType;
+								const next = ACTIONS.find( ( x ) => x.value === action );
+								// El icono sigue a la acción mientras no se haya elegido otro a mano.
+								const auto = ! item.icon || item.icon === info.icon;
+								// El número se conserva entre WhatsApp y llamar; lo demás no tiene destino que conservar.
+								const keepUrl = needsNumber && ( action === 'whatsapp' || action === 'phone' );
+								onChange( { action, icon: auto && ! ( button && ! item.icon ) ? next?.icon ?? item.icon : item.icon, url: keepUrl ? item.url : '' } );
+							} }
+						>
+							{ ACTIONS.map( ( x ) => (
+								<option key={ x.value } value={ x.value } disabled={ ( x.value === 'cart' && ! env?.woo ) || ( x.value === 'wishlist' && ! env?.wishlist ) }>
+									{ x.label }
+								</option>
+							) ) }
+						</Select>
+						<span className="imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ info.hint }</span>
+					</label>
+					<div className="imm:flex imm:flex-col imm:gap-1.5">
+						<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ __( 'Aspecto' ) }</span>
+						<Segmented
+							size="sm"
+							value={ item.style }
+							onChange={ ( style ) => onChange( { style, label: style === 'button' && ! item.label.trim() ? info.label : item.label } ) }
+							options={ [
+								{ value: 'icon', label: __( 'Icono' ) },
+								{ value: 'button', label: __( 'Botón con texto' ) },
+							] }
+						/>
+					</div>
+					<label className="imm:flex imm:flex-col imm:gap-1.5">
+						<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ button ? __( 'Texto del botón' ) : __( 'Nombre' ) }</span>
+						<Input value={ item.label } maxLength={ 24 } placeholder={ info.label } onChange={ ( e ) => onChange( { label: e.target.value } ) } />
+						<span className="imm:text-[11px] imm:leading-snug imm:text-zinc-500">
+							{ button ? __( 'Corto: 1 o 2 palabras (Cotizar, Agendar cita, Reservar).' ) : __( 'No se ve: lo leen los lectores de pantalla. Vacío: el nombre de la acción.' ) }
+						</span>
+					</label>
+					<div className="imm:flex imm:flex-col imm:gap-1.5">
+						<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ __( 'Icono' ) }</span>
+						<IconPicker value={ item.icon } allowEmpty={ button } onChange={ ( icon ) => onChange( { icon } ) } />
+						{ button && <span className="imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ __( 'Opcional en el botón con texto.' ) }</span> }
+					</div>
+					{ item.action === 'link' && (
+						<label className="imm:flex imm:flex-col imm:gap-1.5 imm:sm:col-span-2">
+							<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ __( 'Enlace' ) }</span>
+							<div className="imm:flex imm:gap-2">
+								<Input value={ item.url } placeholder="/contacto/" className="imm:font-mono imm:text-xs" onChange={ ( e ) => onChange( { url: e.target.value } ) } />
+								<Button type="button" variant="outline" onClick={ () => setSearching( true ) }>
+									<Search aria-hidden />
+									{ __( 'Buscar página' ) }
+								</Button>
+							</div>
+							<ObjectSearch open={ searching } onOpenChange={ setSearching } onPick={ ( r ) => onChange( { url: r.url, label: item.label || ( button ? r.label.slice( 0, 24 ) : '' ) } ) } />
+						</label>
+					) }
+					{ needsNumber && (
+						<label className="imm:flex imm:flex-col imm:gap-1.5 imm:sm:col-span-2">
+							<span className="imm:text-xs imm:font-medium imm:text-zinc-700">{ __( 'Número' ) }</span>
+							<Input value={ item.url } placeholder="573001234567" inputMode="tel" className="imm:font-mono imm:text-xs" onChange={ ( e ) => onChange( { url: e.target.value } ) } />
+							<span className="imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ __( 'Con código de país, solo números.' ) }</span>
+						</label>
+					) }
+				</div>
+			) }
+		</div>
+	);
+}

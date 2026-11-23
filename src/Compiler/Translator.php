@@ -59,6 +59,9 @@ final class Translator {
 		foreach ( $p['drawer']['footer_links'] as $i => $link ) {
 			$p['drawer']['footer_links'][ $i ]['label'] = $this->t( $b . 'link' . $i, (string) $link['label'] );
 		}
+		foreach ( $p['app_bar']['actions'] as $i => $action ) {
+			$p['app_bar']['actions'][ $i ]['label'] = $this->t( $b . 'ab_' . $action['id'], (string) $action['label'] );
+		}
 		foreach ( $p['bottom_bar']['items'] as $i => $item ) {
 			$p['bottom_bar']['items'][ $i ]['label'] = $this->t( $b . 'bar_' . $item['id'], (string) $item['label'] );
 		}

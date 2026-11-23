@@ -170,17 +170,19 @@ Reglas: se oculta automáticamente en checkout y cuando el teclado virtual está
 
 ## M8. Barra superior móvil (app bar) — implementada en v0.5
 
-Barra fija tipo app con hamburguesa (abre el panel), logo (o el nombre del sitio), cuenta, carrito con contador y, debajo, el **buscador siempre visible** (patrón Amazon/Mercado Libre; abre el buscador a pantalla completa, con Imagina Search si está activo). Pantalla **Barra superior** del admin.
+Barra fija tipo app con hamburguesa (abre el panel), logo (o el nombre del sitio), botones a la derecha (por defecto cuenta y carrito con contador) y, debajo, el **buscador siempre visible** (patrón Amazon/Mercado Libre; abre el buscador a pantalla completa, con Imagina Search si está activo). Pantalla **Barra superior** del admin.
 
 | Opción | Valores | Por defecto |
 |---|---|---|
 | Activar | sí / no | no |
 | Buscador visible | sí / no | sí |
-| Logo, cuenta, carrito | sí / no | sí |
+| Logo | sí / no | sí |
+| Botones de la derecha | hasta 3 (ver abajo) | cuenta y carrito |
 | Al bajar | ocultar solo la fila de arriba (queda el buscador), toda la barra, nada | solo la fila de arriba |
 
 - Se imprime en `wp_body_open` (al inicio del `<body>`, visible en el primer pintado) con los iconos dibujados en línea (el sprite llega al final). Temas sin `wp_body_open`: se imprime en el pie, igual fija arriba.
-- Su CSS va en el crítico solo si se usa (≤ 2,1 KB gzip el crítico con ella) y su alto (52 px, 102 px con el buscador) queda reservado en el `<body>`: **CLS = 0**. Solo hasta el breakpoint (en escritorio no se muestra).
+- **Botones de la derecha** (v0.5.7): hasta 3, en el orden que se elija. Cada uno tiene una **acción** (enlace, WhatsApp, llamar, buscar, mi cuenta, carrito con contador, favoritos con contador), un **aspecto** (icono, o botón con texto como «Cotizar», «Agendar cita» o «Reservar», con icono opcional), un nombre o texto (en los iconos no se ve: lo leen los lectores de pantalla; vacío = el nombre de la acción) y su enlace o número. Atajos en el admin: «Tienda: cuenta y carrito», «Contacto: WhatsApp y llamar», «Botón Cotizar» y «Ninguno». Un botón sin destino no se imprime (el carrito sin WooCommerce, WhatsApp o llamar sin número, un enlace vacío). El botón con texto lleva por defecto los colores de la barra invertidos (el mismo contraste que los iconos); con «Colores propios» tiene fondo y texto propios con comprobación de contraste. Buscar como botón abre el mismo buscador aunque el campo de búsqueda esté apagado. Los perfiles anteriores conservan lo que tenían (los interruptores de cuenta y carrito se convierten en los botones equivalentes) y, si ya tenían colores propios, el botón con texto parte de la barra invertida.
+- Su CSS va en el crítico solo si se usa (≤ 2,1 KB gzip el crítico con ella; el logo centrado y el botón con texto añaden sus reglas solo si se usan: 1,96 KB sin ellos y 2,08 KB con ambos, comprobado en una prueba unitaria) y su alto (52 px, 102 px con el buscador) queda reservado en el `<body>`: **CLS = 0**. Solo hasta el breakpoint (en escritorio no se muestra).
 - **Colores** (v0.5.1): por defecto los de la cabecera del panel (`head_bg`, `head_fg`); con «Colores propios», fondo (sólido o degradado), iconos y texto, fondo y texto del buscador y el contador del carrito, con comprobación de contraste AA en el admin. Son los mismos en modo claro y oscuro. Se respeta la barra de administración de WordPress.
 - **Logo** (v0.5.1): mostrar u ocultar (sin logo: el nombre del sitio), otra imagen solo para la barra (por ejemplo, el logo en blanco para un fondo oscuro), alto (16–44 px), ancho máximo (60–240 px) y posición (junto al menú o centrado). El tamaño se fija con `!important` dentro de una caja que recorta: un tema o un plugin de imágenes (WebP en `<picture>`, «height: auto» en todo `<img>`) no lo puede agrandar ni hacer que se salga de la barra. El logo del panel lateral tiene la misma protección.
 - **Reemplazar la cabecera del tema** (v0.5.1): selector de la cabecera del tema (con sugerencias por tema: `#masthead`, `.site-header`, `header.wp-block-template-part`, `.elementor-location-header`…) que se oculta **solo en celulares y solo mientras la barra esté activa**; en escritorio la del tema sigue igual. Requiere `edit_css`.

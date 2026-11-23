@@ -34,8 +34,11 @@ final class Icons {
 	 */
 	public function inline( string $name, string $class = 'imm-i' ): string {
 		$name = $this->resolve( $name );
-		if ( '' === $name || str_starts_with( $name, 'si-' ) ) {
+		if ( '' === $name ) {
 			return '';
+		}
+		if ( str_starts_with( $name, 'si-' ) ) {
+			return '<svg class="' . esc_attr( $class ) . '" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">' . ( self::library()['brands'][ substr( $name, 3 ) ] ?? '' ) . '</svg>';
 		}
 		return '<svg class="' . esc_attr( $class ) . '" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ( self::library()['lucide'][ $name ] ?? '' ) . '</svg>';
 	}

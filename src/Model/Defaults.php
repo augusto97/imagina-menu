@@ -148,8 +148,12 @@ final class Defaults {
 				'logo_align'     => 'left', // left (junto al menú) | center
 				// Cabecera del tema que se oculta en celulares cuando la barra está activa (selector CSS).
 				'hide_header'    => '',
-				'account'        => true,
-				'cart'           => true,
+				// Botones de la derecha (hasta 3): iconos o un botón con texto, con su acción.
+				// Por defecto, los de una tienda; sin WooCommerce el carrito no se muestra.
+				'actions'        => array(
+					array_merge( self::app_bar_action(), array( 'id' => 'ab_account', 'action' => 'account', 'icon' => 'user-round' ) ),
+					array_merge( self::app_bar_action(), array( 'id' => 'ab_cart', 'action' => 'cart', 'icon' => 'shopping-cart' ) ),
+				),
 				'search'         => true, // campo de búsqueda debajo (abre el buscador)
 				'hide_on_scroll' => 'top', // none | top (al bajar queda el buscador) | all
 				// Colores propios (apagado: los de la cabecera del panel, en Diseño).
@@ -162,6 +166,8 @@ final class Defaults {
 					'search_fg' => '#62626b', // texto e icono del campo de búsqueda
 					'badge_bg'  => '#e11d48', // contador del carrito
 					'badge_fg'  => '#ffffff',
+					'cta_bg'    => '#ffffff', // botón con texto (por defecto: los colores de la barra invertidos)
+					'cta_fg'    => '#0f172a',
 				),
 			),
 			// Escritorio: el mismo panel con un botón tipo «☰ Todo» (Amazon) o con submenús en columnas
@@ -243,6 +249,22 @@ final class Defaults {
 				'exclude'     => array(), // ids de términos que no se muestran (con sus hijos)
 			),
 			'children'    => array(),
+		);
+	}
+
+	/**
+	 * Botón de la derecha de la barra superior.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function app_bar_action(): array {
+		return array(
+			'id'     => '',
+			'action' => 'link', // link | search | account | cart | wishlist | whatsapp | phone
+			'style'  => 'icon', // icon (solo icono) | button (botón con texto, como «Cotizar»)
+			'icon'   => 'star', // con «button» puede ir vacío (solo texto)
+			'label'  => '', // texto del botón; en los iconos, lo que lee el lector de pantalla
+			'url'    => '', // enlace, o número de WhatsApp o teléfono
 		);
 	}
 

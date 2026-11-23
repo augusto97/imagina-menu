@@ -61,6 +61,7 @@ Auditoría completa el 18-11-2026 (v0.3.1): revisión propia + dos revisores ind
 - Horario de WhatsApp, banners y fechas de campaña pasan por listas blancas (días 0–6, `HH:MM`, fechas `datetime-local` válidas, imágenes y enlaces `http(s)`); `hours.js` valida el atributo y no cambia nada si está malformado.
 - Favoritos: la cookie `imm_wl` solo lleva un número (como `imm_cc`).
 - WP-CLI: la importación desde la terminal acepta CSS propio y selectores porque quien la usa administra el servidor; desde el admin siguen exigiendo `edit_css`.
+- Botones de la barra superior (v0.5.7): acción y aspecto son listas cerradas, hasta 3; los enlaces pasan por el mismo saneador de URLs (`http(s)`, `mailto`, `tel`, relativas), los números de WhatsApp y teléfono quedan en dígitos y «+», los textos en 24 caracteres y todo se escapa al imprimir. WhatsApp abre con `rel="noopener"`.
 - Exclusiones (v0.5.6): los patrones de URL son texto literal (`preg_quote`; solo `*` es comodín), hasta 50 de 200 caracteres, compilados al publicar: el usuario no escribe expresiones regulares (sin ReDoS ni errores de patrón). Los ids son enteros positivos (hasta 500). El script del iframe es fijo (sin datos), se imprime con `wp_print_inline_script_tag` (respeta el nonce de CSP) y solo lee `top.location`. Añadir `?elementor-preview` u otro parámetro de editor a una URL solo quita el menú de esa respuesta (como `?imm_off`, pero para cualquiera): no expone nada.
 
 **Vista previa**

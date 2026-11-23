@@ -143,7 +143,7 @@ El plugin **detecta** estos plugins y, cuando es posible, añade las exclusiones
 ### v0.5
 
 - `core.js` baja a 3,69 KB gzip (de 3,99) al pasar a módulos bajo demanda los gestos (0,31 KB), las búsquedas recientes (0,51 KB) y el horario de WhatsApp (0,38 KB): ningún sitio paga por lo que no usa.
-- La barra superior móvil va en el CSS crítico solo si está activa (el crítico con ella: 1,87 KB gzip, tope 2,1 KB) y reserva su alto: CLS = 0, medido.
+- La barra superior móvil va en el CSS crítico solo si está activa (el crítico con ella: 1,96 KB gzip, tope 2,1 KB; el logo centrado y el botón con texto, solo si se usan) y reserva su alto: CLS = 0, medido.
 - Los banners no cuestan nada en la carga: `loading="lazy"` dentro del panel cerrado (se descargan al abrirlo).
 - Las campañas no hacen consultas por visita: marcas de tiempo precalculadas y un evento de WP-Cron en cada límite.
 - Análisis estático y CI: PHPStan nivel 6 sin errores, ESLint, presupuesto y build en GitHub Actions en cada push.

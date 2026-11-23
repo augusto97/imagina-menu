@@ -49,6 +49,8 @@ final class Normalizer {
 		'desktop.layout'          => array( 'panel', 'cascade' ),
 		'app_bar.hide_on_scroll'  => array( 'none', 'top', 'all' ),
 		'app_bar.logo_align'      => array( 'left', 'center' ),
+		'app_bar_action.action'   => array( 'link', 'search', 'account', 'cart', 'wishlist', 'whatsapp', 'phone' ),
+		'app_bar_action.style'    => array( 'icon', 'button' ),
 		'design.color_mode'       => array( 'light', 'dark', 'auto' ),
 		'item.type'               => array( 'link', 'heading', 'divider', 'source' ),
 		'item.target'             => array( '_self', '_blank' ),
@@ -86,6 +88,7 @@ final class Normalizer {
 	public const MAX_ITEMS       = 1500;
 	public const MAX_DEPTH       = 6;
 	public const MAX_BOTTOM      = 6;
+	public const MAX_APP_BAR     = 3;
 	public const MAX_CUSTOM_CSS  = 20000;
 
 	/** Condiciones de los perfiles y qué campos usa cada una. */
@@ -159,6 +162,13 @@ final class Normalizer {
 		$out['app_bar']['hide_header']       = self::selector( (string) $out['app_bar']['hide_header'] );
 
 		// Colores de la barra superior: solo hexadecimales (van al CSS crítico); el degradado es opcional.
+		// Los colores propios guardados antes de la v0.5.7 no tenían el botón con texto: parte de la
+		// barra invertida (igual que sin colores propios).
+		$ab_in = $input['app_bar']['colors'] ?? null;
+		if ( is_array( $ab_in ) && ! isset( $ab_in['cta_bg'] ) ) {
+			$out['app_bar']['colors']['cta_bg'] = $out['app_bar']['colors']['fg'];
+			$out['app_bar']['colors']['cta_fg'] = $out['app_bar']['colors']['bg'];
+		}
 		$ab_defaults = Defaults::profile()['app_bar']['colors'];
 		foreach ( $ab_defaults as $key => $default ) {
 			$value = self::color( (string) ( $out['app_bar']['colors'][ $key ] ?? '' ) );
@@ -177,6 +187,8 @@ final class Normalizer {
 		unset( $drawer );
 
 		$out['rules']['conditions'] = self::conditions( $input['rules']['conditions'] ?? array() );
+
+		$out['app_bar']['actions'] = $self->app_bar_actions( self::app_bar_input( $input['app_bar'] ?? null, $out['app_bar']['actions'] ) );
 
 		$bar = $input['bottom_bar']['items'] ?? array();
 		$out['bottom_bar']['items']   = $self->bottom_items( is_array( $bar ) ? $bar : array() );
@@ -240,6 +252,49 @@ final class Normalizer {
 			$item['children'] = ( $depth + 1 < self::MAX_DEPTH && is_array( $children ) && in_array( $item['type'], array( 'link', 'heading' ), true ) )
 				? $this->items( $children, $depth + 1 )
 				: array();
+			$out[] = $item;
+		}
+		return $out;
+	}
+
+	/**
+	 * Botones de la barra superior tal como llegan. Los perfiles de antes de la v0.5.7 tenían dos
+	 * interruptores (cuenta y carrito): se convierten en los botones equivalentes, en el mismo orden.
+	 *
+	 * @param mixed        $app_bar Entrada original de app_bar.
+	 * @param array<mixed> $merged  Lo que dejó merge() (la lista por defecto si no venía).
+	 * @return array<mixed>
+	 */
+	private static function app_bar_input( $app_bar, array $merged ): array {
+		if ( ! is_array( $app_bar ) || array_key_exists( 'actions', $app_bar ) || ! ( array_key_exists( 'account', $app_bar ) || array_key_exists( 'cart', $app_bar ) ) ) {
+			return $merged;
+		}
+		$legacy = array();
+		foreach ( Defaults::profile()['app_bar']['actions'] as $action ) {
+			if ( ! empty( $app_bar[ $action['action'] ] ?? true ) ) {
+				$legacy[] = $action;
+			}
+		}
+		return $legacy;
+	}
+
+	/**
+	 * @param array<mixed> $items
+	 * @return list<array<string, mixed>>
+	 */
+	private function app_bar_actions( array $items ): array {
+		$out = array();
+		foreach ( array_slice( array_values( $items ), 0, self::MAX_APP_BAR ) as $i => $raw ) {
+			if ( ! is_array( $raw ) ) {
+				continue;
+			}
+			$item          = $this->merge( Defaults::app_bar_action(), $raw, 'app_bar_action' );
+			$item['id']    = self::id( '' !== (string) $item['id'] ? (string) $item['id'] : 'ab_' . $i );
+			$item['label'] = self::text( $item['label'], 24 );
+			$item['icon']  = self::icon_name( (string) $item['icon'] );
+			$item['url']   = 'phone' === $item['action'] || 'whatsapp' === $item['action']
+				? preg_replace( '/[^0-9+]/', '', (string) $item['url'] ) ?? ''
+				: self::url( (string) $item['url'] );
 			$out[] = $item;
 		}
 		return $out;

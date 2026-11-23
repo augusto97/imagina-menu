@@ -163,6 +163,8 @@ Pendiente: barra superior móvil (M8), bloques Banner/Promo, Moneda y Vistos rec
 
 Pendiente: selector de moneda nativo (hoy con enlaces), pruebas en Safari/iPhone reales (aquí solo hay Chromium).
 
+**v0.5.7**: botones de la derecha de la barra superior configurables (hasta 3: enlace, WhatsApp, llamar, buscar, cuenta, carrito o favoritos; como icono o botón con texto), para sitios que no son tiendas. Los perfiles anteriores conservan cuenta y carrito. El CSS crítico de la barra baja de 2,04 a 1,96 KB gzip (sin valores de respaldo innecesarios; el logo centrado solo si se usa). Probado: migración del perfil existente, editor del admin, barra en 390 y 360 px sin desbordes, e2e en verde.
+
 **v0.5.6**: «Dónde no se muestra» (Ajustes): nada del menú en páginas o URL concretas, en plantillas en blanco (Elementor Canvas y similares), dentro de un iframe de otro sitio ni en los editores visuales (ver docs/02, M11). Probado: Canvas, id, patrón de URL y editor sin menú; iframe de otro origen sin barras ni espacio reservado y con la cabecera del tema visible; iframe del mismo sitio y página directa sin cambios; e2e en verde.
 
 **v0.5.5**: ocultar categorías concretas de una fuente dinámica sin dejar de agregar las demás automáticamente (ojo en la vista previa de la fuente; ver docs/02).

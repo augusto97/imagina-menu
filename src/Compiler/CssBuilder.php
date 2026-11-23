@@ -83,7 +83,7 @@ final class CssBuilder {
 			$height    = 52 + ( $ab['search'] ? 50 : 0 );
 			// La cabecera del tema se oculta solo en celulares y solo con la barra activa (la reemplaza).
 			$header    = '' !== $ab['hide_header'] ? self::scope( $root, $ab['hide_header'] ) . '{display:none!important}' : '';
-			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . $root . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
+			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_extras( $ab ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . $root . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
 				. '@media (min-width:' . ( $bp + 1 ) . 'px){.imm-appbar{display:none!important}}';
 		}
 
@@ -155,7 +155,26 @@ final class CssBuilder {
 		}
 		$c  = $ab['colors'];
 		$bg = '' !== $c['bg2'] ? 'linear-gradient(135deg,' . $c['bg'] . ',' . $c['bg2'] . ')' : $c['bg'];
-		return '.imm-appbar{--imm-ab-bg:' . $bg . ';--imm-ab-ring:' . $c['bg'] . ';--imm-ab-fg:' . $c['fg'] . ';--imm-ab-sbg:' . $c['search_bg'] . ';--imm-ab-sfg:' . $c['search_fg'] . ';--imm-ab-bbg:' . $c['badge_bg'] . ';--imm-ab-bfg:' . $c['badge_fg'] . '}';
+		return '.imm-appbar{--imm-ab-bg:' . $bg . ';--imm-ab-ring:' . $c['bg'] . ';--imm-ab-fg:' . $c['fg'] . ';--imm-ab-sbg:' . $c['search_bg'] . ';--imm-ab-sfg:' . $c['search_fg'] . ';--imm-ab-bbg:' . $c['badge_bg'] . ';--imm-ab-bfg:' . $c['badge_fg'] . ';--imm-ab-cbg:' . $c['cta_bg'] . ';--imm-ab-cfg:' . $c['cta_fg'] . '}';
+	}
+
+	/**
+	 * Partes de la barra superior que solo van si el perfil las usa: el logo centrado y el botón con
+	 * texto («Cotizar», «Agendar»). El botón lleva por defecto los colores de la cabecera invertidos
+	 * (el mismo contraste que los iconos); con colores propios, los suyos.
+	 *
+	 * @param array<string, mixed> $ab
+	 */
+	private static function app_bar_extras( array $ab ): string {
+		// Logo centrado (como muchas apps), sin tapar los botones de los lados.
+		$css = 'center' === $ab['logo_align'] ? '.imm-ab-center .imm-ab-row{position:relative}.imm-ab-center a.imm-ab-logo{max-width:min(var(--imm-ab-logo-w,150px),calc(100% - 200px));justify-content:center;position:absolute;left:50%;transform:translate(-50%)}.imm-ab-center .imm-ab-logo img{object-position:center}' : '';
+		foreach ( $ab['actions'] as $action ) {
+			if ( 'button' === $action['style'] && '' !== $action['label'] ) {
+				return $css . '.imm-ab-row .imm-ab-cta{width:auto;max-width:48vw;height:36px;gap:6px;margin:0 4px;padding:0 14px;border-radius:99px;background:var(--imm-ab-cbg,var(--imm-head-fg));color:var(--imm-ab-cfg,var(--imm-head-bg));font-size:14px;font-weight:600;white-space:nowrap}'
+					. '.imm-ab-cta span{overflow:hidden;text-overflow:ellipsis}.imm-ab-cta .imm-i{width:18px;height:18px}';
+			}
+		}
+		return $css;
 	}
 
 	/** Familias tipográficas del sistema (no se descarga ninguna fuente). */
