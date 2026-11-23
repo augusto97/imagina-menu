@@ -10,8 +10,10 @@ const heaviestOf = ( files ) => files.reduce( ( a, b ) => ( size( a ) >= size( b
 const bbarWorst = [ 'bbar.css', heaviestOf( [ 'bbar/ind-pill.css', 'bbar/ind-line.css', 'bbar/ind-dot.css' ] ), 'bbar/labels-hidden.css', heaviestOf( [ 'bbar/floating.css', 'bbar/rounded.css' ] ), 'bbar/blur.css', 'bbar/main.css' ];
 // El logo centrado y la distribución en una fila no van juntos.
 const appbarWorst = [ 'appbar.css', heaviestOf( [ 'appbar/shape-curved.css', 'appbar/shape-floating.css', 'appbar/shape-line.css' ] ), heaviestOf( [ 'appbar/field-rounded.css', 'appbar/field-soft.css' ] ), 'appbar/glass.css', heaviestOf( [ 'appbar/inline.css', 'appbar/center.css' ] ), heaviestOf( [ 'appbar/size-sm.css', 'appbar/size-lg.css' ] ), 'appbar/cta.css' ];
-const fabWorst = heaviestOf( [ 'fab/bottom-left.css', 'fab/bottom-right.css', 'fab/top-left.css', 'fab/top-right.css' ] );
-const critical = [ 'critical.css', fabWorst, ...bbarWorst ].map( ( f ) => dist + f );
+const fabWorst = [ 'fab.css', heaviestOf( [ 'fab/bottom-left.css', 'fab/bottom-right.css', 'fab/top-left.css', 'fab/top-right.css' ] ), 'fab/shape-rounded.css', heaviestOf( [ 'fab/style-light.css', 'fab/style-glass.css' ] ) ];
+// Peor caso: el botón flotante y la barra inferior con la variante más pesada de cada opción (el
+// botón flotante sale con la barra inferior si esta no abre el panel; con la superior, en escritorio).
+const critical = [ 'critical.css', ...fabWorst, ...bbarWorst ].map( ( f ) => dist + f );
 
 const budget = [
 	[ 'assets/dist/core.js', 4096, 'JS inicial' ],
@@ -23,9 +25,11 @@ const budget = [
 	[ 'assets/dist/desktop.js', 3072, 'Módulo de escritorio (bajo demanda, solo pantallas anchas)' ],
 	[ 'assets/dist/preview.js', 3072, 'Vista previa en vivo (solo en el admin)' ],
 	[ [ ...critical, 'assets/dist/drawer.css', 'assets/dist/cascade.css' ], 6144, 'CSS en escritorio con cascada' ],
-	[ [ 'assets/dist/critical.css', dist + fabWorst ], 1700, 'CSS crítico sin barras (gzip)' ],
-	[ critical, 1700, 'CSS crítico con la barra inferior (peor caso de sus variantes)' ],
-	[ [ ...critical, ...appbarWorst.map( ( f ) => dist + f ) ], 2150, 'CSS crítico con las dos barras (peor caso de sus variantes)' ],
+	[ 'assets/dist/critical.css', 1700, 'CSS crítico base (sin botón flotante ni barras)' ],
+	[ [ 'critical.css', ...fabWorst ].map( ( f ) => dist + f ), 1700, 'CSS crítico con el botón flotante (peor caso de sus variantes)' ],
+	[ critical, 1700, 'CSS crítico con botón flotante y barra inferior (peor caso)' ],
+	[ [ ...critical, ...appbarWorst.map( ( f ) => dist + f ) ], 2150, 'CSS crítico con las dos barras y botón flotante (peor caso)' ],
+	[ 'assets/dist/toggle.css', 1024, 'CSS del botón del shortcode/bloque (solo en páginas que lo usan)' ],
 	[ [ ...critical, 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css' ], 6144, 'CSS total (modo más pesado: pestañas)' ],
 	[ [ ...critical, 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/grid.css' ], 6656, 'CSS de todos los modos juntos (referencia)' ],
 ];

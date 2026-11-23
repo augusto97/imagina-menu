@@ -18,7 +18,11 @@ Cómo se abre el panel.
 
 El botón es un `<button popovertarget="imm-drawer" aria-controls aria-expanded>`: abre el panel sin JS.
 
-Implementado (v0.1): si la barra inferior ya tiene un ítem que abre el panel, el botón flotante no se imprime.
+Implementado (v0.1): si la barra inferior ya tiene un ítem que abre el panel, el botón flotante no se imprime. Desde la v0.5.10, tampoco en celulares si la barra superior está activa (ya tiene el botón del menú): ahí sale solo en escritorio, donde la barra no se ve.
+
+**Diseño del botón flotante** (v0.5.10): galería de 8 plantillas con miniaturas (con la posición, el icono y los colores actuales): Clásico, Con texto, Cuadrado suave, Extendido, Pequeño, Claro, Claro con texto y Vidrio. Ajustes sueltos: **forma** (redonda o cuadrado suave), **estilo** (sólido con los colores del botón; claro con el fondo del panel y borde fino; vidrio translúcido con desenfoque), **tamaño** (36–80 px) y **distancia al borde** (0–80 px). Estos dos últimos existían en el admin pero no se aplicaban: ahora sí, con variables de CSS que el compilador fija solo si cambian. Colores de un clic: oscuro, como la cabecera y con el acento. Sin texto el botón es un círculo exacto; con texto, una píldora con su relleno (antes el relleno del texto no se aplicaba).
+
+**CSS solo si se usa** (v0.5.10): el CSS del botón flotante va en el crítico solo si el perfil lo muestra (`fab.css` y sus variantes en `fab/`), y el del botón del shortcode, bloque o Elementor (`toggle.css`, 0,32 KB gzip) se imprime una vez junto al primer botón, solo en las páginas que lo tienen. El CSS crítico base queda en 0,49 KB gzip.
 
 Compatibilidad verificada (v0.2, Playwright en móvil, `tests/e2e/themes.cjs`): el botón del tema abre el panel de Imagina Menu (y no el menú del tema) en **Twenty Twenty-Five, Astra, Kadence, Blocksy, GeneratePress, Storefront y OceanWP**. **Hello Elementor** no imprime botón de menú sin el constructor de cabeceras de Elementor: no se sugiere su selector y, como red de seguridad en el modo «botón del tema», si el selector no encuentra ningún botón visible el JS muestra el botón flotante de respaldo. WoodMart y Flatsome (de pago) no se pudieron probar. En una instalación nueva con un tema conocido, el botón del menú móvil del tema abre el panel (modo `theme_selector`, sugerido automáticamente).
 

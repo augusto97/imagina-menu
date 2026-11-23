@@ -152,3 +152,24 @@ export function DateRange( { from, to, onChange }: { from: string; to: string; o
 		</div>
 	);
 }
+
+/**
+ * Página de ejemplo neutra (tarjetas y líneas grises) para las miniaturas de las barras y del botón
+ * flotante: deja ver el efecto vidrio sin colores que distraigan.
+ */
+export function MockPage( { children, className }: { children?: ReactNode; className?: string } ) {
+	return (
+		<span className={ cn( 'imm:relative imm:block imm:h-24 imm:overflow-hidden imm:rounded-lg imm:border imm:border-zinc-200 imm:bg-white', className ) } aria-hidden>
+			<span className="imm:absolute imm:inset-x-2 imm:top-2 imm:grid imm:grid-cols-2 imm:gap-1.5">
+				{ [ 0, 1, 2, 3 ].map( ( i ) => (
+					<span key={ i } className="imm:flex imm:flex-col imm:gap-1">
+						<span className="imm:h-9 imm:rounded imm:bg-zinc-200" />
+						<span className="imm:h-1 imm:w-3/4 imm:rounded-full imm:bg-zinc-300" />
+						<span className="imm:h-1 imm:w-1/2 imm:rounded-full imm:bg-zinc-200" />
+					</span>
+				) ) }
+			</span>
+			{ children }
+		</span>
+	);
+}

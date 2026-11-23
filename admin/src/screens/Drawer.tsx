@@ -2,7 +2,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
 import { MediaField } from '@/components/MediaField';
-import { CopyCode, DateRange, PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { CopyCode, DateRange, MockPage, PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Input, Select } from '@/components/ui/input';
@@ -94,6 +94,7 @@ export function DrawerScreen() {
 					</div>
 					{ t.mode === 'floating' && (
 						<>
+							<FabDesign profile={ profile } />
 							<Row label={ __( 'Posición' ) }>
 								<Select value={ t.position } onChange={ ( e ) => set( [ 'trigger', 'position' ], e.target.value ) } className="imm:w-48">
 									<option value="bottom-left">{ __( 'Abajo a la izquierda' ) }</option>
@@ -460,3 +461,134 @@ function Banners( { profile }: { profile: Profile } ) {
 	);
 }
 
+
+type FabLook = { shape: Profile[ 'trigger' ][ 'shape' ]; style: Profile[ 'trigger' ][ 'style' ]; size: number; label: boolean };
+
+/** Plantillas del botón flotante: forma, estilo, tamaño y si lleva texto. */
+const FAB_TEMPLATES: { id: string; name: string; hint: string; d: FabLook }[] = [
+	{ id: 'classic', name: __( 'Clásico' ), hint: __( 'Redondo, con los colores del botón.' ), d: { shape: 'circle', style: 'solid', size: 52, label: false } },
+	{ id: 'label', name: __( 'Con texto' ), hint: __( 'Píldora con «Menú».' ), d: { shape: 'circle', style: 'solid', size: 52, label: true } },
+	{ id: 'square', name: __( 'Cuadrado suave' ), hint: __( 'Esquinas redondeadas, 56 px.' ), d: { shape: 'rounded', style: 'solid', size: 56, label: false } },
+	{ id: 'extended', name: __( 'Extendido' ), hint: __( 'Cuadrado suave con texto.' ), d: { shape: 'rounded', style: 'solid', size: 56, label: true } },
+	{ id: 'small', name: __( 'Pequeño' ), hint: __( 'Discreto, 44 px.' ), d: { shape: 'circle', style: 'solid', size: 44, label: false } },
+	{ id: 'light', name: __( 'Claro' ), hint: __( 'Blanco con borde fino.' ), d: { shape: 'circle', style: 'light', size: 52, label: false } },
+	{ id: 'light-label', name: __( 'Claro con texto' ), hint: __( 'Píldora blanca con «Menú».' ), d: { shape: 'circle', style: 'light', size: 52, label: true } },
+	{ id: 'glass', name: __( 'Vidrio' ), hint: __( 'Translúcido con desenfoque.' ), d: { shape: 'circle', style: 'glass', size: 52, label: false } },
+];
+
+/**
+ * Diseño del botón flotante: galería de plantillas (con la posición, el icono y los colores
+ * actuales), forma, estilo y colores de un clic.
+ */
+function FabDesign( { profile }: { profile: Profile } ) {
+	const t = profile.trigger;
+	const tk = profile.design.tokens;
+	const appBar = profile.app_bar.enabled;
+	const barOpens = profile.bottom_bar.enabled && profile.bottom_bar.items.some( ( i ) => i.action === 'drawer' );
+	const apply = ( d: FabLook ) => {
+		setProfile( [ 'trigger', 'shape' ], d.shape );
+		setProfile( [ 'trigger', 'style' ], d.style );
+		setProfile( [ 'trigger', 'size' ], d.size );
+		setProfile( [ 'trigger', 'label' ], d.label ? t.label || __( 'Menú' ) : '' );
+	};
+	const palettes: { label: string; bg: string; fg: string }[] = [
+		{ label: __( 'Oscuro' ), bg: '#111827', fg: '#ffffff' },
+		{ label: __( 'Como la cabecera' ), bg: String( tk.head_bg ?? '#0f172a' ), fg: String( tk.head_fg ?? '#ffffff' ) },
+		{ label: __( 'Con el acento' ), bg: String( tk.accent ?? '#f97316' ), fg: String( tk.accent_fg ?? '#ffffff' ) },
+	];
+	return (
+		<div className="imm:flex imm:flex-col imm:gap-3 imm:px-5 imm:py-4">
+			{ ( appBar || barOpens ) && (
+				<Notice level="info">
+					{ appBar
+						? __( 'Con la barra superior activa, en celulares el botón flotante no se muestra: la barra ya tiene el botón del menú. En escritorio, donde la barra no se ve, sí (si no es «Solo en celulares» o si en Escritorio pides el botón flotante).' )
+						: __( 'La barra inferior ya tiene un acceso que abre el panel: el botón flotante no se muestra en celulares.' ) }
+				</Notice>
+			) }
+			<div>
+				<p className="imm:text-[13px] imm:font-medium imm:text-zinc-800">{ __( 'Diseño del botón' ) }</p>
+				<p className="imm:text-xs imm:text-zinc-500">{ __( 'Se ven con tu posición, tu icono y tus colores.' ) }</p>
+			</div>
+			<div className="imm:grid imm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] imm:gap-3">
+				{ FAB_TEMPLATES.map( ( tpl ) => {
+					const on = t.shape === tpl.d.shape && t.style === tpl.d.style && t.size === tpl.d.size && ( '' !== t.label ) === tpl.d.label;
+					return (
+						<button
+							key={ tpl.id }
+							type="button"
+							aria-pressed={ on }
+							onClick={ () => apply( tpl.d ) }
+							className={ cn( 'imm:flex imm:flex-col imm:gap-2 imm:rounded-xl imm:border imm:p-2 imm:text-left imm:transition', on ? 'imm:border-zinc-900 imm:ring-2 imm:ring-zinc-900/10' : 'imm:border-zinc-200 imm:hover:border-zinc-300' ) }
+						>
+							<FabMock profile={ profile } look={ tpl.d } />
+							<span className="imm:px-1">
+								<span className="imm:block imm:text-[13px] imm:font-medium imm:text-zinc-800">{ tpl.name }</span>
+								<span className="imm:block imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ tpl.hint }</span>
+							</span>
+						</button>
+					);
+				} ) }
+			</div>
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-x-5 imm:gap-y-2">
+				<span className="imm:flex imm:items-center imm:gap-2 imm:text-xs imm:text-zinc-600">
+					{ __( 'Forma' ) }
+					<Segmented size="sm" value={ t.shape } onChange={ ( v ) => setProfile( [ 'trigger', 'shape' ], v ) } options={ [ { value: 'circle', label: __( 'Redonda' ) }, { value: 'rounded', label: __( 'Cuadrado suave' ) } ] } />
+				</span>
+				<span className="imm:flex imm:items-center imm:gap-2 imm:text-xs imm:text-zinc-600">
+					{ __( 'Estilo' ) }
+					<Segmented size="sm" value={ t.style } onChange={ ( v ) => setProfile( [ 'trigger', 'style' ], v ) } options={ [ { value: 'solid', label: __( 'Sólido' ) }, { value: 'light', label: __( 'Claro' ) }, { value: 'glass', label: __( 'Vidrio' ) } ] } />
+				</span>
+			</div>
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-1.5">
+				<span className="imm:mr-1 imm:text-xs imm:text-zinc-500">{ t.style === 'light' ? __( 'Colores (el estilo claro usa los del panel):' ) : __( 'Colores:' ) }</span>
+				{ palettes.map( ( p ) => (
+					<button
+						key={ p.label }
+						type="button"
+						onClick={ () => {
+							setProfile( [ 'design', 'tokens', 'fab_bg' ], p.bg );
+							setProfile( [ 'design', 'tokens', 'fab_fg' ], p.fg );
+						} }
+						className="imm:inline-flex imm:items-center imm:gap-1.5 imm:rounded-full imm:border imm:border-zinc-200 imm:bg-white imm:py-1 imm:pr-3 imm:pl-1.5 imm:text-xs imm:font-medium imm:text-zinc-700 imm:hover:bg-zinc-50"
+					>
+						<span aria-hidden className="imm:size-4 imm:rounded-full imm:border imm:border-black/10" style={ { background: p.bg } } />
+						{ p.label }
+					</button>
+				) ) }
+			</div>
+		</div>
+	);
+}
+
+/** Miniatura del botón flotante sobre una página neutra, en su posición. */
+function FabMock( { profile, look }: { profile: Profile; look: FabLook } ) {
+	const t = profile.trigger;
+	const tk = profile.design.tokens;
+	const c = ( k: string, f: string ) => String( tk[ k ] ?? f );
+	const s = Math.round( look.size * 0.62 );
+	const [ v, h ] = t.position.split( '-' ) as [ 'top' | 'bottom', 'left' | 'right' ];
+	const style = {
+		solid: { background: c( 'fab_bg', '#0f172a' ), color: c( 'fab_fg', '#ffffff' ), boxShadow: '0 4px 12px rgba(0,0,0,.25)' },
+		light: { background: c( 'bg', '#ffffff' ), color: c( 'fg', '#18181b' ), boxShadow: `0 0 0 1px ${ c( 'border', '#e5e7eb' ) }, 0 4px 12px rgba(0,0,0,.12)` },
+		glass: { background: `color-mix(in srgb, ${ c( 'fab_bg', '#0f172a' ) } 70%, transparent)`, color: c( 'fab_fg', '#ffffff' ), backdropFilter: 'blur(6px)', boxShadow: '0 4px 12px rgba(0,0,0,.2)' },
+	}[ look.style ];
+	return (
+		<MockPage>
+			<span
+				className="imm:absolute imm:flex imm:items-center imm:justify-center imm:gap-1 imm:text-[9px] imm:font-semibold"
+				style={ {
+					[ v ]: 8,
+					[ h ]: 8,
+					height: s,
+					minWidth: s,
+					padding: look.label ? '0 9px 0 8px' : 0,
+					borderRadius: look.shape === 'rounded' ? 10 : 999,
+					...style,
+				} }
+			>
+				<IconView name={ t.icon } className="imm:size-3.5" />
+				{ look.label && <span>{ t.label || __( 'Menú' ) }</span> }
+			</span>
+		</MockPage>
+	);
+}

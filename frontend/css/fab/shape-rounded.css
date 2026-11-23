@@ -1,0 +1,4 @@
+/* Cuadrado suave (como los botones flotantes de Material 3) */
+button.imm-fab {
+	border-radius: 16px;
+}

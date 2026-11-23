@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ColorField } from '@/components/ColorField';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
-import { PageHeader, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { MockPage, PageHeader, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Input, Select } from '@/components/ui/input';
@@ -375,9 +375,7 @@ function BottomMock( { profile, items: all, design }: { profile: Profile; items:
 	const bg = col( 'bbar_bg', '#ffffff' );
 	const floating = design.shape === 'floating';
 	return (
-		<span className="imm:relative imm:block imm:h-24 imm:overflow-hidden imm:rounded-lg imm:bg-zinc-100" aria-hidden>
-			<span className="imm:absolute imm:top-2 imm:left-2 imm:h-1.5 imm:w-2/3 imm:rounded imm:bg-zinc-300" />
-			<span className="imm:absolute imm:right-2 imm:bottom-5 imm:left-2 imm:h-12 imm:rounded-md imm:bg-gradient-to-r imm:from-rose-300 imm:via-amber-200 imm:to-sky-300" />
+		<MockPage>
 			<span
 				className="imm:absolute imm:flex imm:items-stretch imm:justify-around imm:px-1"
 				style={ {
@@ -416,7 +414,7 @@ function BottomMock( { profile, items: all, design }: { profile: Profile; items:
 				} ) }
 				{ ! items.length && <span className="imm:self-center imm:text-[9px]">{ __( 'Sin accesos' ) }</span> }
 			</span>
-		</span>
+		</MockPage>
 	);
 }
 

@@ -63,6 +63,8 @@ final class Defaults {
 				'position'       => 'bottom-left', // bottom-left | bottom-right | top-left | top-right
 				'offset'         => 16,
 				'size'           => 52,
+				'shape'          => 'circle', // circle | rounded (cuadrado suave)
+				'style'          => 'solid', // solid (colores del botón en Diseño) | light (claro con borde) | glass
 				'hide_on_scroll' => false,
 			),
 			'drawer'              => array(

@@ -20,6 +20,8 @@ final class Normalizer {
 		'trigger.mode'            => array( 'floating', 'theme_selector', 'manual' ),
 		'trigger.position'        => array( 'bottom-left', 'bottom-right', 'top-left', 'top-right' ),
 		'trigger.icon'            => array( 'menu', 'align-left', 'layout-grid', 'grip' ),
+		'trigger.shape'           => array( 'circle', 'rounded' ),
+		'trigger.style'           => array( 'solid', 'light', 'glass' ),
 		'drawer.side'             => array( 'left', 'right', 'bottom' ),
 		'drawer.submenu_mode'     => array( 'slide', 'accordion', 'two_pane', 'tabs', 'grid' ),
 		'rules.match'             => array( 'all', 'any' ),

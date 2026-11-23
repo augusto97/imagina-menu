@@ -4,7 +4,7 @@ import { ColorField } from '@/components/ColorField';
 import { IconPicker } from '@/components/IconPicker';
 import { IconView } from '@/components/IconView';
 import { MediaField } from '@/components/MediaField';
-import { PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
+import { MockPage, PageHeader, Range, Row, Section, Segmented, ToggleRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -574,10 +574,7 @@ function BarMock( { profile, design }: { profile: Profile; design: Design } ) {
 	);
 	const actions = a.actions.slice( 0, inline ? 2 : 3 );
 	return (
-		<span className="imm:relative imm:block imm:h-24 imm:overflow-hidden imm:rounded-lg imm:bg-zinc-100" aria-hidden>
-			{ /* Contenido de la página (se ve a través del vidrio) */ }
-			<span className="imm:absolute imm:top-7 imm:right-2 imm:left-2 imm:h-12 imm:rounded-md imm:bg-gradient-to-r imm:from-rose-300 imm:via-amber-200 imm:to-sky-300" />
-			<span className="imm:absolute imm:bottom-2 imm:left-2 imm:h-1.5 imm:w-2/3 imm:rounded imm:bg-zinc-300" />
+		<MockPage>
 			<span
 				className="imm:absolute imm:flex imm:flex-col"
 				style={ {
@@ -607,6 +604,6 @@ function BarMock( { profile, design }: { profile: Profile; design: Design } ) {
 				</span>
 				{ a.search && ! inline && <span className="imm:flex imm:px-1.5 imm:pb-1.5">{ field }</span> }
 			</span>
-		</span>
+		</MockPage>
 	);
 }

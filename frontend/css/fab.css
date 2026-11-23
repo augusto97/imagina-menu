@@ -1,0 +1,52 @@
+/*
+ * Botón flotante (solo si el perfil lo muestra). Tamaño y distancia al borde con variables
+ * (--imm-fab-s, --imm-fab-o) que el compilador fija solo si cambian. Posición, forma y estilo en fab/.
+ */
+button.imm-fab {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin: 0;
+	border: 0;
+	font: inherit;
+	font-weight: 600;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+button.imm-fab {
+	position: fixed;
+	z-index: 99990;
+	min-width: var(--imm-fab-s, 52px);
+	height: var(--imm-fab-s, 52px);
+	padding: 0;
+	border-radius: 999px;
+	background: var(--imm-fab-bg);
+	color: var(--imm-fab-fg);
+	box-shadow: 0 6px 20px rgb(0 0 0 / .22);
+	transition: transform .25s var(--imm-ease), opacity .25s;
+}
+
+button.imm-fab[hidden] {
+	display: none;
+}
+
+.imm-fab .imm-i {
+	width: calc(var(--imm-fab-s, 52px) * .46);
+	height: calc(var(--imm-fab-s, 52px) * .46);
+}
+
+/* Con texto: píldora (gana a button.imm-fab, que no lleva relleno para quedar en círculo) */
+.imm-fab.imm-fab--label {
+	padding: 0 18px 0 16px;
+}
+
+.imm-fab.imm-hidden {
+	opacity: 0;
+	transform: scale(.6);
+	pointer-events: none;
+}

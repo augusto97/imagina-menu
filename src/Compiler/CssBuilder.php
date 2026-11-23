@@ -28,7 +28,7 @@ final class CssBuilder {
 	/**
 	 * @param array<string, mixed> $profile
 	 * @param array<string, mixed> $settings
-	 * @return array{critical: string, bbar_space: string, full: string}
+	 * @return array{critical: string, bbar_space: string, full: string, toggle: string}
 	 */
 	public static function build( array $profile, array $settings ): array {
 		$bp       = (int) $settings['breakpoint'];
@@ -41,7 +41,10 @@ final class CssBuilder {
 		} elseif ( 'auto' === $design['color_mode'] ) {
 			$critical .= '@media (prefers-color-scheme:dark){' . self::vars( $design['dark_tokens'] ) . '}';
 		}
-		$critical .= self::asset( 'critical.css' ) . self::asset( 'fab/' . $profile['trigger']['position'] . '.css' );
+		$critical .= self::asset( 'critical.css' );
+		if ( '' !== Renderer::fab_kind( $profile ) ) {
+			$critical .= self::fab_css( $profile['trigger'] );
+		}
 		if ( $profile['bottom_bar']['enabled'] && $profile['bottom_bar']['items'] ) {
 			$critical .= self::bottom_bar_css( $profile['bottom_bar'] );
 		}
@@ -126,6 +129,8 @@ final class CssBuilder {
 			'critical'   => $critical,
 			'bbar_space' => $bbar_space,
 			'full'       => $full,
+			// Botón del shortcode, bloque o Elementor: se imprime junto al primero de la página.
+			'toggle'     => self::asset( 'toggle.css' ),
 		);
 	}
 
@@ -198,6 +203,24 @@ final class CssBuilder {
 			}
 		}
 		return implode( '', array_map( static fn( $f ) => self::asset( 'appbar/' . $f . '.css' ), $files ) );
+	}
+
+	/**
+	 * Botón flotante con solo su posición, forma y estilo; tamaño y distancia al borde como variables
+	 * (solo si cambian).
+	 *
+	 * @param array<string, mixed> $t
+	 */
+	private static function fab_css( array $t ): string {
+		$css = self::asset( 'fab.css' ) . self::asset( 'fab/' . $t['position'] . '.css' );
+		if ( 'circle' !== $t['shape'] ) {
+			$css .= self::asset( 'fab/shape-' . $t['shape'] . '.css' );
+		}
+		if ( 'solid' !== $t['style'] ) {
+			$css .= self::asset( 'fab/style-' . $t['style'] . '.css' );
+		}
+		$vars = ( 52 !== (int) $t['size'] ? '--imm-fab-s:' . (int) $t['size'] . 'px;' : '' ) . ( 16 !== (int) $t['offset'] ? '--imm-fab-o:' . (int) $t['offset'] . 'px;' : '' );
+		return $css . ( '' !== $vars ? '.imm-fab{' . $vars . '}' : '' );
 	}
 
 	/**

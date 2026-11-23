@@ -1,5 +1,5 @@
 /* Posición del botón flotante (solo la del perfil) */
 .imm-fab--bottom-left {
-	left: 16px;
-	bottom: calc(var(--imm-fab-y, 16px) + env(safe-area-inset-bottom, 0px));
+	left: var(--imm-fab-o, 16px);
+	bottom: calc(var(--imm-fab-y, var(--imm-fab-o, 16px)) + env(safe-area-inset-bottom, 0px));
 }

@@ -1,0 +1,6 @@
+/* Claro: fondo y texto del panel, con borde fino (destaca sobre fotos y fondos oscuros) */
+button.imm-fab {
+	background: var(--imm-bg);
+	color: var(--imm-fg);
+	box-shadow: 0 0 0 1px var(--imm-border), 0 6px 20px rgb(0 0 0 / .14);
+}

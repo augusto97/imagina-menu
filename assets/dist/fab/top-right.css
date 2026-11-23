@@ -1,1 +1,1 @@
-.imm-fab--top-right{right:16px;top:calc(16px + env(safe-area-inset-top,0px))}
+.imm-fab--top-right{right:var(--imm-fab-o,16px);top:calc(var(--imm-fab-o,16px) + env(safe-area-inset-top,0px))}

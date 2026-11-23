@@ -175,6 +175,10 @@ export interface Profile {
 		position: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
 		offset: number;
 		size: number;
+		/** circle | rounded (cuadrado suave). */
+		shape: 'circle' | 'rounded';
+		/** solid (colores del botón en Diseño) | light (claro con borde) | glass (translúcido). */
+		style: 'solid' | 'light' | 'glass';
 		hide_on_scroll: boolean;
 	};
 	drawer: {

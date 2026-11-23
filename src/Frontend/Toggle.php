@@ -40,7 +40,15 @@ final class Toggle {
 			$class .= ' imm-only-' . $atts['only'];
 		}
 		$class = trim( $class . ' ' . implode( ' ', array_map( 'sanitize_html_class', explode( ' ', $atts['class'] ) ) ) );
-		return '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( '' !== $label ? $label : __( 'Abrir menú', 'imagina-menu' ) ) . '" data-imm-open>'
+		// Su CSS va junto al primer botón de la página (solo en las páginas que lo tienen). Antes de la
+		// v0.5.10 iba en el CSS crítico (las configuraciones sin recompilar no lo traen: ya lo tienen).
+		static $css_done = false;
+		$css = '';
+		if ( ! $css_done && '' !== (string) ( $profile['toggle_css'] ?? '' ) ) {
+			$css      = '<style id="imm-toggle-css">' . $profile['toggle_css'] . '</style>';
+			$css_done = true;
+		}
+		return $css . '<button type="button" class="' . esc_attr( $class ) . '" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( '' !== $label ? $label : __( 'Abrir menú', 'imagina-menu' ) ) . '" data-imm-open>'
 			. '<svg class="imm-i" aria-hidden="true" focusable="false"><use href="#imm-i-' . esc_attr( $profile['trigger']['icon'] ?? 'menu' ) . '"/></svg>'
 			. ( '' !== $label ? '<span>' . esc_html( $label ) . '</span>' : '' )
 			. '</button>';

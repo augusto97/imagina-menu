@@ -30,7 +30,7 @@ for ( const name of entries ) {
 	writeFileSync( file, code );
 }
 
-for ( const name of [ 'critical', 'bbar', 'drawer', 'two-pane', 'tabs', 'grid', 'cascade', 'appbar' ] ) {
+for ( const name of [ 'critical', 'fab', 'toggle', 'bbar', 'drawer', 'two-pane', 'tabs', 'grid', 'cascade', 'appbar' ] ) {
 	const { code } = transform( {
 		filename: `${ name }.css`,
 		code: readFileSync( `frontend/css/${ name }.css` ),

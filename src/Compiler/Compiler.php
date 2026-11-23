@@ -284,6 +284,7 @@ final class Compiler {
 			'i18n'         => $i18n,
 			'critical'     => $css['critical'],
 			'bbar_space'   => $css['bbar_space'],
+			'toggle_css'   => $css['toggle'],
 			'css_url'      => $css_url,
 			'css_inline'   => null === $css_url ? $css['full'] : '',
 			'css_size'     => strlen( $css['full'] ),

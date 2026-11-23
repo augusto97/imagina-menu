@@ -1,0 +1,50 @@
+/*
+ * Botón del shortcode [imagina_menu_toggle], el bloque y el widget de Elementor. Se imprime junto al
+ * primer botón de la página (solo en las páginas que lo tienen).
+ */
+button.imm-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin: 0;
+	border: 0;
+	font: inherit;
+	font-weight: 600;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+button.imm-toggle {
+	min-width: 44px;
+	min-height: 44px;
+	padding: 8px;
+	background: transparent;
+	color: inherit;
+}
+
+/* Variantes del botón (shortcode style="solid|outline"): «☰ Todo» en la cabecera de escritorio */
+button.imm-toggle--solid,
+button.imm-toggle--outline {
+	padding: 8px 16px;
+	border-radius: var(--imm-r);
+}
+
+button.imm-toggle--solid {
+	background: var(--imm-accent);
+	color: var(--imm-accent-fg);
+}
+
+button.imm-toggle--outline {
+	box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.imm-toggle--solid .imm-i,
+.imm-toggle--outline .imm-i,
+.imm-toggle .imm-i {
+	width: 26px;
+	height: 26px;
+}

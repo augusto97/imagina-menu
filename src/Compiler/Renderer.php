@@ -123,17 +123,13 @@ final class Renderer {
 		if ( $drawer['enabled'] ) {
 			// El icono del disparador siempre va en el sprite: lo usan el shortcode y el bloque.
 			$this->icons->use( $this->profile['trigger']['icon'] );
-			// Si la barra inferior ya tiene un botón que abre el panel, el botón flotante sobra.
-			if ( 'floating' === $this->profile['trigger']['mode'] && ! $this->bar_opens_drawer() ) {
+			$kind = self::fab_kind( $this->profile );
+			if ( 'mobile' === $kind ) {
 				$parts['fab'] = $this->fab();
-			} elseif ( 'theme_selector' === $this->profile['trigger']['mode'] && ! $this->bar_opens_drawer() ) {
+			} elseif ( 'fallback' === $kind ) {
 				// Red de seguridad: si el botón del tema no está en la página, el JS muestra este.
 				$parts['fab'] = $this->fab( true );
-			}
-			// Escritorio con botón flotante: si en el celular lo abre la barra (que en escritorio no se
-			// muestra) o un botón propio del tema, el flotante sale solo en escritorio.
-			$desk = $this->profile['desktop'];
-			if ( '' === $parts['fab'] && $desk['enabled'] && $desk['floating'] && ! ( $desk['bottom_bar'] && $this->bar_opens_drawer() ) ) {
+			} elseif ( 'desktop' === $kind ) {
 				$parts['fab'] = $this->fab( false, ' imm-only-desktop' );
 			}
 			$this->variant         = 'guest';
@@ -156,16 +152,50 @@ final class Renderer {
 		return $parts;
 	}
 
-	private function bar_opens_drawer(): bool {
-		if ( ! $this->profile['bottom_bar']['enabled'] ) {
+	/** @param array<string, mixed> $profile */
+	private static function bottom_bar_opens( array $profile ): bool {
+		if ( ! $profile['bottom_bar']['enabled'] ) {
 			return false;
 		}
-		foreach ( $this->profile['bottom_bar']['items'] as $item ) {
+		foreach ( $profile['bottom_bar']['items'] as $item ) {
 			if ( 'drawer' === $item['action'] ) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * ¿Qué botón flotante lleva el perfil? mobile (en todas las pantallas que lo muestren), fallback
+	 * (respaldo del botón del tema), desktop (solo en escritorio) o '' (ninguno). El compilador lo usa
+	 * también para incluir su CSS solo si hace falta.
+	 *
+	 * - Si la barra inferior o la superior ya tienen el botón que abre el panel, en el celular sobra
+	 *   (con la barra superior, en escritorio, donde no se muestra, el flotante sí sale).
+	 * - Escritorio con botón flotante: si en el celular lo abre una barra (que en escritorio no se
+	 *   muestra) o un botón propio del tema, el flotante sale solo en escritorio.
+	 *
+	 * @param array<string, mixed> $profile
+	 */
+	public static function fab_kind( array $profile ): string {
+		if ( ! $profile['drawer']['enabled'] ) {
+			return '';
+		}
+		$mode   = $profile['trigger']['mode'];
+		$bottom = self::bottom_bar_opens( $profile );
+		if ( ! $bottom ) {
+			if ( ! empty( $profile['app_bar']['enabled'] ) ) {
+				if ( 'floating' === $mode ) {
+					return 'desktop';
+				}
+			} elseif ( 'floating' === $mode ) {
+				return 'mobile';
+			} elseif ( 'theme_selector' === $mode ) {
+				return 'fallback';
+			}
+		}
+		$desk = $profile['desktop'];
+		return $desk['enabled'] && $desk['floating'] && ! ( $desk['bottom_bar'] && $bottom ) ? 'desktop' : '';
 	}
 
 	private function needs_search(): bool {
