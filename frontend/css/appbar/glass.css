@@ -1,0 +1,6 @@
+/* Vidrio: el color sólido de la barra al 72 % con desenfoque (un degradado no se puede mezclar) */
+.imm-appbar {
+	background: color-mix(in srgb, var(--imm-ab-ring, var(--imm-head-bg)) 72%, transparent);
+	-webkit-backdrop-filter: blur(16px);
+	backdrop-filter: blur(16px);
+}

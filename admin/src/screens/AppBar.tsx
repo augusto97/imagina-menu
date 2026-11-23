@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Notice } from '@/components/ui/feedback';
 import { __ } from '@/lib/i18n';
 import { newId, setProfile, useActiveProfile, useStore } from '@/lib/store';
-import type { AppBarAction, AppBarActionType, Env, Profile } from '@/lib/types';
+import type { AppBarAction, AppBarActionType, AppBarField, AppBarLayout, AppBarShape, Env, Profile } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ObjectSearch } from './builder/ObjectSearch';
 import { ContrastRow } from './Design';
@@ -29,6 +29,7 @@ export function AppBarScreen() {
 	}
 	const a = profile.app_bar;
 	const set = ( key: keyof typeof a, value: unknown ) => setProfile( [ 'app_bar', key ], value );
+	const inline = a.search && a.layout === 'inline';
 
 	return (
 		<>
@@ -42,8 +43,9 @@ export function AppBarScreen() {
 				</Section>
 				{ a.enabled && (
 					<>
+						<DesignSection profile={ profile } />
 						<Section title={ __( 'Contenido' ) }>
-							<ToggleRow label={ __( 'Buscador siempre visible' ) } hint={ __( 'Un campo debajo de la barra que abre el buscador a pantalla completa (con Imagina Search, si está activo).' ) } checked={ a.search } onChange={ ( v ) => set( 'search', v ) } />
+							<ToggleRow label={ __( 'Buscador siempre visible' ) } hint={ __( 'Un campo que abre el buscador a pantalla completa (con Imagina Search, si está activo): debajo de la barra o en la misma fila, según el diseño.' ) } checked={ a.search } onChange={ ( v ) => set( 'search', v ) } />
 						</Section>
 						<Actions profile={ profile } env={ env } />
 						<Section title={ __( 'Logo' ) } description={ __( 'Su tamaño es fijo: aunque el tema o un plugin de imágenes intente agrandarlo, no se sale de la barra.' ) }>
@@ -64,7 +66,7 @@ export function AppBarScreen() {
 									<Row label={ __( 'Ancho máximo' ) } hint={ __( 'Los logos muy anchos se reducen hasta caber.' ) }>
 										<Range value={ a.logo_width } min={ 60 } max={ 240 } step={ 5 } unit="px" onChange={ ( v ) => set( 'logo_width', v ) } />
 									</Row>
-									<Row label={ __( 'Posición' ) }>
+									<Row label={ __( 'Posición' ) } hint={ inline ? __( 'Con el buscador en la misma fila no hay sitio para centrarlo: va junto al menú.' ) : undefined }>
 										<Segmented
 											value={ a.logo_align }
 											onChange={ ( v ) => set( 'logo_align', v ) }
@@ -79,14 +81,17 @@ export function AppBarScreen() {
 						</Section>
 						<Colors profile={ profile } />
 						<Section title={ __( 'Al bajar por la página' ) }>
-							<Row label={ __( 'Ocultar' ) }>
+							<Row
+								label={ __( 'Ocultar' ) }
+								hint={ a.hide_on_scroll === 'top' && a.search && ! inline ? __( 'Al bajar queda solo el buscador, con un margen arriba; al subir vuelve la barra completa.' ) : inline ? __( 'En una fila no hay fila de arriba que esconder: se oculta toda la barra.' ) : undefined }
+							>
 								<Segmented
-									value={ a.hide_on_scroll }
+									value={ inline && a.hide_on_scroll === 'top' ? 'all' : a.hide_on_scroll }
 									onChange={ ( v ) => set( 'hide_on_scroll', v ) }
 									options={ [
-										{ value: 'top', label: __( 'Solo la fila de arriba' ) },
-										{ value: 'all', label: __( 'Toda la barra' ) },
-										{ value: 'none', label: __( 'Nada' ) },
+										...( a.search && ! inline ? [ { value: 'top' as const, label: __( 'Solo la fila de arriba' ) } ] : [] ),
+										{ value: 'all' as const, label: __( 'Toda la barra' ) },
+										{ value: 'none' as const, label: __( 'Nada' ) },
 									] }
 								/>
 							</Row>
@@ -141,8 +146,36 @@ function Colors( { profile }: { profile: Profile } ) {
 		}
 		setProfile( [ 'app_bar', 'custom_colors' ], on );
 	};
+	// Paletas de un clic: claras u oscuras, o con el color de acento del diseño.
+	const tk = ( key: string, fallback: string ) => String( t[ key ] ?? fallback );
+	const palettes: { label: string; colors?: Colors }[] = [
+		{ label: __( 'Como el panel' ) },
+		{ label: __( 'Clara' ), colors: { bg: '#ffffff', bg2: '', fg: '#18181b', search_bg: '#f1f3f5', search_fg: '#52525b', badge_bg: tk( 'badge_bg', '#e11d48' ), badge_fg: tk( 'badge_fg', '#ffffff' ), cta_bg: '#18181b', cta_fg: '#ffffff' } },
+		{ label: __( 'Oscura' ), colors: { bg: '#111827', bg2: '', fg: '#ffffff', search_bg: '#ffffff', search_fg: '#52525b', badge_bg: tk( 'badge_bg', '#e11d48' ), badge_fg: tk( 'badge_fg', '#ffffff' ), cta_bg: '#ffffff', cta_fg: '#111827' } },
+		{ label: __( 'Con el acento' ), colors: { bg: tk( 'accent', '#f97316' ), bg2: '', fg: tk( 'accent_fg', '#ffffff' ), search_bg: '#ffffff', search_fg: '#52525b', badge_bg: '#111827', badge_fg: '#ffffff', cta_bg: tk( 'accent_fg', '#ffffff' ), cta_fg: tk( 'accent', '#f97316' ) } },
+		{ label: __( 'Degradado' ), colors: { bg: tk( 'head_bg', '#0f172a' ), bg2: tk( 'accent', '#f97316' ), fg: '#ffffff', search_bg: '#ffffff', search_fg: '#52525b', badge_bg: tk( 'badge_bg', '#e11d48' ), badge_fg: tk( 'badge_fg', '#ffffff' ), cta_bg: '#ffffff', cta_fg: tk( 'head_bg', '#0f172a' ) } },
+	];
+	const applyPalette = ( colors?: Colors ) => {
+		if ( colors ) {
+			setProfile( [ 'app_bar', 'colors' ], colors );
+		}
+		setProfile( [ 'app_bar', 'custom_colors' ], !! colors );
+	};
 	return (
 		<Section title={ __( 'Colores' ) } description={ __( 'Por defecto la barra usa los colores de la cabecera del panel (Diseño). Con colores propios puede tener los de la cabecera de tu sitio.' ) }>
+			<div className="imm:flex imm:flex-wrap imm:items-center imm:gap-1.5 imm:px-5 imm:py-3">
+				<span className="imm:mr-1 imm:text-xs imm:text-zinc-500">{ __( 'Paletas:' ) }</span>
+				{ palettes.map( ( p ) => (
+					<button key={ p.label } type="button" onClick={ () => applyPalette( p.colors ) } className="imm:inline-flex imm:items-center imm:gap-1.5 imm:rounded-full imm:border imm:border-zinc-200 imm:bg-white imm:py-1 imm:pr-3 imm:pl-1.5 imm:text-xs imm:font-medium imm:text-zinc-700 imm:hover:bg-zinc-50">
+						<span
+							aria-hidden
+							className="imm:size-4 imm:rounded-full imm:border imm:border-black/10"
+							style={ { background: p.colors ? ( p.colors.bg2 ? `linear-gradient(135deg, ${ p.colors.bg }, ${ p.colors.bg2 })` : p.colors.bg ) : tk( 'head_bg', '#0f172a' ) } }
+						/>
+						{ p.label }
+					</button>
+				) ) }
+			</div>
 			<ToggleRow label={ __( 'Colores propios' ) } hint={ a.custom_colors ? __( 'Los mismos en modo claro y oscuro.' ) : __( 'Apagado: fondo y texto de la cabecera del panel, buscador con el fondo del panel.' ) } checked={ a.custom_colors } onChange={ enable } />
 			{ a.custom_colors && (
 				<div className="imm:flex imm:flex-col imm:gap-5 imm:px-5 imm:py-4">
@@ -421,5 +454,153 @@ function ActionRow( {
 				</div>
 			) }
 		</div>
+	);
+}
+
+type Design = { layout: AppBarLayout; shape: AppBarShape; field: AppBarField; glass: boolean };
+
+/** Plantillas de la barra: combinaciones probadas de distribución, forma, campo y vidrio. */
+const TEMPLATES: { id: string; name: string; hint: string; d: Design }[] = [
+	{ id: 'classic', name: __( 'Clásica' ), hint: __( 'Buscador grande debajo.' ), d: { layout: 'stacked', shape: 'flat', field: 'pill', glass: false } },
+	{ id: 'compact', name: __( 'Compacta' ), hint: __( 'Todo en una fila: más pantalla.' ), d: { layout: 'inline', shape: 'flat', field: 'rounded', glass: false } },
+	{ id: 'curved', name: __( 'Curva' ), hint: __( 'Esquinas de abajo redondeadas.' ), d: { layout: 'stacked', shape: 'curved', field: 'pill', glass: false } },
+	{ id: 'island', name: __( 'Isla flotante' ), hint: __( 'Separada de los bordes.' ), d: { layout: 'stacked', shape: 'floating', field: 'rounded', glass: false } },
+	{ id: 'minimal', name: __( 'Minimal' ), hint: __( 'Sin sombra y campo suave.' ), d: { layout: 'stacked', shape: 'line', field: 'soft', glass: false } },
+	{ id: 'glass', name: __( 'Vidrio' ), hint: __( 'Translúcida con desenfoque.' ), d: { layout: 'stacked', shape: 'flat', field: 'soft', glass: true } },
+	{ id: 'compact-island', name: __( 'Isla compacta' ), hint: __( 'Una fila, separada de los bordes.' ), d: { layout: 'inline', shape: 'floating', field: 'soft', glass: false } },
+	{ id: 'compact-minimal', name: __( 'Compacta minimal' ), hint: __( 'Una fila, sin sombra.' ), d: { layout: 'inline', shape: 'line', field: 'soft', glass: false } },
+];
+
+const same = ( a: Design, b: Design ) => a.layout === b.layout && a.shape === b.shape && a.field === b.field && a.glass === b.glass;
+
+/**
+ * Diseño de la barra: galería de plantillas (con los colores y botones actuales) y los ajustes
+ * sueltos para combinarlos a mano. Los colores no cambian al elegir una plantilla.
+ */
+function DesignSection( { profile }: { profile: Profile } ) {
+	const a = profile.app_bar;
+	const current: Design = { layout: a.layout, shape: a.shape, field: a.field, glass: a.glass };
+	const apply = ( d: Design ) => {
+		for ( const [ key, value ] of Object.entries( d ) ) {
+			setProfile( [ 'app_bar', key ], value );
+		}
+	};
+	const set = ( key: keyof Design, value: unknown ) => setProfile( [ 'app_bar', key ], value );
+	const list = a.search ? TEMPLATES : TEMPLATES.filter( ( x ) => x.d.layout === 'stacked' );
+	return (
+		<Section title={ __( 'Diseño' ) } description={ __( 'Elige una plantilla y ajusta los detalles abajo. Se ven con tus colores y tus botones; los colores se cambian en «Colores».' ) }>
+			<div className="imm:grid imm:grid-cols-[repeat(auto-fill,minmax(176px,1fr))] imm:gap-3 imm:px-5 imm:py-4">
+				{ list.map( ( tpl ) => {
+					// Sin buscador, la distribución y el campo no se ven: cuentan la forma y el vidrio.
+					const on = a.search ? same( current, tpl.d ) : current.shape === tpl.d.shape && current.glass === tpl.d.glass;
+					return (
+						<button
+							key={ tpl.id }
+							type="button"
+							aria-pressed={ on }
+							onClick={ () => apply( tpl.d ) }
+							className={ cn( 'imm:flex imm:flex-col imm:gap-2 imm:rounded-xl imm:border imm:p-2 imm:text-left imm:transition', on ? 'imm:border-zinc-900 imm:ring-2 imm:ring-zinc-900/10' : 'imm:border-zinc-200 imm:hover:border-zinc-300' ) }
+						>
+							<BarMock profile={ profile } design={ tpl.d } />
+							<span className="imm:px-1">
+								<span className="imm:block imm:text-[13px] imm:font-medium imm:text-zinc-800">{ tpl.name }</span>
+								<span className="imm:block imm:text-[11px] imm:leading-snug imm:text-zinc-500">{ tpl.hint }</span>
+							</span>
+						</button>
+					);
+				} ) }
+			</div>
+			{ a.search && (
+				<Row label={ __( 'Distribución' ) }>
+					<Segmented value={ a.layout } onChange={ ( v ) => set( 'layout', v ) } options={ [ { value: 'stacked', label: __( 'Buscador debajo' ) }, { value: 'inline', label: __( 'Todo en una fila' ) } ] } />
+				</Row>
+			) }
+			<Row label={ __( 'Forma' ) }>
+				<Segmented
+					value={ a.shape }
+					onChange={ ( v ) => set( 'shape', v ) }
+					options={ [
+						{ value: 'flat', label: __( 'Recta' ) },
+						{ value: 'curved', label: __( 'Curva' ) },
+						{ value: 'floating', label: __( 'Isla flotante' ) },
+						{ value: 'line', label: __( 'Minimal' ) },
+					] }
+				/>
+			</Row>
+			{ a.search && (
+				<Row label={ __( 'Campo de búsqueda' ) } hint={ a.field === 'soft' ? __( 'Del color de la barra, translúcido (no usa los colores del buscador).' ) : undefined }>
+					<Segmented value={ a.field } onChange={ ( v ) => set( 'field', v ) } options={ [ { value: 'pill', label: __( 'Píldora' ) }, { value: 'rounded', label: __( 'Redondeado' ) }, { value: 'soft', label: __( 'Suave' ) } ] } />
+				</Row>
+			) }
+			<ToggleRow
+				label={ __( 'Efecto vidrio' ) }
+				hint={ __( 'Fondo translúcido con desenfoque: el contenido se adivina al pasar por debajo. Con un degradado usa el primer color. Cuesta un poco más en celulares de gama baja.' ) }
+				checked={ a.glass }
+				onChange={ ( v ) => set( 'glass', v ) }
+			/>
+		</Section>
+	);
+}
+
+/** Miniatura de la barra con un diseño, los colores actuales y sus botones (para la galería). */
+function BarMock( { profile, design }: { profile: Profile; design: Design } ) {
+	const a = profile.app_bar;
+	const t = profile.design.tokens;
+	const c = a.custom_colors
+		? a.colors
+		: { bg: String( t.head_bg ?? '#0f172a' ), bg2: '', fg: String( t.head_fg ?? '#ffffff' ), search_bg: String( t.bg ?? '#ffffff' ), search_fg: String( t.muted ?? '#62626b' ), cta_bg: String( t.head_fg ?? '#ffffff' ), cta_fg: String( t.head_bg ?? '#0f172a' ) };
+	const inline = a.search && design.layout === 'inline';
+	const floating = design.shape === 'floating';
+	const background = design.glass ? `color-mix(in srgb, ${ c.bg } 72%, transparent)` : c.bg2 ? `linear-gradient(135deg, ${ c.bg }, ${ c.bg2 })` : c.bg;
+	const shadow = { flat: '0 2px 8px -4px rgba(0,0,0,.35)', curved: '0 2px 8px -4px rgba(0,0,0,.35)', floating: '0 6px 14px -8px rgba(0,0,0,.45)', line: `0 1px 0 color-mix(in srgb, ${ c.fg } 18%, transparent)` }[ design.shape ];
+	const field = (
+		<span
+			className="imm:flex imm:h-5 imm:min-w-0 imm:flex-1 imm:items-center imm:gap-1 imm:px-1.5 imm:text-[8px]"
+			style={ {
+				borderRadius: design.field === 'rounded' ? 5 : 999,
+				background: design.field === 'soft' ? `color-mix(in srgb, ${ c.fg } 15%, transparent)` : c.search_bg,
+				color: design.field === 'soft' ? c.fg : c.search_fg,
+			} }
+		>
+			<IconView name="search" className="imm:size-2.5" />
+			<span className="imm:truncate">{ __( 'Buscar…' ) }</span>
+		</span>
+	);
+	const actions = a.actions.slice( 0, inline ? 2 : 3 );
+	return (
+		<span className="imm:relative imm:block imm:h-24 imm:overflow-hidden imm:rounded-lg imm:bg-zinc-100" aria-hidden>
+			{ /* Contenido de la página (se ve a través del vidrio) */ }
+			<span className="imm:absolute imm:top-7 imm:right-2 imm:left-2 imm:h-12 imm:rounded-md imm:bg-gradient-to-r imm:from-rose-300 imm:via-amber-200 imm:to-sky-300" />
+			<span className="imm:absolute imm:bottom-2 imm:left-2 imm:h-1.5 imm:w-2/3 imm:rounded imm:bg-zinc-300" />
+			<span
+				className="imm:absolute imm:flex imm:flex-col"
+				style={ {
+					top: floating ? 4 : 0,
+					left: floating ? 4 : 0,
+					right: floating ? 4 : 0,
+					borderRadius: floating ? 10 : design.shape === 'curved' ? '0 0 12px 12px' : 0,
+					background,
+					backdropFilter: design.glass ? 'blur(6px)' : undefined,
+					boxShadow: shadow,
+					color: c.fg,
+				} }
+			>
+				<span className="imm:flex imm:h-7 imm:items-center imm:gap-1 imm:px-1.5">
+					<IconView name={ profile.trigger.icon || 'menu' } className="imm:size-3 imm:shrink-0" />
+					<span className="imm:max-w-12 imm:shrink-0 imm:truncate imm:text-[9px] imm:font-bold">{ __( 'Logo' ) }</span>
+					{ inline ? field : <span className="imm:flex-1" /> }
+					{ actions.map( ( x ) =>
+						x.style === 'button' && x.label.trim() ? (
+							<span key={ x.id } className="imm:shrink-0 imm:truncate imm:rounded-full imm:px-1.5 imm:py-0.5 imm:text-[7px] imm:font-semibold" style={ { background: c.cta_bg, color: c.cta_fg, maxWidth: 48 } }>
+								{ x.label }
+							</span>
+						) : (
+							<IconView key={ x.id } name={ x.icon || ACTIONS.find( ( y ) => y.value === x.action )?.icon || 'star' } className="imm:size-3 imm:shrink-0" />
+						)
+					) }
+				</span>
+				{ a.search && ! inline && <span className="imm:flex imm:px-1.5 imm:pb-1.5">{ field }</span> }
+			</span>
+		</span>
 	);
 }

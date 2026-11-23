@@ -41,7 +41,10 @@ final class CssBuilder {
 		} elseif ( 'auto' === $design['color_mode'] ) {
 			$critical .= '@media (prefers-color-scheme:dark){' . self::vars( $design['dark_tokens'] ) . '}';
 		}
-		$critical .= self::asset( 'critical.css' );
+		$critical .= self::asset( 'critical.css' ) . self::asset( 'fab/' . $profile['trigger']['position'] . '.css' );
+		if ( $profile['bottom_bar']['enabled'] && $profile['bottom_bar']['items'] ) {
+			$critical .= self::bottom_bar_css( $profile['bottom_bar'] );
+		}
 		// Dentro de un iframe de otro sitio (Ajustes → Dónde no se muestra) el <html> lleva .imm-framed:
 		// nada del menú se ve y no se reserva su espacio ni se oculta la cabecera o el menú del tema.
 		$root = ! empty( $settings['exclude']['iframes'] ) ? 'html:not(.imm-framed) ' : '';
@@ -80,7 +83,8 @@ final class CssBuilder {
 		// reservado en el <body>. Solo en celulares (hasta el breakpoint).
 		$ab = $profile['app_bar'];
 		if ( $ab['enabled'] ) {
-			$height    = 52 + ( $ab['search'] ? 50 : 0 );
+			// 52 px la fila; 50 más con el buscador debajo; la isla flotante deja 8 px arriba y abajo.
+			$height    = 52 + ( $ab['search'] && 'inline' !== $ab['layout'] ? 50 : 0 ) + ( 'floating' === $ab['shape'] ? 16 : 0 );
 			// La cabecera del tema se oculta solo en celulares y solo con la barra activa (la reemplaza).
 			$header    = '' !== $ab['hide_header'] ? self::scope( $root, $ab['hide_header'] ) . '{display:none!important}' : '';
 			$critical .= '@media (max-width:' . $bp . 'px){' . self::asset( 'appbar.css' ) . self::app_bar_extras( $ab ) . self::app_bar_vars( $ab ) . self::app_bar_colors( $ab ) . $header . $root . 'body{padding-top:calc(' . $height . 'px + env(safe-area-inset-top,0px))!important}}'
@@ -159,22 +163,62 @@ final class CssBuilder {
 	}
 
 	/**
-	 * Partes de la barra superior que solo van si el perfil las usa: el logo centrado y el botón con
-	 * texto («Cotizar», «Agendar»). El botón lleva por defecto los colores de la cabecera invertidos
-	 * (el mismo contraste que los iconos); con colores propios, los suyos.
+	 * Variantes de la barra superior que el perfil usa (diseño, logo centrado, botón con texto): un
+	 * archivo por opción en assets/dist/appbar/. Nada extra con el diseño clásico.
 	 *
 	 * @param array<string, mixed> $ab
 	 */
 	private static function app_bar_extras( array $ab ): string {
-		// Logo centrado (como muchas apps), sin tapar los botones de los lados.
-		$css = 'center' === $ab['logo_align'] ? '.imm-ab-center .imm-ab-row{position:relative}.imm-ab-center a.imm-ab-logo{max-width:min(var(--imm-ab-logo-w,150px),calc(100% - 200px));justify-content:center;position:absolute;left:50%;transform:translate(-50%)}.imm-ab-center .imm-ab-logo img{object-position:center}' : '';
+		$inline = $ab['search'] && 'inline' === $ab['layout'];
+		$files  = array();
+		if ( 'flat' !== $ab['shape'] ) {
+			$files[] = 'shape-' . $ab['shape'];
+		}
+		if ( 'pill' !== $ab['field'] && $ab['search'] ) {
+			$files[] = 'field-' . $ab['field'];
+		}
+		if ( $ab['glass'] ) {
+			$files[] = 'glass';
+		}
+		// En una fila con el buscador no hay sitio para el logo centrado: va junto al menú.
+		if ( $inline ) {
+			$files[] = 'inline';
+		} elseif ( 'center' === $ab['logo_align'] ) {
+			$files[] = 'center';
+		}
 		foreach ( $ab['actions'] as $action ) {
 			if ( 'button' === $action['style'] && '' !== $action['label'] ) {
-				return $css . '.imm-ab-row .imm-ab-cta{width:auto;max-width:48vw;height:36px;gap:6px;margin:0 4px;padding:0 14px;border-radius:99px;background:var(--imm-ab-cbg,var(--imm-head-fg));color:var(--imm-ab-cfg,var(--imm-head-bg));font-size:14px;font-weight:600;white-space:nowrap}'
-					. '.imm-ab-cta span{overflow:hidden;text-overflow:ellipsis}.imm-ab-cta .imm-i{width:18px;height:18px}';
+				$files[] = 'cta';
+				break;
 			}
 		}
-		return $css;
+		return implode( '', array_map( static fn( $f ) => self::asset( 'appbar/' . $f . '.css' ), $files ) );
+	}
+
+	/**
+	 * Barra inferior con solo las variantes elegidas (indicador, etiquetas ocultas, flotante,
+	 * translúcida, botón central).
+	 *
+	 * @param array<string, mixed> $bar
+	 */
+	private static function bottom_bar_css( array $bar ): string {
+		$files = array( 'bbar' );
+		if ( 'color' !== $bar['indicator'] ) {
+			$files[] = 'bbar/ind-' . $bar['indicator'];
+		}
+		if ( 'labels' !== $bar['style'] ) {
+			$files[] = 'bbar/labels-hidden';
+		}
+		if ( 'floating' === $bar['shape'] ) {
+			$files[] = 'bbar/floating';
+		}
+		if ( $bar['blur'] ) {
+			$files[] = 'bbar/blur';
+		}
+		if ( in_array( true, array_column( $bar['items'], 'prominent' ), true ) ) {
+			$files[] = 'bbar/main';
+		}
+		return implode( '', array_map( static fn( $f ) => self::asset( $f . '.css' ), $files ) );
 	}
 
 	/** Familias tipográficas del sistema (no se descarga ninguna fuente). */

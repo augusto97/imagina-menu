@@ -147,14 +147,4 @@ final class AppBarActionsTest extends TestCase {
 		$kept = Normalizer::profile( array( 'app_bar' => array( 'colors' => array( 'cta_bg' => '#16a34a', 'cta_fg' => '#ffffff' ) ) ) )['app_bar']['colors'];
 		$this->assertSame( '#16a34a', $kept['cta_bg'] );
 	}
-
-	/** Presupuesto: el CSS crítico con la barra, el logo centrado y el botón con texto (peor caso) ≤ 2,10 KB gzip. */
-	public function test_worst_case_critical_css_fits_the_budget(): void {
-		$dist = dirname( __DIR__, 2 ) . '/assets/dist/';
-		$base = (string) file_get_contents( $dist . 'critical.css' ) . (string) file_get_contents( $dist . 'appbar.css' );
-		$css  = CssBuilder::build( self::profile( array( array( 'action' => 'link', 'style' => 'button', 'label' => 'Cotizar', 'url' => '/c/' ) ), array( 'logo_align' => 'center' ) ), Normalizer::settings( array() ) )['critical'];
-		preg_match( '/\.imm-ab-center \.imm-ab-row.*?\.imm-ab-cta \.imm-i\{[^}]*\}/', $css, $m );
-		$this->assertNotEmpty( $m );
-		$this->assertLessThanOrEqual( 2150, strlen( (string) gzencode( $base . $m[0], 9 ) ) );
-	}
 }

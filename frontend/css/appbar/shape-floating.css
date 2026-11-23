@@ -1,0 +1,8 @@
+/* Isla flotante: separada 8 px de los bordes, con esquinas y sombra propias */
+.imm-appbar {
+	top: calc(var(--wp-admin--admin-bar--height, 0px) + 8px);
+	right: 8px;
+	left: 8px;
+	border-radius: 18px;
+	box-shadow: 0 8px 24px -10px rgb(0 0 0 / .4);
+}

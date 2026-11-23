@@ -146,6 +146,11 @@ final class Defaults {
 				'logo_height'    => 28, // alto en px (la barra mide 52)
 				'logo_width'     => 150, // ancho máximo en px
 				'logo_align'     => 'left', // left (junto al menú) | center
+				// Diseño (plantillas en el admin): distribución, forma, campo de búsqueda y efecto vidrio.
+				'layout'         => 'stacked', // stacked (buscador debajo) | inline (todo en una fila)
+				'shape'          => 'flat', // flat | curved (esquinas de abajo redondeadas) | floating (isla) | line (minimal, sin sombra)
+				'field'          => 'pill', // pill | rounded | soft (translúcido, del color de la barra)
+				'glass'          => false, // fondo translúcido con desenfoque
 				// Cabecera del tema que se oculta en celulares cuando la barra está activa (selector CSS).
 				'hide_header'    => '',
 				// Botones de la derecha (hasta 3): iconos o un botón con texto, con su acción.

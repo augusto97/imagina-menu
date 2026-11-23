@@ -1,0 +1,9 @@
+/* Etiquetas ocultas (solo iconos, o solo la del activo): siguen para lectores de pantalla */
+.imm-bb-st--icons .imm-bb-l,
+.imm-bb-st--active_label .imm-bb-it:not([aria-current]) .imm-bb-l {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+}

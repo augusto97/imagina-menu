@@ -1,0 +1,10 @@
+.imm-bb-ind--line [aria-current]::before {
+	position: absolute;
+	top: 0;
+	right: 28%;
+	left: 28%;
+	height: 3px;
+	border-radius: 0 0 3px 3px;
+	background: var(--imm-bbar-active);
+	content: "";
+}

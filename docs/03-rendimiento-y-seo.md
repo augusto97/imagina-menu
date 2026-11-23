@@ -5,7 +5,7 @@
 | Métrica | Límite | Cómo se mide |
 |---|---|---|
 | CSS total del frontend | ≤ 6 KB gzip (todos los módulos activos) | `size-limit` en el build |
-| CSS crítico inline | ≤ 1,7 KB gzip (v0.1: 1,43 KB) | `npm run size` |
+| CSS crítico inline | ≤ 1,7 KB gzip sin barras y con la barra inferior (peor caso de sus variantes); ≤ 2,1 KB con las dos barras (peor caso) | `npm run size` |
 | JS inicial (`core.js`) | ≤ 4 KB gzip | `size-limit` |
 | Cada módulo JS bajo demanda | ≤ 3 KB gzip | `size-limit` |
 | Sprite de iconos inline | ≤ 3 KB sin comprimir con 12 iconos | test del compilador |
@@ -143,7 +143,8 @@ El plugin **detecta** estos plugins y, cuando es posible, añade las exclusiones
 ### v0.5
 
 - `core.js` baja a 3,69 KB gzip (de 3,99) al pasar a módulos bajo demanda los gestos (0,31 KB), las búsquedas recientes (0,51 KB) y el horario de WhatsApp (0,38 KB): ningún sitio paga por lo que no usa.
-- La barra superior móvil va en el CSS crítico solo si está activa (el crítico con ella: 1,96 KB gzip, tope 2,1 KB; el logo centrado y el botón con texto, solo si se usan) y reserva su alto: CLS = 0, medido.
+- La barra superior móvil va en el CSS crítico solo si está activa y reserva su alto: CLS = 0, medido.
+- **CSS crítico por variantes (v0.5.8)**: la barra inferior, la superior y la posición del botón flotante ya no van completas en el crítico. Cada una tiene su base y un archivo por variante (`assets/dist/bbar/`, `appbar/`, `fab/`), y el compilador incluye solo las que usa el perfil (como los estilos del panel). Resultado: un sitio sin barras baja de 1,53 a 0,87 KB gzip de CSS crítico; con la barra inferior, 1,44 KB en el peor caso de sus variantes; con las dos barras, 2,08 KB en el peor caso (tope 2,1). `npm run size` mide siempre el peor caso (la variante más pesada de cada opción).
 - Los banners no cuestan nada en la carga: `loading="lazy"` dentro del panel cerrado (se descargan al abrirlo).
 - Las campañas no hacen consultas por visita: marcas de tiempo precalculadas y un evento de WP-Cron en cada límite.
 - Análisis estático y CI: PHPStan nivel 6 sin errores, ESLint, presupuesto y build en GitHub Actions en cada push.

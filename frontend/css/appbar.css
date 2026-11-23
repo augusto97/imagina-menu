@@ -4,7 +4,8 @@
  * Colores: los propios de la barra (--imm-ab-*, ajuste «Colores propios») o, si no, los de la
  * cabecera del panel (--imm-head-bg / --imm-head-fg). Los tokens del diseño siempre están en el
  * CSS crítico: sin valores de respaldo (cada byte del crítico cuenta).
- * El logo centrado y el botón con texto se añaden solo si el perfil los usa (CssBuilder).
+ * El logo centrado, el botón con texto y los diseños (forma, una fila, campo, vidrio) se añaden
+ * solo si el perfil los usa (CssBuilder) y sobrescriben estas reglas.
  */
 .imm-appbar {
 	position: fixed;
@@ -20,12 +21,19 @@
 	transition: transform .25s var(--imm-ease);
 }
 
+/* Más que su alto: la isla flotante está separada del borde y no debe asomar */
 .imm-appbar.imm-hidden {
-	transform: translateY(-100%);
+	transform: translateY(-120%);
 }
 
+/* Al bajar queda solo el buscador, con un margen arriba (no pegado al borde de la pantalla); la
+   fila de arriba se esconde al terminar de subir (no asoma bajo la barra de estado). */
 .imm-ab-keep.imm-hidden {
-	transform: translateY(-52px);
+	transform: translateY(-44px);
+}
+
+.imm-ab-keep.imm-hidden .imm-ab-row {
+	visibility: hidden;
 }
 
 .imm-ab-row {
@@ -34,6 +42,7 @@
 	gap: 2px;
 	height: 52px;
 	padding: 0 6px;
+	transition: visibility .25s;
 }
 
 .imm-ab-sp {

@@ -1,0 +1,26 @@
+/* Botón con texto («Cotizar», «Agendar»): por defecto, los colores de la cabecera invertidos (el
+   mismo contraste que los iconos); con colores propios, los suyos */
+.imm-ab-row .imm-ab-cta {
+	gap: 6px;
+	width: auto;
+	max-width: 48vw;
+	height: 36px;
+	margin: 0 4px;
+	padding: 0 14px;
+	border-radius: 99px;
+	background: var(--imm-ab-cbg, var(--imm-head-fg));
+	color: var(--imm-ab-cfg, var(--imm-head-bg));
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.imm-ab-cta span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.imm-ab-cta .imm-i {
+	width: 18px;
+	height: 18px;
+}

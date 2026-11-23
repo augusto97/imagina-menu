@@ -1,0 +1,4 @@
+/* Campo de búsqueda con esquinas redondeadas (no píldora) */
+button.imm-ab-field {
+	border-radius: 10px;
+}

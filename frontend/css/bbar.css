@@ -1,0 +1,105 @@
+/*
+ * Barra inferior (solo si el perfil la usa). Va en el CSS crítico con su alto reservado.
+ * Las variantes (indicador, solo iconos, flotante, translúcida, botón central) están en bbar/ y el
+ * compilador añade solo las elegidas.
+ */
+.imm-bbar {
+	position: fixed;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 99980;
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	border-top: 1px solid var(--imm-border);
+	background: var(--imm-bbar-bg);
+	transition: transform .3s var(--imm-ease);
+}
+
+.imm-bbar > ul {
+	display: flex;
+	height: var(--imm-bb-h);
+	margin: 0;
+	padding: 0 4px;
+	list-style: none;
+}
+
+.imm-bbar li {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.imm-bb-it,
+button.imm-bb-it {
+	position: relative;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	min-width: 0;
+	margin: 0;
+	padding: 6px 2px;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--imm-bbar-fg);
+	font: inherit;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.15;
+	text-decoration: none;
+	text-transform: none;
+	letter-spacing: normal;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.imm-bb-it:hover,
+.imm-bb-it:focus {
+	background: none;
+	color: var(--imm-bbar-fg);
+}
+
+.imm-bb-ic {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 30px;
+	border-radius: 999px;
+	transition: background-color .2s;
+}
+
+.imm-bb-ic .imm-i {
+	width: 24px;
+	height: 24px;
+}
+
+.imm-bb-l {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.imm-bb-it[aria-current],
+.imm-bb-it[aria-current]:hover {
+	color: var(--imm-bbar-active);
+	font-weight: 650;
+}
+
+.imm-bbar.imm-hidden {
+	transform: translateY(110%);
+}
+
+/* Contadores de la barra inferior con colores propios (--imm-bb-b*, ajuste del perfil) */
+.imm-bbar .imm-bb-badge {
+	background: var(--imm-bb-bbg, var(--imm-badge-bg));
+	color: var(--imm-bb-bfg, var(--imm-badge-fg));
+}

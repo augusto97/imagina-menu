@@ -1,0 +1,16 @@
+/* Logo centrado (como muchas apps), sin tapar los botones de los lados */
+.imm-ab-center .imm-ab-row {
+	position: relative;
+}
+
+.imm-ab-center a.imm-ab-logo {
+	position: absolute;
+	left: 50%;
+	max-width: min(var(--imm-ab-logo-w, 150px), calc(100% - 200px));
+	justify-content: center;
+	transform: translateX(-50%);
+}
+
+.imm-ab-center .imm-ab-logo img {
+	object-position: center;
+}

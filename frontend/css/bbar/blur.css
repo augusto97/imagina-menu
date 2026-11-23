@@ -1,0 +1,5 @@
+.imm-bb--blur {
+	background: color-mix(in srgb, var(--imm-bbar-bg) 80%, transparent);
+	-webkit-backdrop-filter: blur(14px) saturate(1.6);
+	backdrop-filter: blur(14px) saturate(1.6);
+}

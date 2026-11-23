@@ -668,9 +668,11 @@ final class Renderer {
 	 * (CLS = 0). Los botones abren el panel y el buscador con popovertarget (sin JS).
 	 */
 	private function app_bar(): string {
-		$a     = $this->profile['app_bar'];
-		$keep  = 'top' === $a['hide_on_scroll'] && $a['search'];
-		$class = 'imm-appbar' . ( $keep ? ' imm-ab-keep' : '' ) . ( 'center' === $a['logo_align'] ? ' imm-ab-center' : '' );
+		$a      = $this->profile['app_bar'];
+		$inline = $a['search'] && 'inline' === $a['layout'];
+		// En una fila no hay fila de arriba que esconder: al bajar se oculta toda.
+		$keep  = 'top' === $a['hide_on_scroll'] && $a['search'] && ! $inline;
+		$class = 'imm-appbar' . ( $keep ? ' imm-ab-keep' : '' ) . ( $inline ? ' imm-ab-inline' : ( 'center' === $a['logo_align'] ? ' imm-ab-center' : '' ) );
 		$html  = '<div class="' . $class . '" role="navigation" aria-label="' . esc_attr( $this->s( 'Barra superior' ) ) . '"' . ( 'none' !== $a['hide_on_scroll'] ? ' data-hide-scroll' : '' ) . '><div class="imm-ab-row">';
 		if ( $this->profile['drawer']['enabled'] ) {
 			$html .= '<button type="button" class="imm-ab-btn" popovertarget="imm-drawer" aria-controls="imm-drawer" aria-expanded="false" aria-label="' . esc_attr( $this->s( 'Abrir menú' ) ) . '" data-imm-open>' . $this->icons->inline( $this->profile['trigger']['icon'] ) . '</button>';
@@ -681,14 +683,13 @@ final class Renderer {
 		$logo  = $a['logo'] && '' !== $src
 			? '<img src="' . esc_url( $src ) . '" alt="' . esc_attr( $this->site['name'] ) . '" height="' . (int) $a['logo_height'] . '" decoding="async">'
 			: esc_html( $this->site['name'] );
-		$html .= '<a class="imm-ab-logo" href="' . esc_url( $this->site['home_url'] ) . '">' . $logo . '</a><span class="imm-ab-sp"></span>';
+		$field = $a['search'] ? '<div class="imm-ab-search"><button type="button" class="imm-ab-field" popovertarget="imm-search" data-imm-search>' . $this->icons->inline( 'search' ) . '<span>' . esc_html( $this->profile['search']['placeholder'] ) . '</span></button></div>' : '';
+		// En una fila el campo ocupa el hueco entre el logo y los botones; si no, va debajo.
+		$html .= '<a class="imm-ab-logo" href="' . esc_url( $this->site['home_url'] ) . '">' . $logo . '</a>' . ( $inline ? $field : '<span class="imm-ab-sp"></span>' );
 		foreach ( $a['actions'] as $action ) {
 			$html .= $this->app_bar_action( $action );
 		}
-		$html .= '</div>';
-		if ( $a['search'] ) {
-			$html .= '<div class="imm-ab-search"><button type="button" class="imm-ab-field" popovertarget="imm-search" data-imm-search>' . $this->icons->inline( 'search' ) . '<span>' . esc_html( $this->profile['search']['placeholder'] ) . '</span></button></div>';
-		}
+		$html .= '</div>' . ( $inline ? '' : $field );
 		return $html . '</div>';
 	}
 

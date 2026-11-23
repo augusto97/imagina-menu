@@ -1,0 +1,3 @@
+.imm-bb-ind--pill [aria-current] .imm-bb-ic {
+	background: var(--imm-bbar-active-bg);
+}

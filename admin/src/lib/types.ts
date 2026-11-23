@@ -106,6 +106,10 @@ export interface Menu {
 
 export type BottomAction = 'link' | 'drawer' | 'search' | 'cart' | 'account' | 'wishlist' | 'whatsapp' | 'phone' | 'top';
 
+export type AppBarLayout = 'stacked' | 'inline';
+export type AppBarShape = 'flat' | 'curved' | 'floating' | 'line';
+export type AppBarField = 'pill' | 'rounded' | 'soft';
+
 export type AppBarActionType = 'link' | 'search' | 'account' | 'cart' | 'wishlist' | 'whatsapp' | 'phone';
 
 /** Botón de la derecha de la barra superior: un icono o un botón con texto («Cotizar»). */
@@ -239,6 +243,12 @@ export interface Profile {
 		logo_height: number;
 		logo_width: number;
 		logo_align: 'left' | 'center';
+		/** Diseño: buscador debajo o todo en una fila. */
+		layout: AppBarLayout;
+		shape: AppBarShape;
+		field: AppBarField;
+		/** Fondo translúcido con desenfoque. */
+		glass: boolean;
 		/** Selector de la cabecera del tema que se oculta en celulares (requiere edit_css). */
 		hide_header: string;
 		/** Botones de la derecha (hasta 3). */

@@ -1,0 +1,22 @@
+/* Una fila: el campo ocupa el hueco entre el logo y los botones (el logo se encoge) */
+.imm-ab-inline .imm-ab-search {
+	flex: 1;
+	min-width: 0;
+	padding: 0 4px;
+}
+
+.imm-ab-inline button.imm-ab-field {
+	gap: 8px;
+	height: 38px;
+	padding: 0 12px;
+}
+
+.imm-ab-inline .imm-ab-field span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.imm-ab-inline a.imm-ab-logo {
+	max-width: min(var(--imm-ab-logo-w, 150px), 26vw);
+}

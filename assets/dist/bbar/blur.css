@@ -1,0 +1,1 @@
+.imm-bb--blur{background:color-mix(in srgb, var(--imm-bbar-bg) 80%, transparent);backdrop-filter:blur(14px)saturate(1.6)}

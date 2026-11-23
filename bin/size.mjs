@@ -2,6 +2,17 @@
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
+// La barra inferior y la superior van en el CSS crítico solo si el perfil las usa, con solo las
+// variantes elegidas (bbar/, appbar/). Peor caso: la variante más pesada de cada opción.
+const dist = 'assets/dist/';
+const size = ( f ) => readFileSync( dist + f ).length;
+const heaviestOf = ( files ) => files.reduce( ( a, b ) => ( size( a ) >= size( b ) ? a : b ) );
+const bbarWorst = [ 'bbar.css', heaviestOf( [ 'bbar/ind-pill.css', 'bbar/ind-line.css', 'bbar/ind-dot.css' ] ), 'bbar/labels-hidden.css', 'bbar/floating.css', 'bbar/blur.css', 'bbar/main.css' ];
+// El logo centrado y la distribución en una fila no van juntos.
+const appbarWorst = [ 'appbar.css', heaviestOf( [ 'appbar/shape-curved.css', 'appbar/shape-floating.css', 'appbar/shape-line.css' ] ), heaviestOf( [ 'appbar/field-rounded.css', 'appbar/field-soft.css' ] ), 'appbar/glass.css', heaviestOf( [ 'appbar/inline.css', 'appbar/center.css' ] ), 'appbar/cta.css' ];
+const fabWorst = heaviestOf( [ 'fab/bottom-left.css', 'fab/bottom-right.css', 'fab/top-left.css', 'fab/top-right.css' ] );
+const critical = [ 'critical.css', fabWorst, ...bbarWorst ].map( ( f ) => dist + f );
+
 const budget = [
 	[ 'assets/dist/core.js', 4096, 'JS inicial' ],
 	[ 'assets/dist/track.js', 3072, 'Módulo de analítica (bajo demanda)' ],
@@ -11,12 +22,14 @@ const budget = [
 	[ 'assets/dist/recent.js', 3072, 'Módulo de búsquedas recientes (bajo demanda, al abrir el buscador)' ],
 	[ 'assets/dist/desktop.js', 3072, 'Módulo de escritorio (bajo demanda, solo pantallas anchas)' ],
 	[ 'assets/dist/preview.js', 3072, 'Vista previa en vivo (solo en el admin)' ],
-	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/cascade.css' ], 6144, 'CSS en escritorio con cascada' ],
-	[ 'assets/dist/critical.css', 1700, 'CSS crítico (gzip)' ],
-	[ [ 'assets/dist/critical.css', 'assets/dist/appbar.css' ], 2150, 'CSS crítico con la barra superior (solo si se usa)' ],
-	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css' ], 6144, 'CSS total (modo más pesado: pestañas)' ],
-	[ [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/grid.css' ], 6656, 'CSS de todos los modos juntos (referencia)' ],
+	[ [ ...critical, 'assets/dist/drawer.css', 'assets/dist/cascade.css' ], 6144, 'CSS en escritorio con cascada' ],
+	[ [ 'assets/dist/critical.css', dist + fabWorst ], 1700, 'CSS crítico sin barras (gzip)' ],
+	[ critical, 1700, 'CSS crítico con la barra inferior (peor caso de sus variantes)' ],
+	[ [ ...critical, ...appbarWorst.map( ( f ) => dist + f ) ], 2150, 'CSS crítico con las dos barras (peor caso de sus variantes)' ],
+	[ [ ...critical, 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css' ], 6144, 'CSS total (modo más pesado: pestañas)' ],
+	[ [ ...critical, 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/grid.css' ], 6656, 'CSS de todos los modos juntos (referencia)' ],
 ];
+
 // Peor caso de estilos: la variante más pesada de cada opción + entrada escalonada.
 import { readdirSync } from 'node:fs';
 const heaviest = {};
@@ -26,7 +39,7 @@ for ( const f of readdirSync( 'assets/dist/styles' ) ) {
 	if ( group === 'stagger' || group === 'panel' ) continue;
 	if ( ! heaviest[ group ] || heaviest[ group ][ 1 ] < size ) heaviest[ group ] = [ f, size ];
 }
-const worst = [ 'assets/dist/critical.css', 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/styles/panel-floating.css', 'assets/dist/styles/panel-glass.css', 'assets/dist/styles/stagger.css', ...Object.values( heaviest ).map( ( [ f ] ) => `assets/dist/styles/${ f }` ) ];
+const worst = [ ...critical, 'assets/dist/drawer.css', 'assets/dist/two-pane.css', 'assets/dist/tabs.css', 'assets/dist/styles/panel-floating.css', 'assets/dist/styles/panel-glass.css', 'assets/dist/styles/stagger.css', ...Object.values( heaviest ).map( ( [ f ] ) => `assets/dist/styles/${ f }` ) ];
 budget.push( [ worst, 6144, 'CSS peor caso (modo pestañas + el estilo más pesado de cada opción)' ] );
 
 let fail = false;

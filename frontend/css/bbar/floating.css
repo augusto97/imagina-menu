@@ -1,0 +1,13 @@
+.imm-bb--floating {
+	right: 12px;
+	bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+	left: 12px;
+	padding-bottom: 0;
+	border: 1px solid var(--imm-border);
+	border-radius: calc(var(--imm-r) + 10px);
+	box-shadow: 0 10px 30px rgb(0 0 0 / .14);
+}
+
+.imm-bb--floating.imm-hidden {
+	transform: translateY(calc(100% + 40px));
+}
