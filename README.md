@@ -2,7 +2,7 @@
 
 Esta rama solo contiene el plugin empaquetado, listo para instalar en WordPress (sin código fuente).
 
-**Última versión: 0.5.7** — [descargar imagina-menu.zip](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu.zip)
+**Última versión: 0.5.8** — [descargar imagina-menu.zip](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu.zip)
 
 ## Instalar
 
@@ -17,6 +17,7 @@ Verifica la descarga con `sha256sum -c SHA256SUMS` (ver [SHA256SUMS](SHA256SUMS)
 
 | Versión | Fecha | Descarga | Tamaño | Código fuente |
 |---|---|---|---|---|
+| 0.5.8 | 2026-11-23 | [imagina-menu-0.5.8.zip](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu-0.5.8.zip) | 844K | [`fe28b44`](https://github.com/augusto97/imagina-menu/commit/fe28b44) |
 | 0.5.7 | 2026-11-23 | [imagina-menu-0.5.7.zip](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu-0.5.7.zip) | 832K | [`bf421de`](https://github.com/augusto97/imagina-menu/commit/bf421de) |
 | 0.5.6 | 2026-11-19 | [imagina-menu-0.5.6.zip](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu-0.5.6.zip) | 828K | [`32c65c0`](https://github.com/augusto97/imagina-menu/commit/32c65c0) |
 | 0.5.5 | 2026-11-18 | [imagina-menu-0.5.5.zip](https://github.com/augusto97/imagina-menu/raw/release/imagina-menu-0.5.5.zip) | 824K | [`79616be`](https://github.com/augusto97/imagina-menu/commit/79616be) |
